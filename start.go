@@ -1,0 +1,185 @@
+/*
+Copyright 2014 Ontario Systems
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package main
+
+import (
+	"bitbucket.org/kardianos/osext"
+	"fmt"
+	docker "github.com/fsouza/go-dockerclient"
+	"github.com/spf13/cobra"
+	"io"
+	"os"
+	"os/exec"
+	"os/user"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+)
+
+var startRemove bool
+var startVersion string
+var startPortOffset int64
+var startQuiet bool
+
+var startCommand = &cobra.Command{
+	Use:   "start INSTANCE [INSTANCE...]",
+	Short: "Start an ISC product container",
+	Long:  "Create or start one or more ISC product containers with the supplied options",
+}
+
+func init() {
+	startCommand.Run = start
+	startCommand.Flags().BoolVarP(&startRemove, "remove", "r", false, "Remove existing instance before starting")
+	startCommand.Flags().StringVarP(&startVersion, "version", "v", "", "The version of ISC product to start.  By default this will find the latest version on your system.")
+	startCommand.Flags().Int64VarP(&startPortOffset, "port-offset", "p", -1, "The port offset for this instance's ports.  -1 means autodetect.  Will increment by 1 if more than 1 instance is specified.")
+	startCommand.Flags().BoolVarP(&startQuiet, "quiet", "q", false, "Only display numeric IDs")
+}
+
+func start(_ *cobra.Command, args []string) {
+	if startVersion == "" {
+		startVersion = getVersions().latest().version
+	}
+
+	// This loop is somewhat inefficient (with the multiple getInstances())  I doubt there will ever be enough to make it a performance issue.
+	for _, arg := range args {
+		// TODO: Add remove
+		instance := strings.ToLower(arg)
+		current := getInstances()
+
+		existing := current.find(instance)
+		if existing != nil {
+			// NOTE: I wish this wasn't necessary (and maybe it isn't) but it seems that the api uses a blank hostConfig instead of nil which seems to wipe out all of the settings
+			dockerClient.StartContainer(existing.id, existing.container().HostConfig)
+			fmt.Println(existing.id)
+		} else {
+			var offset int64
+			if startPortOffset == -1 {
+				offset = current.calculateNextPortOffset()
+			} else {
+				offset = startPortOffset
+				startPortOffset += 1
+			}
+
+			container := createInstance(instance, startVersion, offset)
+			executePrep(instance)
+			fmt.Println(container.ID)
+		}
+	}
+}
+
+func createInstance(instance string, version string, portOffset int64) *docker.Container {
+	container, err := dockerClient.CreateContainer(getCreateOpts(instance, version, portOffset))
+	if err != nil {
+		Fatalf("Could not create instance, name: %s\n", instance)
+	}
+
+	err = dockerClient.StartContainer(container.ID, getStartOpts(portOffset))
+	if err != nil {
+		Fatalf("Could not start created instance, name: %s\n", instance)
+	}
+
+	return container
+}
+
+func getCreateOpts(name string, version string, portOffset int64) docker.CreateContainerOptions {
+	image := REPOSITORY + ":" + version
+
+	home := homeDir()
+	config := docker.Config{
+		Image: image,
+		Env:   []string{"HOST_HOME=" + home},
+		Volumes: map[string]struct{}{
+			"/data":   struct{}{},
+			"/iscenv": struct{}{},
+			home:      struct{}{},
+		}}
+
+	opts := docker.CreateContainerOptions{
+		Name:   CONTAINER_PREFIX + name,
+		Config: &config}
+
+	return opts
+}
+
+func getStartOpts(portOffset int64) *docker.HostConfig {
+	return &docker.HostConfig{
+		Privileged: true,
+		Binds: []string{
+			exeDir() + ":/iscenv:ro",
+			homeDir() + ":" + homeDir(),
+		},
+		PortBindings: map[docker.Port][]docker.PortBinding{
+			port(INTERNAL_PORT_SSH): portBinding(EXTERNAL_PORT_SSH, portOffset),
+			port(INTERNAL_PORT_SS):  portBinding(EXTERNAL_PORT_SS, portOffset),
+			port(INTERNAL_PORT_WEB): portBinding(EXTERNAL_PORT_WEB, portOffset),
+		},
+	}
+}
+
+func executePrep(instance string) {
+	time.Sleep(5000 * time.Millisecond)
+
+	sshExec(instance, osSshFn, "/iscenv/iscenv", "prep", "-u", strconv.Itoa(os.Getuid()), "-g", strconv.Itoa(os.Getgid()), "-h", hgcachePath())
+}
+
+func homeDir() string {
+	usr, err := user.Current()
+	if err != nil {
+		Fatalf("Could not determine current user, err: %s\n", err)
+	}
+
+	return usr.HomeDir
+}
+
+func exeDir() string {
+	folder, err := osext.ExecutableFolder()
+	if err != nil {
+		Fatalf("Could not determine executable folder, err: %s\n", err)
+	}
+
+	return folder
+}
+
+func hgcachePath() string {
+	out, err := exec.Command("hg", "showconfig", "extensions.hg-cache").CombinedOutput()
+	if err != nil {
+		Fatal("hg showconfig extensions.hg-cache failed")
+	}
+
+	return filepath.Join(filepath.Dir(filepath.Dir(strings.TrimSpace(string(out)))), "cache")
+}
+
+func osSshFn(sshbin string, args []string) error {
+	cmd := exec.Command(sshbin, args...)
+
+	stdoutPipe, err := cmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+
+	err = cmd.Start()
+	if err != nil {
+		return err
+	}
+
+	if !startQuiet {
+		go io.Copy(os.Stdout, stdoutPipe)
+	}
+
+	return cmd.Wait()
+}
