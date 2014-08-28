@@ -15,7 +15,16 @@ only if they will not complicate the intentionally simple design of this project
 - Evaluate command execution / exits for consistency (use fatal at the same times, always loop over all instances or always fail on first error)
 - Make all commands return the instance name rather than the container ID
 - Use tag-based versioning instead of committed version
-- Add the ability to run a command with csession
+- Add the ability to run a command with `iscenv csession`
+- Add version command
+- Replace ~ with $HOME on hgcache path
+- Add hosts IP to hosts file as none name
+- Make "prep" an external that does the ssh to the container, make another internal weird named prep that it uses
+- Figure out why the terminal emulation is messed up in `iscenv csession`
+- Put private key in root's home directory
+- Add command that tails the cconsole log (or any file?)
+- Change host name
+- Add an entry `host` to the `/etc/hosts` file that points to the IP address of the docker0 interface
 
 ## Maybe
 - Add the ability to recognize when running in a repository and...
@@ -23,6 +32,7 @@ only if they will not complicate the intentionally simple design of this project
     - Use Gem to determine the version
     - Use a .file to determine the port
     - Downside of this is it ties us more closely to ruby and to our Gem versioning
-- Add a command that reads a simple configuration file to set up a specific environment
 - Have prep update the deployment service
-- Make "prep" an external that does the ssh to the container, make another internal weird named prep that it uses
+
+# Rejected
+- _Add a command that reads a simple configuration file to set up a specific environment_ - **Just use a simple bash script**
