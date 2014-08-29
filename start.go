@@ -78,6 +78,7 @@ func start(_ *cobra.Command, args []string) {
 					// Even if we're just starting a container we need to bump the ascending port counter so the next instance doesn't collide with this one
 					startPortOffset++
 				}
+				executePrepWithOpts(instance, []string{})
 				fmt.Println(existing.id)
 				continue
 			}
@@ -162,14 +163,18 @@ func getStartOpts(portOffset int64) *docker.HostConfig {
 }
 
 func executePrep(instance string) {
-	time.Sleep(5000 * time.Millisecond) //TODO: This should be something better than a sleep
 	opts := []string{
-		"/iscenv/iscenv", "prep",
 		"-u", strconv.Itoa(os.Getuid()),
 		"-g", strconv.Itoa(os.Getgid()),
 		"-h", hgcachePath(),
 	}
 
+	executePrepWithOpts(instance, opts)
+}
+
+func executePrepWithOpts(instance string, opts []string) {
+	time.Sleep(5000 * time.Millisecond) //TODO: This should be something better than a sleep
+	
 	hostIp, err := getDocker0InterfaceIP()
 	if err == nil {
 		opts = append(opts, "-i", hostIp)
@@ -177,7 +182,11 @@ func executePrep(instance string) {
 		nqf(startQuiet, "WARNING: Could not find docker0's address, 'host' entry will not be added to /etc/hosts, err: %s\n", err)
 	}
 
-	sshExec(instance, osSshFn, opts...)
+	baseopts := []string{
+		"/iscenv/iscenv", "prep",
+	}
+
+	sshExec(instance, osSshFn, append(baseopts, opts...)...)
 }
 
 func homeDir() string {
