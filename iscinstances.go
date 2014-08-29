@@ -71,7 +71,7 @@ func (is iscInstances) byPortOffsets() map[containerPort]iscInstance {
 	return offsets
 }
 
-func (is iscInstances) calculateNextPortOffset() int64 {
+func (is iscInstances) calculatePortOffset() int64 {
 	offsets := is.byPortOffsets()
 
 	var i containerPort
@@ -83,6 +83,12 @@ func (is iscInstances) calculateNextPortOffset() int64 {
 
 	fatal("Could not determine next port offset")
 	return -1
+}
+
+func (is iscInstances) usedPortOffset(offset int64) bool {
+	offsets := is.byPortOffsets()
+	_, used := offsets[containerPort(offset)]
+	return used
 }
 
 func (is iscInstances) find(name string) *iscInstance {

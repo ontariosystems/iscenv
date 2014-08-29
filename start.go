@@ -60,39 +60,54 @@ func start(_ *cobra.Command, args []string) {
 		instance := strings.ToLower(arg)
 		current := getInstances()
 
-		existing := current.find(instance)
-
 		var offset int64 = -1
+
+		existing := current.find(instance)
 		if existing != nil {
 			if !startRemove {
 				nqf(startQuiet, "Ensuring instance '%s' is started...\n", instance)
 				// NOTE: I wish this wasn't necessary (and maybe it isn't) but it seems that the api uses a blank hostConfig instead of nil which seems to wipe out all of the settings
 				dockerClient.StartContainer(existing.id, existing.container().HostConfig)
+
+				if startPortOffset >= 0 {
+					epo := int64(existing.portOffset())
+					if epo != startPortOffset {
+						nqf(startQuiet, "WARNING: The port offset for an existing instance differs from the offset specified, instance: %s, existing: %d, specified: %d\n", instance, epo, startPortOffset)
+					}
+
+					// Even if we're just starting a container we need to bump the ascending port counter so the next instance doesn't collide with this one
+					startPortOffset++
+				}
 				fmt.Println(existing.id)
-				return
+				continue
 			}
 
 			offset = int64(existing.portOffset())
 			rm(nil, []string{instance})
+			current = getInstances() // Reset this so an instance doesn't collide with itself at the port offset check below
 		}
 
 		nqf(startQuiet, "Creating instance '%s'...\n", instance)
 
 		if offset == -1 {
-			if startPortOffset == -1 {
-				offset = current.calculateNextPortOffset()
-			} else {
+			if startPortOffset >= 0 {
 				offset = startPortOffset
-				startPortOffset += 1
+				startPortOffset++
+			} else {
+				offset = current.calculatePortOffset()
 			}
 			nqf(startQuiet, "Calculated port offset as %d...\n", offset)
 		} else {
 			nqf(startQuiet, "Reusing port offset of %d...\n", offset)
 		}
 
-		container := createInstance(instance, startVersion, offset)
-		executePrep(instance)
-		fmt.Println(container.ID)
+		if !current.usedPortOffset(offset) {
+			container := createInstance(instance, startVersion, offset)
+			executePrep(instance)
+			fmt.Println(container.ID)
+		} else {
+			nqf(startQuiet, "ERROR: Could not create instance due to port offset conflict, instance: %s, port offset: %d\n", instance, offset)
+		}
 	}
 }
 
