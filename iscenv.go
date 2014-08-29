@@ -55,19 +55,24 @@ func Execute() {
 }
 
 func AddCommands() {
+	// Container management and use
 	iscenvCommand.AddCommand(startCommand)
 	iscenvCommand.AddCommand(stopCommand)
 	iscenvCommand.AddCommand(killCommand)
 	iscenvCommand.AddCommand(rmCommand)
 	iscenvCommand.AddCommand(sshCommand)
 	iscenvCommand.AddCommand(csessionCommand)
-
 	iscenvCommand.AddCommand(listCommand)
 
+	// Run in container
+	iscenvCommand.AddCommand(prepCommand)
+
+	// Image management
 	iscenvCommand.AddCommand(versionsCommand)
 	iscenvCommand.AddCommand(pullCommand)
 
-	iscenvCommand.AddCommand(prepCommand)
+	// ISCEnv information
+	iscenvCommand.AddCommand(versionCommand)
 }
 
 func nq(quiet bool, a ...interface{}) {
