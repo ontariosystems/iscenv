@@ -17,8 +17,11 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
 	docker "github.com/fsouza/go-dockerclient"
+	"net"
 	"strconv"
+	"strings"
 )
 
 var dockerClient *docker.Client
@@ -48,4 +51,30 @@ func getBindingPort(bindings []docker.PortBinding) containerPort {
 	}
 
 	return containerPort(port)
+}
+
+func getDocker0InterfaceIP() (string, error) {
+	i, err := net.InterfaceByName("docker0")
+	if err != nil {
+		return "", err
+	}
+
+	as, err := i.Addrs()
+	if err != nil {
+		return "", err
+	}
+
+	ip := ""
+	for _, a := range as {
+		ip = strings.Split(a.String(), "/")[0]
+		if ip != "" {
+			break
+		}
+	}
+
+	if ip == "" {
+		return "", fmt.Errorf("No addresses associated with docker0 device")
+	}
+
+	return ip, nil
 }
