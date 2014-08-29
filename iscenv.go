@@ -63,6 +63,7 @@ func AddCommands() {
 	iscenvCommand.AddCommand(sshCommand)
 	iscenvCommand.AddCommand(csessionCommand)
 	iscenvCommand.AddCommand(listCommand)
+	iscenvCommand.AddCommand(tailCommand)
 
 	// Run in container
 	iscenvCommand.AddCommand(prepCommand)
