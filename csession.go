@@ -39,7 +39,7 @@ func csession(_ *cobra.Command, args []string) {
 		if csessionNamespace != "" {
 			csession += " -U" + csessionNamespace
 		}
-		sshExec(args[0], nil, csession)
+		sshExec(args[0], nil, "-t", csession)
 	} else {
 		fatal("Must provide an instance")
 	}
