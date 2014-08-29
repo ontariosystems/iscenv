@@ -51,7 +51,7 @@ func init() {
 func prep(_ *cobra.Command, _ []string) {
 	//	err := exec.Command("ln -sf /iscenv/iscenv /usr/local/bin/iscenv").Run()
 	//	if err != nil {
-	//		Fatalf("Failed to create symbolic link for iscenv, error: %s\n", err)
+	//		fatalf("Failed to create symbolic link for iscenv, error: %s\n", err)
 	//	}
 
 	if prepUID != "" && prepGID != "" {
@@ -88,7 +88,7 @@ func cmd(name string, args ...string) {
 	if err == nil {
 		fmt.Println("\tSuccess!")
 	} else {
-		Fatalf("\t Failure!\n\terror:%s\n\toutput...\n%s\n\n", err, out)
+		fatalf("\t Failure!\n\terror:%s\n\toutput...\n%s\n\n", err, out)
 	}
 }
 
@@ -106,7 +106,7 @@ func updateHostsFile(hostIp string) {
 	fmt.Println("Updating /etc/hosts with host machine's IP address...")
 	bytes, err := ioutil.ReadFile("/etc/hosts")
 	if err != nil {
-		Fatalf("Could not read hosts file, error: %s\n", err)
+		fatalf("Could not read hosts file, error: %s\n", err)
 	}
 
 	hostLine := hostIp + " host"

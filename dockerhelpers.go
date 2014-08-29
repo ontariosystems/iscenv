@@ -29,7 +29,7 @@ var dockerClient *docker.Client
 func init() {
 	dc, err := docker.NewClient(DOCKER_SOCKET)
 	if err != nil {
-		Fatalf("Could not open Docker client, socket: %s\n", DOCKER_SOCKET)
+		fatalf("Could not open Docker client, socket: %s\n", DOCKER_SOCKET)
 	}
 
 	dockerClient = dc
@@ -47,7 +47,7 @@ func portBinding(port int64, portOffset int64) []docker.PortBinding {
 func getBindingPort(bindings []docker.PortBinding) containerPort {
 	port, err := strconv.ParseInt(bindings[0].HostPort, 10, 64)
 	if err != nil {
-		Fatalf("Could not parse port, error: %s\n", err)
+		fatalf("Could not parse port, error: %s\n", err)
 	}
 
 	return containerPort(port)

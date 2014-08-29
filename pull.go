@@ -37,6 +37,6 @@ func pull(_ *cobra.Command, _ []string) {
 	authcfg := docker.AuthConfiguration{}
 	err := dockerClient.PullImage(imgopts, authcfg)
 	if err != nil {
-		Fatalf("Could not pull latest ISC product version images, error: %s\n", err)
+		fatalf("Could not pull latest ISC product version images, error: %s\n", err)
 	}
 }

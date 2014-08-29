@@ -48,7 +48,7 @@ func ssh(_ *cobra.Command, args []string) {
 		}
 		sshExec(args[0], nil, sshArgs...)
 	} else {
-		Fatal("Must provide an instance")
+		fatal("Must provide an instance")
 	}
 }
 
@@ -58,7 +58,7 @@ func sshExec(instance string, sshfn sshExecFn, sshArgs ...string) {
 	if existing != nil {
 		key, err := ioutil.TempFile("", "iscenv-key")
 		if err != nil {
-			Fatalf("Could not create ssh key file, error: %s\n", err)
+			fatalf("Could not create ssh key file, error: %s\n", err)
 		}
 
 		defer key.Close()
@@ -69,7 +69,7 @@ func sshExec(instance string, sshfn sshExecFn, sshArgs ...string) {
 
 		sshbin, err := exec.LookPath("ssh")
 		if err != nil {
-			Fatalf("Could not find ssh binary on path, error: %s\n", err)
+			fatalf("Could not find ssh binary on path, error: %s\n", err)
 		}
 
 		args := append([]string{
@@ -87,10 +87,10 @@ func sshExec(instance string, sshfn sshExecFn, sshArgs ...string) {
 		err = sshfn(sshbin, args)
 
 		if err != nil {
-			Fatalf("ssh to instance failed, instance: %s, error: %s\n", instance, err)
+			fatalf("ssh to instance failed, instance: %s, error: %s\n", instance, err)
 		}
 	} else {
-		Fatal("No such instance, name: %s\n", instance)
+		fatal("No such instance, name: %s\n", instance)
 	}
 }
 

@@ -42,7 +42,7 @@ func rm(_ *cobra.Command, args []string) {
 		if existing != nil {
 			err := dockerClient.RemoveContainer(docker.RemoveContainerOptions{ID: existing.id, RemoveVolumes: true, Force: true})
 			if err != nil {
-				Fatalf("Could not kill instance, name: %s, error: %s\n", existing.name, err)
+				fatalf("Could not kill instance, name: %s, error: %s\n", existing.name, err)
 			}
 			fmt.Println(existing.id)
 		} else {

@@ -41,6 +41,6 @@ func csession(_ *cobra.Command, args []string) {
 		}
 		sshExec(args[0], nil, csession)
 	} else {
-		Fatal("Must provide an instance")
+		fatal("Must provide an instance")
 	}
 }

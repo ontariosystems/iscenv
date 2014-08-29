@@ -70,12 +70,24 @@ func AddCommands() {
 	iscenvCommand.AddCommand(prepCommand)
 }
 
-func Fatal(a ...interface{}) {
+func nq(quiet bool, a ...interface{}) {
+	if !quiet {
+		fmt.Println(a...)
+	}
+}
+
+func nqf(quiet bool, format string, a ...interface{}) {
+	if !quiet {
+		fmt.Printf(format, a...)
+	}
+}
+
+func fatal(a ...interface{}) {
 	fmt.Println(a...)
 	os.Exit(1)
 }
 
-func Fatalf(format string, a ...interface{}) {
+func fatalf(format string, a ...interface{}) {
 	fmt.Printf(format, a...)
 	os.Exit(1)
 }
