@@ -44,7 +44,7 @@ func stop(_ *cobra.Command, args []string) {
 		if existing != nil {
 			err := dockerClient.StopContainer(existing.id, stopTimeout)
 			if err != nil {
-				Fatalf("Could not stop instance, name: %s, error: %s\n", existing.name, err)
+				fatalf("Could not stop instance, name: %s, error: %s\n", existing.name, err)
 			}
 
 			fmt.Println(existing.id)

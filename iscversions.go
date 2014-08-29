@@ -33,7 +33,7 @@ type iscVersions []iscVersion
 
 func (evs iscVersions) latest() iscVersion {
 	if len(evs) == 0 {
-		Fatal("No ISC product versions exist run the iscenv pull command")
+		fatal("No ISC product versions exist run the iscenv pull command")
 	}
 	return evs[len(evs)-1]
 }
@@ -41,7 +41,7 @@ func (evs iscVersions) latest() iscVersion {
 func getVersions() iscVersions {
 	images, err := dockerClient.ListImages(false)
 	if err != nil {
-		Fatalf("Could not list images, error: %s\n", err)
+		fatalf("Could not list images, error: %s\n", err)
 	}
 
 	vs := []string{}                        // for sorting

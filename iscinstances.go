@@ -47,7 +47,7 @@ func (p containerPort) String() string {
 
 func (i iscInstance) portOffset() containerPort {
 	if i.ports.ssh < EXTERNAL_PORT_SSH {
-		Fatalf("SSH Port is outside of range, instance: %s, port: %s\n", i.name, i.ports.ssh)
+		fatalf("SSH Port is outside of range, instance: %s, port: %s\n", i.name, i.ports.ssh)
 	}
 
 	return i.ports.ssh - EXTERNAL_PORT_SSH
@@ -56,7 +56,7 @@ func (i iscInstance) portOffset() containerPort {
 func (i iscInstance) container() *docker.Container {
 	container, err := dockerClient.InspectContainer(i.id)
 	if err != nil {
-		Fatalf("Could not inspect container, instance: %s, id: ", i.name, i.id)
+		fatalf("Could not inspect container, instance: %s, id: ", i.name, i.id)
 	}
 
 	return container
@@ -81,7 +81,7 @@ func (is iscInstances) calculateNextPortOffset() int64 {
 		}
 	}
 
-	Fatal("Could not determine next port offset")
+	fatal("Could not determine next port offset")
 	return -1
 }
 
@@ -102,7 +102,7 @@ func (is iscInstances) exists(name string) bool {
 func getInstances() iscInstances {
 	containers, err := dockerClient.ListContainers(docker.ListContainersOptions{All: true})
 	if err != nil {
-		Fatalf("Could not list containers, error: %s\n", err)
+		fatalf("Could not list containers, error: %s\n", err)
 	}
 
 	instances := []iscInstance{}
@@ -118,7 +118,7 @@ func getInstances() iscInstances {
 		if name != "" {
 			container, err := dockerClient.InspectContainer(apicontainer.ID)
 			if err != nil {
-				Fatalf("Could not inspect container, id: %s, error: %s\n", apicontainer.ID, err)
+				fatalf("Could not inspect container, id: %s, error: %s\n", apicontainer.ID, err)
 			}
 
 			instance := iscInstance{

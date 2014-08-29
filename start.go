@@ -44,7 +44,7 @@ var startCommand = &cobra.Command{
 
 func init() {
 	startCommand.Run = start
-	startCommand.Flags().BoolVarP(&startRemove, "remove", "r", false, "Remove existing instance before starting")
+	startCommand.Flags().BoolVarP(&startRemove, "rm", "", false, "Remove existing instance before starting.  By default, this switch will preserve port settings when recreating the instance.")
 	startCommand.Flags().StringVarP(&startVersion, "version", "v", "", "The version of ISC product to start.  By default this will find the latest version on your system.")
 	startCommand.Flags().Int64VarP(&startPortOffset, "port-offset", "p", -1, "The port offset for this instance's ports.  -1 means autodetect.  Will increment by 1 if more than 1 instance is specified.")
 	startCommand.Flags().BoolVarP(&startQuiet, "quiet", "q", false, "Only display numeric IDs")
@@ -57,49 +57,54 @@ func start(_ *cobra.Command, args []string) {
 
 	// This loop is somewhat inefficient (with the multiple getInstances())  I doubt there will ever be enough to make it a performance issue.
 	for _, arg := range args {
-		// TODO: Add remove
 		instance := strings.ToLower(arg)
 		current := getInstances()
 
 		existing := current.find(instance)
+
+		var offset int64 = -1
 		if existing != nil {
-			if !startQuiet {
-				fmt.Printf("Ensuring instance '%s' is started...\n", instance)
+			if !startRemove {
+				nqf(startQuiet, "Ensuring instance '%s' is started...\n", instance)
+				// NOTE: I wish this wasn't necessary (and maybe it isn't) but it seems that the api uses a blank hostConfig instead of nil which seems to wipe out all of the settings
+				dockerClient.StartContainer(existing.id, existing.container().HostConfig)
+				fmt.Println(existing.id)
+				return
 			}
-			// NOTE: I wish this wasn't necessary (and maybe it isn't) but it seems that the api uses a blank hostConfig instead of nil which seems to wipe out all of the settings
-			dockerClient.StartContainer(existing.id, existing.container().HostConfig)
-			fmt.Println(existing.id)
-		} else {
-			if !startQuiet {
-				fmt.Printf("Creating instance '%s'...\n", instance)
-			}
-			var offset int64
+
+			offset = int64(existing.portOffset())
+			rm(nil, []string{instance})
+		}
+
+		nqf(startQuiet, "Creating instance '%s'...\n", instance)
+
+		if offset == -1 {
 			if startPortOffset == -1 {
 				offset = current.calculateNextPortOffset()
-				if !startQuiet {
-					fmt.Printf("Calculated port offset as %d...\n", offset)
-				}
 			} else {
 				offset = startPortOffset
 				startPortOffset += 1
 			}
-
-			container := createInstance(instance, startVersion, offset)
-			executePrep(instance)
-			fmt.Println(container.ID)
+			nqf(startQuiet, "Calculated port offset as %d...\n", offset)
+		} else {
+			nqf(startQuiet, "Reusing port offset of %d...\n", offset)
 		}
+
+		container := createInstance(instance, startVersion, offset)
+		executePrep(instance)
+		fmt.Println(container.ID)
 	}
 }
 
 func createInstance(instance string, version string, portOffset int64) *docker.Container {
 	container, err := dockerClient.CreateContainer(getCreateOpts(instance, version, portOffset))
 	if err != nil {
-		Fatalf("Could not create instance, name: %s\n", instance)
+		fatalf("Could not create instance, name: %s\n", instance)
 	}
 
 	err = dockerClient.StartContainer(container.ID, getStartOpts(portOffset))
 	if err != nil {
-		Fatalf("Could not start created instance, name: %s\n", instance)
+		fatalf("Could not start created instance, name: %s\n", instance)
 	}
 
 	return container
@@ -153,8 +158,8 @@ func executePrep(instance string) {
 	hostIp, err := getDocker0InterfaceIP()
 	if err == nil {
 		opts = append(opts, "-i", hostIp)
-	} else if !startQuiet {
-		fmt.Printf("WARNING: Could not find docker0's address, 'host' entry will not be added to /etc/hosts, err: %s\n", err)
+	} else {
+		nqf(startQuiet, "WARNING: Could not find docker0's address, 'host' entry will not be added to /etc/hosts, err: %s\n", err)
 	}
 
 	sshExec(instance, osSshFn, opts...)
@@ -163,7 +168,7 @@ func executePrep(instance string) {
 func homeDir() string {
 	usr, err := user.Current()
 	if err != nil {
-		Fatalf("Could not determine current user, err: %s\n", err)
+		fatalf("Could not determine current user, err: %s\n", err)
 	}
 
 	return usr.HomeDir
@@ -172,7 +177,7 @@ func homeDir() string {
 func exeDir() string {
 	folder, err := osext.ExecutableFolder()
 	if err != nil {
-		Fatalf("Could not determine executable folder, err: %s\n", err)
+		fatalf("Could not determine executable folder, err: %s\n", err)
 	}
 
 	return folder
@@ -181,7 +186,7 @@ func exeDir() string {
 func hgcachePath() string {
 	out, err := exec.Command("hg", "showconfig", "extensions.hg-cache").CombinedOutput()
 	if err != nil {
-		Fatal("hg showconfig extensions.hg-cache failed")
+		fatal("hg showconfig extensions.hg-cache failed")
 	}
 
 	return filepath.Join(filepath.Dir(filepath.Dir(strings.TrimSpace(string(out)))), "cache")
