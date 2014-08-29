@@ -63,13 +63,22 @@ func start(_ *cobra.Command, args []string) {
 
 		existing := current.find(instance)
 		if existing != nil {
+			if !startQuiet {
+				fmt.Printf("Ensuring instance '%s' is started...\n", instance)
+			}
 			// NOTE: I wish this wasn't necessary (and maybe it isn't) but it seems that the api uses a blank hostConfig instead of nil which seems to wipe out all of the settings
 			dockerClient.StartContainer(existing.id, existing.container().HostConfig)
 			fmt.Println(existing.id)
 		} else {
+			if !startQuiet {
+				fmt.Printf("Creating instance '%s'...\n", instance)
+			}
 			var offset int64
 			if startPortOffset == -1 {
 				offset = current.calculateNextPortOffset()
+				if !startQuiet {
+					fmt.Printf("Calculated port offset as %d...\n", offset)
+				}
 			} else {
 				offset = startPortOffset
 				startPortOffset += 1
@@ -101,8 +110,8 @@ func getCreateOpts(name string, version string, portOffset int64) docker.CreateC
 
 	home := homeDir()
 	config := docker.Config{
-		Image: image,
-		Env:   []string{"HOST_HOME=" + home},
+		Image:    image,
+		Env:      []string{"HOST_HOME=" + home},
 		Volumes: map[string]struct{}{
 			"/data":   struct{}{},
 			"/iscenv": struct{}{},
@@ -132,9 +141,22 @@ func getStartOpts(portOffset int64) *docker.HostConfig {
 }
 
 func executePrep(instance string) {
-	time.Sleep(5000 * time.Millisecond)
+	time.Sleep(5000 * time.Millisecond) //TODO: This should be something better than a sleep
+	opts := []string{
+		"/iscenv/iscenv", "prep",
+		"-u", strconv.Itoa(os.Getuid()),
+		"-g", strconv.Itoa(os.Getgid()),
+		"-h", hgcachePath(),
+	}
 
-	sshExec(instance, osSshFn, "/iscenv/iscenv", "prep", "-u", strconv.Itoa(os.Getuid()), "-g", strconv.Itoa(os.Getgid()), "-h", hgcachePath())
+	hostIp, err := getDocker0InterfaceIP()
+	if err == nil {
+		opts = append(opts, "-i", hostIp)
+	} else if !startQuiet {
+		fmt.Printf("WARNING: Could not find docker0's address, 'host' entry will not be added to /etc/hosts, err: %s\n", err)
+	}
+
+	sshExec(instance, osSshFn, opts...)
 }
 
 func homeDir() string {

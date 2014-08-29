@@ -19,7 +19,9 @@ package main
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"io/ioutil"
 	"os/exec"
+	"strings"
 )
 
 const (
@@ -30,6 +32,7 @@ const (
 var prepUID string
 var prepGID string
 var prepHgCachePath string
+var prepHostIp string
 
 var prepCommand = &cobra.Command{
 	Use:   "prep",
@@ -42,6 +45,7 @@ func init() {
 	prepCommand.Flags().StringVarP(&prepUID, "uid", "u", "", "The UID of the external user.")
 	prepCommand.Flags().StringVarP(&prepGID, "gid", "g", "", "The GID of the external user's group.")
 	prepCommand.Flags().StringVarP(&prepHgCachePath, "hg-cache-path", "h", "", "The path to hg cache.")
+	prepCommand.Flags().StringVarP(&prepHostIp, "host-ip", "i", "", "The ip address of the host.  This will be added to /etc/hosts as 'host'")
 }
 
 func prep(_ *cobra.Command, _ []string) {
@@ -68,6 +72,11 @@ func prep(_ *cobra.Command, _ []string) {
 	}
 
 	cmd("deployment_service", "seccfg", "-u", "root", "-p", "password", "-s", "Services", "-N", "%Service_Bindings", "-i", "Enabled", "-v", "1")
+
+	if prepHostIp != "" {
+		// I could have done this by executing a sed one-liner but i resisted the urge and wrote it in native go
+		updateHostsFile(prepHostIp)
+	}
 }
 
 func cmd(name string, args ...string) {
@@ -83,4 +92,32 @@ func cmd(name string, args ...string) {
 
 func cacheimport(path string) string {
 	return fmt.Sprintf("##class(%%SYSTEM.OBJ).ImportDir(\"%s\",\"*.xml\",\"ck\",,1)", path)
+}
+
+func updateHostsFile(hostIp string) {
+	fmt.Println("Updating /etc/hosts with host machine's IP address...")
+	bytes, err := ioutil.ReadFile("/etc/hosts")
+	if err != nil {
+		Fatalf("Could not read hosts file, error: %s\n", err)
+	}
+
+	hostLine := hostIp + " host"
+	found := false
+	lines := strings.Split(string(bytes), "\n")
+	for i, line := range lines {
+		fields := strings.Fields(line)
+		if len(fields) < 2 {
+			continue
+		}
+
+		if fields[1] == "host" {
+			found = true
+			lines[i] = hostLine
+		}
+	}
+	if !found {
+		lines = append(lines, hostLine+"\n")
+	}
+
+	ioutil.WriteFile("/etc/hosts", []byte(strings.Join(lines, "\n")), 0644)
 }
