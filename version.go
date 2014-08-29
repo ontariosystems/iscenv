@@ -16,10 +16,21 @@ limitations under the License.
 
 package main
 
-const (
-	VERSION = "1.2.0"
+import (
+	"fmt"
+	"github.com/spf13/cobra"
 )
 
-func main() {
-	Execute()
+var versionCommand = &cobra.Command{
+	Use:   "version",
+	Short: "ISCEnv version information",
+	Long:  "Show the ISCEnv version information.",
+}
+
+func init() {
+	versionCommand.Run = iscenvVersion
+}
+
+func iscenvVersion(_ *cobra.Command, _ []string) {
+	fmt.Printf("ISCEnv version: %s\n", VERSION)
 }
