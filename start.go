@@ -204,7 +204,15 @@ func hgcachePath() string {
 		fatal("hg showconfig extensions.hg-cache failed")
 	}
 
-	return filepath.Join(filepath.Dir(filepath.Dir(strings.TrimSpace(string(out)))), "cache")
+	return expandHome(filepath.Join(filepath.Dir(filepath.Dir(strings.TrimSpace(string(out)))), "cache"))
+}
+
+func expandHome(path string) string {
+	if path[:1] == "~" {
+		return strings.Replace(path, "~", homeDir(), 1)
+	}
+
+	return path
 }
 
 func osSshFn(sshbin string, args []string) error {

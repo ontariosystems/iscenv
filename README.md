@@ -16,7 +16,6 @@ only if they will not complicate the intentionally simple design of this project
 - Use tag-based versioning instead of committed version
 - Add the ability to run a command with `iscenv csession`
 - Add version command
-- Replace ~ with $HOME on hgcache path
 - Figure out why the terminal emulation is messed up in `iscenv csession`
 - Add command that tails the cconsole log (or any file?)
 - Add an inspect command
