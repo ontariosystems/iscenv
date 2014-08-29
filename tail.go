@@ -28,7 +28,7 @@ var tailExecFilename string
 
 var tailCommand = &cobra.Command{
 	Use:   "tail INSTANCE",
-	Short: "tail a file within an instance",
+	Short: "tail a file within an instance; cconsole by default",
 	Long:  "Connect to an instance with SSH and tail the given file.",
 }
 
