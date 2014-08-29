@@ -111,6 +111,7 @@ func getCreateOpts(name string, version string, portOffset int64) docker.CreateC
 	home := homeDir()
 	config := docker.Config{
 		Image:    image,
+		Hostname: name,
 		Env:      []string{"HOST_HOME=" + home},
 		Volumes: map[string]struct{}{
 			"/data":   struct{}{},
