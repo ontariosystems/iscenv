@@ -37,7 +37,7 @@ var tailFilenames = map[string]string{
 func init() {
 	tailCommand.Run = tail
 	tailCommand.Flags().BoolVarP(&tailExecFollow, "follow", "f", false, "Follow log output")
-	tailCommand.Flags().StringVarP(&tailExecLines, "lines", "n", "K", "Output the last K lines; default is 10; or use -n +K to output lines starting with the Kth; or use `all` to tail the entire file")
+	tailCommand.Flags().StringVarP(&tailExecLines, "lines", "n", "all", "Output all lines; or use -n K to output the last K lines; or use +K to output the Kth and following lines")
 	tailCommand.Flags().StringVarP(&tailExecFilename, "file", "l", "cconsole", "Filename to tail. `cconsole` is a magic filename, and the default")
 }
 
@@ -47,7 +47,7 @@ func tail(_ *cobra.Command, args []string) {
 		if tailExecFollow {
 			tailArgs = append(tailArgs, "-f")
 		}
-		if tailExecLines != "" && tailExecLines != "K" {
+		if tailExecLines != "" {
 			if tailExecLines == "all" {
 				tailExecLines = "+0"
 			}
