@@ -174,7 +174,7 @@ func executePrep(instance string) {
 
 func executePrepWithOpts(instance string, opts []string) {
 	time.Sleep(5000 * time.Millisecond) //TODO: This should be something better than a sleep
-	
+
 	hostIp, err := getDocker0InterfaceIP()
 	if err == nil {
 		opts = append(opts, "-i", hostIp)

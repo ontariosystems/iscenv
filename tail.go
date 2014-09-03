@@ -20,8 +20,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type tailExecFn func(string, []string) error
-
 var tailExecFollow bool
 var tailExecLines string
 var tailExecFilename string
@@ -39,7 +37,7 @@ var tailFilenames = map[string]string{
 func init() {
 	tailCommand.Run = tail
 	tailCommand.Flags().BoolVarP(&tailExecFollow, "follow", "f", false, "Follow log output")
-	tailCommand.Flags().StringVarP(&tailExecLines, "lines", "n", "K|all", "Output the last K lines; default is 10; or use -n +K to output lines starting with the Kth")
+	tailCommand.Flags().StringVarP(&tailExecLines, "lines", "n", "K", "Output the last K lines; default is 10; or use -n +K to output lines starting with the Kth; or use `all` to tail the entire file")
 	tailCommand.Flags().StringVarP(&tailExecFilename, "file", "l", "cconsole", "Filename to tail. `cconsole` is a magic filename, and the default")
 }
 
@@ -49,7 +47,10 @@ func tail(_ *cobra.Command, args []string) {
 		if tailExecFollow {
 			tailArgs = append(tailArgs, "-f")
 		}
-		if tailExecLines != "" && tailExecLines != "K|all" {
+		if tailExecLines != "" && tailExecLines != "K" {
+			if tailExecLines == "all" {
+				tailExecLines = "+0"
+			}
 			tailArgs = append(tailArgs, "-n", tailExecLines)
 		}
 
