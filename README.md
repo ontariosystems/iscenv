@@ -15,7 +15,6 @@ only if they will not complicate the intentionally simple design of this project
 - Evaluate command execution / exits for consistency (use fatal at the same times, always loop over all instances or always fail on first error)
 - Use tag-based versioning instead of committed version
 - Add the ability to run a command with `iscenv csession`
-- Add command that tails the cconsole log (or any file?)
 - Add an inspect command
 
 ## Maybe
