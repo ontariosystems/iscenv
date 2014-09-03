@@ -30,7 +30,7 @@ var listQuiet bool
 var listCommand = &cobra.Command{
 	Use:   "list",
 	Short: "List existing ISC product containers",
-	Long:  "List the existing ISC product containers.  This is searching for any containers whose names being with \"iscenv-\".  So, it is possible to confuse this command.",
+	Long:  "List the existing ISC product containers.  This is searching for any containers whose names begin with \"iscenv-\".  So, it is possible to confuse this command.",
 }
 
 func init() {
