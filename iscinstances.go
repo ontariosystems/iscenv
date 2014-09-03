@@ -56,7 +56,7 @@ func (i iscInstance) portOffset() containerPort {
 func (i iscInstance) container() *docker.Container {
 	container, err := dockerClient.InspectContainer(i.id)
 	if err != nil {
-		fatalf("Could not inspect container, instance: %s, id: ", i.name, i.id)
+		fatalf("Could not inspect container, instance: %s, id: %s\n", i.name, i.id)
 	}
 
 	return container
