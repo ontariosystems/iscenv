@@ -1,0 +1,28 @@
+{
+	"ImportPath": "ontsys.com/ospair/iscenv",
+	"GoVersion": "go1.3",
+	"Deps": [
+		{
+			"ImportPath": "bitbucket.org/kardianos/osext",
+			"Comment": "null-13",
+			"Rev": "5d3ddcf53a508cc2f7404eaebf546ef2cb5cdb6e"
+		},
+		{
+			"ImportPath": "github.com/fsouza/go-dockerclient",
+			"Comment": "0.2.1-219-gadb8617",
+			"Rev": "adb861704259d548b45e08b5dd7b7c80efcd82e6"
+		},
+		{
+			"ImportPath": "github.com/mcuadros/go-version",
+			"Rev": "11c5628a7f346b8078ad86a23e0b57e1b027d934"
+		},
+		{
+			"ImportPath": "github.com/spf13/cobra",
+			"Rev": "e174a40cf5ac0768181065462ef36ec1ad07470c"
+		},
+		{
+			"ImportPath": "github.com/spf13/pflag",
+			"Rev": "94e98a55fb412fcbcfc302555cb990f5e1590627"
+		}
+	]
+}
