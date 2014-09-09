@@ -18,6 +18,7 @@ package main
 
 import (
 	"bitbucket.org/kardianos/osext"
+	"bytes"
 	"fmt"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/spf13/cobra"
@@ -78,7 +79,7 @@ func start(_ *cobra.Command, args []string) {
 					// Even if we're just starting a container we need to bump the ascending port counter so the next instance doesn't collide with this one
 					startPortOffset++
 				}
-				executePrepWithOpts(instance, []string{})
+				executePrepWithOpts(instance, existing.id, []string{})
 				fmt.Println(existing.id)
 				continue
 			}
@@ -104,7 +105,7 @@ func start(_ *cobra.Command, args []string) {
 
 		if !current.usedPortOffset(offset) {
 			container := createInstance(instance, startVersion, offset)
-			executePrep(instance)
+			executePrep(instance, container.ID)
 			fmt.Println(container.ID)
 		} else {
 			nqf(startQuiet, "ERROR: Could not create instance due to port offset conflict, instance: %s, port offset: %d\n", instance, offset)
@@ -141,8 +142,9 @@ func getCreateOpts(name string, version string, portOffset int64) docker.CreateC
 		}}
 
 	opts := docker.CreateContainerOptions{
-		Name:   CONTAINER_PREFIX + name,
-		Config: &config}
+		Name:   containerName(name),
+		Config: &config,
+	}
 
 	return opts
 }
@@ -162,18 +164,21 @@ func getStartOpts(portOffset int64) *docker.HostConfig {
 	}
 }
 
-func executePrep(instance string) {
+func executePrep(instance string, containerId string) {
 	opts := []string{
 		"-u", strconv.Itoa(os.Getuid()),
 		"-g", strconv.Itoa(os.Getgid()),
 		"-h", hgcachePath(),
 	}
 
-	executePrepWithOpts(instance, opts)
+	executePrepWithOpts(instance, containerId, opts)
 }
 
-func executePrepWithOpts(instance string, opts []string) {
-	time.Sleep(5000 * time.Millisecond) //TODO: This should be something better than a sleep
+func executePrepWithOpts(instance string, containerId string, opts []string) {
+	err := waitForServices(instance, containerId, 30*time.Second)
+	if err != nil {
+		fatalf("Error while waiting for services to start, name: %s, error: %s\n", instance, err)
+	}
 
 	hostIp, err := getDocker0InterfaceIP()
 	if err == nil {
@@ -242,4 +247,138 @@ func osSshFn(sshbin string, args []string) error {
 	}
 
 	return cmd.Wait()
+}
+
+func waitForServices(instance string, containerId string, timeout time.Duration) error {
+	fmt.Println("Waiting for services to start...")
+	c := make(chan error, 1)
+
+	go waitForServicesForever(containerId, c)
+	select {
+	case err := <-c:
+		if err != nil {
+			return fmt.Errorf("Error retrieving docker logs for instance, name: %s, error: %s", instance, err)
+		}
+	case <-time.After(timeout):
+		return fmt.Errorf("Timed out waiting for services to come up in instance, name: %s", instance)
+	}
+
+	return nil
+}
+
+func waitForServicesForever(containerId string, c chan error) {
+	startedAt, err := getContainerStartedAt(containerId)
+	if err != nil {
+		c <- err
+		return
+	}
+
+	for {
+		up, err := servicesAreUp(containerId, startedAt)
+		if err != nil {
+			c <- err
+			break
+		}
+
+		if up {
+			c <- nil
+			break
+		}
+		time.Sleep(1 * time.Millisecond)
+	}
+}
+
+func getContainerStartedAt(containerId string) (time.Time, error) {
+	var t time.Time
+	container, err := dockerClient.InspectContainer(containerId)
+	if err != nil {
+		return t, err
+	}
+
+	if !container.State.Running {
+		return t, fmt.Errorf("Container is not running")
+	}
+
+	return container.State.StartedAt, nil
+}
+
+func servicesAreUp(containerId string, startedAt time.Time) (bool, error) {
+	services := map[string]bool{
+		"sshd":     false,
+		"ensemble": false,
+	}
+
+	lines, err := getDockerLogs(containerId)
+	if err != nil {
+		return false, err
+	}
+
+	for _, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+
+		s := strings.Split(line, " ")
+		if len(s) == 0 {
+			return false, fmt.Errorf("Malformed docker log line when determining if services were up")
+		}
+
+		logTime, err := time.Parse(time.RFC3339Nano, s[0])
+		if err != nil {
+			return false, err
+		}
+
+		if logTime.Before(startedAt) {
+			continue
+		}
+
+		for svc, _ := range services {
+			if strings.Contains(line, svcUpLine(svc)) {
+				services[svc] = true
+			}
+		}
+
+		if allTrue(services) {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func getDockerLogs(containerId string) ([]string, error) {
+	var buf bytes.Buffer
+	// TODO: There's probably a better way to do this with follow and continuous reading from the stream
+	err := dockerClient.Logs(docker.LogsOptions{
+		Container:    containerId,
+		OutputStream: &buf,
+		Stdout:       true,
+		Stderr:       true,
+		Timestamps:   true,
+		Follow:       false,
+	})
+
+	if err != nil {
+		return []string{}, err
+	}
+
+	return strings.Split(buf.String(), "\n"), nil
+}
+
+func containerName(instance string) string {
+	return CONTAINER_PREFIX + instance
+}
+
+func svcUpLine(name string) string {
+	return fmt.Sprintf("success: %s entered RUNNING state, process has stayed up for > than 1 seconds", name)
+}
+
+func allTrue(items map[string]bool) bool {
+	for _, i := range items {
+		if !i {
+			return false
+		}
+	}
+
+	return true
 }
