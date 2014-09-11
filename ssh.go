@@ -90,7 +90,7 @@ func sshExec(instance string, sshfn sshExecFn, sshArgs ...string) {
 			fatalf("ssh to instance failed, instance: %s, error: %s\n", instance, err)
 		}
 	} else {
-		fatal("No such instance, name: %s\n", instance)
+		fatalf("No such instance, name: %s\n", instance)
 	}
 }
 
