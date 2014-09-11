@@ -11,13 +11,13 @@ Below are some items that we wish (or may wish) to do in the future.  Those in t
 only if they will not complicate the intentionally simple design of this project.
 
 ## Needed
-- Add Service wrappers for the containers which will restart them on reboot
 - Evaluate command execution / exits for consistency (use fatal at the same times, always loop over all instances or always fail on first error)
 - Use tag-based versioning instead of committed version
 - Add the ability to run a command with `iscenv csession`
 - Add an inspect command
 
 ## Maybe
+- Add Service wrappers for the containers which will restart them on reboot
 - Add new commands or switches with start, stop or remove all existing instances
 - Make all commands return the instance name rather than the container ID
 - Have prep update the deployment service
