@@ -175,7 +175,7 @@ func executePrep(instance string, containerId string) {
 }
 
 func executePrepWithOpts(instance string, containerId string, opts []string) {
-	err := waitForServices(instance, containerId, 30*time.Second)
+	err := waitForServices(instance, containerId, 60*time.Second)
 	if err != nil {
 		fatalf("Error while waiting for services to start, name: %s, error: %s\n", instance, err)
 	}
