@@ -55,7 +55,7 @@ func prep(_ *cobra.Command, _ []string) {
 	//	}
 
 	if prepUID != "" && prepGID != "" {
-		cmd("ccontrol", "stop", "docker", "quietly")
+		cmd("supervisorctl", "stop", "ensemble")
 
 		cmd("usermod", "-u", prepUID, "cacheusr")
 		cmd("groupmod", "-g", prepGID, "cacheusr")
@@ -63,7 +63,7 @@ func prep(_ *cobra.Command, _ []string) {
 		cmd("find", "/", "-user", CACHEUSR_UID, "-not", "-path", "/proc/*", "-exec", "chown", "-h", prepUID, "{}", ";")
 		cmd("find", "/", "-group", CACHEUSR_GID, "-not", "-path", "/proc/*", "-exec", "chgrp", "-h", prepGID, "{}", ";")
 
-		cmd("ccontrol", "start", "docker")
+		cmd("supervisorctl", "start", "ensemble")
 	}
 
 	if prepHgCachePath != "" {
