@@ -127,10 +127,17 @@ func getInstances() iscInstances {
 				fatalf("Could not inspect container, id: %s, error: %s\n", apicontainer.ID, err)
 			}
 
+			var version string
+			if strings.Contains(apicontainer.Image, ":") {
+				version = strings.Split(apicontainer.Image, ":")[1]
+			} else {
+				version = "Unknown"
+			}
+
 			instance := iscInstance{
 				id:      container.ID,
 				name:    strings.TrimPrefix(name, "/"+CONTAINER_PREFIX),
-				version: strings.Split(apicontainer.Image, ":")[1],
+				version: version,
 				status:  apicontainer.Status,
 				created: apicontainer.Created}
 
