@@ -16,9 +16,8 @@ limitations under the License.
 
 package main
 
-const (
-	VERSION = "1.3.3"
-)
+// Using automatic tag-based versioning
+var VERSION string = ""
 
 func main() {
 	Execute()
