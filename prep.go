@@ -26,9 +26,9 @@ import (
 )
 
 const (
-	ENSEMBLE_WAIT = 600
-	CACHEUSR_UID  = "500"
-	CACHEUSR_GID  = "500"
+	WAIT_SECONDS = 600
+	CACHEUSR_UID = "500"
+	CACHEUSR_GID = "500"
 )
 
 var prepUID string
@@ -57,9 +57,11 @@ func prep(_ *cobra.Command, _ []string) {
 	//	}
 
 	if prepUID != "" && prepGID != "" {
+		waitForEnsembleStatus("running") // Make sure ISC product is fully up before trying to stop it and potentially freaking it out
 		cmd("supervisorctl", "stop", "ensemble")
 		cmd("ccontrol", "stop", "docker", "quietly") // This shouldn't be necessary but we've seen weird cases where supervisor thinks it stopped ensemble but it did not
 		waitForEnsembleStatus("down")
+		waitForUserFree("cacheusr")
 
 		cmd("usermod", "-u", prepUID, "cacheusr")
 		cmd("groupmod", "-g", prepGID, "cacheusr")
@@ -96,7 +98,7 @@ func waitForEnsembleStatus(status string) {
 	case <-c:
 		fmt.Println("\tSuccess!")
 		break
-	case <-time.After(ENSEMBLE_WAIT * time.Second):
+	case <-time.After(WAIT_SECONDS * time.Second):
 		fatalf("\tTimed out waiting for ISC product status: %s", status)
 	}
 }
@@ -121,6 +123,47 @@ func ensembleHasStatus(status string) bool {
 	currentStatus := strings.Split(statusField, ",")[0]
 
 	return currentStatus == status
+}
+
+func waitForUserFree(user string) {
+	fmt.Printf("Waiting for user '%s' to be free...\n", user)
+
+	c := make(chan bool, 1)
+	go waitForUserFreeForever(user, c)
+
+	select {
+	case <-c:
+		fmt.Println("\tSuccess!")
+		break
+	case <-time.After(WAIT_SECONDS * time.Second):
+		fatalf("\tTimed out waiting for user '%s' to be free", user)
+	}
+}
+
+func waitForUserFreeForever(user string, c chan bool) {
+	for {
+		out, err := exec.Command("ps", "aux").CombinedOutput()
+		if err != nil {
+			fatalf("\tFailure!\n\terror:%s\n\toutput...\n%s\n\n", err, out)
+		}
+
+		free := true
+		lines := strings.Split(string(out), "\n")
+		if len(lines) >= 1 {
+			for _, line := range lines[1:] {
+				if strings.Split(line, " ")[0] == user {
+					free = false
+				}
+			}
+		}
+
+		if free {
+			c <- true
+			break
+		}
+
+		time.Sleep(1 * time.Second)
+	}
 }
 
 func cmd(name string, args ...string) {
