@@ -258,6 +258,8 @@ func waitForServices(instance string, containerId string, timeout time.Duration)
 	case err := <-c:
 		if err != nil {
 			return fmt.Errorf("Error retrieving docker logs for instance, name: %s, error: %s", instance, err)
+		} else {
+			fmt.Println("\tStarted!")
 		}
 	case <-time.After(timeout):
 		return fmt.Errorf("Timed out waiting for services to come up in instance, name: %s", instance)
@@ -284,7 +286,7 @@ func waitForServicesForever(containerId string, c chan error) {
 			c <- nil
 			break
 		}
-		time.Sleep(1 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
 	}
 }
 

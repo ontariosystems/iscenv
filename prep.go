@@ -22,11 +22,13 @@ import (
 	"io/ioutil"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 const (
-	CACHEUSR_UID = "500"
-	CACHEUSR_GID = "500"
+	ENSEMBLE_WAIT = 600
+	CACHEUSR_UID  = "500"
+	CACHEUSR_GID  = "500"
 )
 
 var prepUID string
@@ -56,6 +58,8 @@ func prep(_ *cobra.Command, _ []string) {
 
 	if prepUID != "" && prepGID != "" {
 		cmd("supervisorctl", "stop", "ensemble")
+		cmd("ccontrol", "stop", "docker", "quietly") // This shouldn't be necessary but we've seen weird cases where supervisor thinks it stopped ensemble but it did not
+		waitForEnsembleStatus("down")
 
 		cmd("usermod", "-u", prepUID, "cacheusr")
 		cmd("groupmod", "-g", prepGID, "cacheusr")
@@ -64,6 +68,7 @@ func prep(_ *cobra.Command, _ []string) {
 		cmd("find", "/", "-group", CACHEUSR_GID, "-not", "-path", "/proc/*", "-exec", "chgrp", "-h", prepGID, "{}", ";")
 
 		cmd("supervisorctl", "start", "ensemble")
+		waitForEnsembleStatus("running")
 	}
 
 	if prepHgCachePath != "" {
@@ -81,6 +86,43 @@ func prep(_ *cobra.Command, _ []string) {
 	addSshKey()
 }
 
+func waitForEnsembleStatus(status string) {
+	fmt.Printf("Waiting for ISC product to be in '%s' status...\n", status)
+
+	c := make(chan bool, 1)
+	go waitForEnsembleStatusForever(status, c)
+
+	select {
+	case <-c:
+		fmt.Println("\tSuccess!")
+		break
+	case <-time.After(ENSEMBLE_WAIT * time.Second):
+		fatalf("\tTimed out waiting for ISC product status: %s", status)
+	}
+}
+
+func waitForEnsembleStatusForever(status string, c chan bool) {
+	for {
+		if ensembleHasStatus(status) {
+			c <- true
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
+}
+
+func ensembleHasStatus(status string) bool {
+	out, err := exec.Command("ccontrol", "qlist").CombinedOutput()
+	if err != nil {
+		fatalf("\tFailure!\n\terror:%s\n\toutput...\n%s\n\n", err, out)
+	}
+	s := string(out)
+	statusField := strings.Split(s, "^")[3]
+	currentStatus := strings.Split(statusField, ",")[0]
+
+	return currentStatus == status
+}
+
 func cmd(name string, args ...string) {
 	fmt.Println("Running prep command...")
 	fmt.Printf("\tcommand: %s, arguments: %s\n", name, args)
@@ -88,7 +130,7 @@ func cmd(name string, args ...string) {
 	if err == nil {
 		fmt.Println("\tSuccess!")
 	} else {
-		fatalf("\t Failure!\n\terror:%s\n\toutput...\n%s\n\n", err, out)
+		fatalf("\tFailure!\n\terror:%s\n\toutput...\n%s\n\n", err, out)
 	}
 }
 
