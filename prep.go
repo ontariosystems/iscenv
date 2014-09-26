@@ -56,8 +56,10 @@ func prep(_ *cobra.Command, _ []string) {
 	//		fatalf("Failed to create symbolic link for iscenv, error: %s\n", err)
 	//	}
 
+  // Make sure ISC product is fully up before taking any further actions (including trying to stop it halfway through startup)
+  waitForEnsembleStatus("running")
+
 	if prepUID != "" && prepGID != "" {
-		waitForEnsembleStatus("running") // Make sure ISC product is fully up before trying to stop it and potentially freaking it out
 		cmd("supervisorctl", "stop", "ensemble")
 		cmd("ccontrol", "stop", "docker", "quietly") // This shouldn't be necessary but we've seen weird cases where supervisor thinks it stopped ensemble but it did not
 		waitForEnsembleStatus("down")
