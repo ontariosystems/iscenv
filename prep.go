@@ -56,8 +56,8 @@ func prep(_ *cobra.Command, _ []string) {
 	//		fatalf("Failed to create symbolic link for iscenv, error: %s\n", err)
 	//	}
 
-  // Make sure ISC product is fully up before taking any further actions (including trying to stop it halfway through startup)
-  waitForEnsembleStatus("running")
+	// Make sure ISC product is fully up before taking any further actions (including trying to stop it halfway through startup)
+	waitForEnsembleStatus("running")
 
 	if prepUID != "" && prepGID != "" {
 		cmd("supervisorctl", "stop", "ensemble")
