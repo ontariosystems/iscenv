@@ -32,10 +32,22 @@ import (
 	"time"
 )
 
+type volumeList []string
+
+func (vf *volumeList) String() string {
+	return fmt.Sprint([]string(*vf))
+}
+
+func (vf *volumeList) Set(value string) error {
+	*vf = append(*vf, value)
+	return nil
+}
+
 var startRemove bool
 var startVersion string
 var startPortOffset int64
 var startQuiet bool
+var volumesFrom volumeList
 
 var startCommand = &cobra.Command{
 	Use:   "start INSTANCE [INSTANCE...]",
@@ -49,6 +61,7 @@ func init() {
 	startCommand.Flags().StringVarP(&startVersion, "version", "v", "", "The version of ISC product to start.  By default this will find the latest version on your system.")
 	startCommand.Flags().Int64VarP(&startPortOffset, "port-offset", "p", -1, "The port offset for this instance's ports.  -1 means autodetect.  Will increment by 1 if more than 1 instance is specified.")
 	startCommand.Flags().BoolVarP(&startQuiet, "quiet", "q", false, "Only display numeric IDs")
+	startCommand.Flags().VarP(&volumesFrom, "volumes-from", "", "Mount volumes from the specified container(s)")
 }
 
 func start(_ *cobra.Command, args []string) {
@@ -104,7 +117,7 @@ func start(_ *cobra.Command, args []string) {
 		}
 
 		if !current.usedPortOffset(offset) {
-			container := createInstance(instance, startVersion, offset)
+			container := createInstance(instance, startVersion, offset, volumesFrom)
 			executePrep(instance, container.ID)
 			fmt.Println(container.ID)
 		} else {
@@ -113,13 +126,13 @@ func start(_ *cobra.Command, args []string) {
 	}
 }
 
-func createInstance(instance string, version string, portOffset int64) *docker.Container {
+func createInstance(instance string, version string, portOffset int64, volumesFrom volumeList) *docker.Container {
 	container, err := dockerClient.CreateContainer(getCreateOpts(instance, version, portOffset))
 	if err != nil {
 		fatalf("Could not create instance, name: %s\n", instance)
 	}
 
-	err = dockerClient.StartContainer(container.ID, getStartOpts(portOffset))
+	err = dockerClient.StartContainer(container.ID, getStartOpts(portOffset, volumesFrom))
 	if err != nil {
 		fatalf("Could not start created instance, name: %s\n", instance)
 	}
@@ -149,7 +162,7 @@ func getCreateOpts(name string, version string, portOffset int64) docker.CreateC
 	return opts
 }
 
-func getStartOpts(portOffset int64) *docker.HostConfig {
+func getStartOpts(portOffset int64, volumesFrom volumeList) *docker.HostConfig {
 	return &docker.HostConfig{
 		Privileged: true,
 		Binds: []string{
@@ -161,6 +174,7 @@ func getStartOpts(portOffset int64) *docker.HostConfig {
 			port(INTERNAL_PORT_SS):  portBinding(EXTERNAL_PORT_SS, portOffset),
 			port(INTERNAL_PORT_WEB): portBinding(EXTERNAL_PORT_WEB, portOffset),
 		},
+		VolumesFrom: []string(volumesFrom),
 	}
 }
 
