@@ -149,9 +149,10 @@ func getCreateOpts(name string, version string, portOffset int64) docker.CreateC
 		Hostname: name,
 		Env:      []string{"HOST_HOME=" + home},
 		Volumes: map[string]struct{}{
-			"/data":   struct{}{},
-			"/iscenv": struct{}{},
-			home:      struct{}{},
+			"/data":             struct{}{},
+			"/var/log/ensemble": struct{}{},
+			"/iscenv":           struct{}{},
+			home:                struct{}{},
 		}}
 
 	opts := docker.CreateContainerOptions{
