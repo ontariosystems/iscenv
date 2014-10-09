@@ -21,14 +21,18 @@ import (
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os/exec"
+	"regexp"
 	"strings"
 	"time"
 )
 
 const (
-	WAIT_SECONDS = 600
-	CACHEUSR_UID = "500"
-	CACHEUSR_GID = "500"
+	WAIT_SECONDS      = 600
+	CACHEUSR_NAME     = "cacheusr"
+	CACHEUSR_UID      = "500"
+	CACHEUSR_GID      = "500"
+	LOG_LOCATION      = "/var/log/ensemble/"
+	CCONSOLE_LOCATION = LOG_LOCATION + "docker-cconsole.log"
 )
 
 var prepUID string
@@ -59,14 +63,21 @@ func prep(_ *cobra.Command, _ []string) {
 	// Make sure ISC product is fully up before taking any further actions (including trying to stop it halfway through startup)
 	waitForEnsembleStatus("running")
 
+	// Intentionally using the name here so we can make sure the permissions are correct on restarts rather than only on creation
+	cmd("chown", fmt.Sprintf("%s:%s", CACHEUSR_NAME, CACHEUSR_NAME), LOG_LOCATION)
+	cmd("chmod", "775", LOG_LOCATION)
+
+	// Doing this before the stop so that the first useful start's logs will be in the appropriate place
+	cmd("deployment_service", "config", "-u", "root", "-p", "password", "-s", "config", "-i", "ConsoleFile", "-v", CCONSOLE_LOCATION)
+
 	if prepUID != "" && prepGID != "" {
 		cmd("supervisorctl", "stop", "ensemble")
 		cmd("ccontrol", "stop", "docker", "quietly") // This shouldn't be necessary but we've seen weird cases where supervisor thinks it stopped ensemble but it did not
 		waitForEnsembleStatus("down")
-		waitForUserFree("cacheusr")
+		waitForUserFree(CACHEUSR_NAME)
 
-		cmd("usermod", "-u", prepUID, "cacheusr")
-		cmd("groupmod", "-g", prepGID, "cacheusr")
+		cmd("usermod", "-u", prepUID, CACHEUSR_NAME)
+		cmd("groupmod", "-g", prepGID, CACHEUSR_NAME)
 
 		cmd("find", "/", "-user", CACHEUSR_UID, "-not", "-path", "/proc/*", "-exec", "chown", "-h", prepUID, "{}", ";")
 		cmd("find", "/", "-group", CACHEUSR_GID, "-not", "-path", "/proc/*", "-exec", "chgrp", "-h", prepGID, "{}", ";")
@@ -76,7 +87,7 @@ func prep(_ *cobra.Command, _ []string) {
 	}
 
 	if prepHgCachePath != "" {
-		cmd("csession", "docker", "-U", "%SYS", cacheimport(prepHgCachePath))
+		css("%SYS", cacheimport(prepHgCachePath))
 		cmd("sh", "-c", "rm -f /ensemble/instances/docker/devuser/studio/templates/*") // TODO: use native go to remove these
 	}
 
@@ -168,6 +179,23 @@ func waitForUserFreeForever(user string, c chan bool) {
 	}
 }
 
+func css(namespace string, command string) {
+	re := regexp.MustCompile(`(?m)^<[^>]+>[^\^]*\^.*$`)
+	fmt.Println("Running csession prep command...")
+	fmt.Printf("\tnamespace: %s, command: %s\n", namespace, command)
+	out, err := exec.Command("csession", "docker", "-U", namespace, command).CombinedOutput()
+	if err != nil {
+		fatalf("\tFailure!\n\terror:%s\n\toutput...\n%s\n\n", err, out)
+	}
+
+	cerr := re.FindString(string(out))
+	if cerr != "" {
+		fatalf("\tFailure!\n\tcache error: %s\n%s\n\n", cerr, out)
+	}
+
+	fmt.Println("\tSuccess!")
+}
+
 func cmd(name string, args ...string) {
 	fmt.Println("Running prep command...")
 	fmt.Printf("\tcommand: %s, arguments: %s\n", name, args)
@@ -180,7 +208,7 @@ func cmd(name string, args ...string) {
 }
 
 func cacheimport(path string) string {
-	return fmt.Sprintf("##class(%%SYSTEM.OBJ).ImportDir(\"%s\",\"*.xml\",\"ck\",,1)", path)
+	return fmt.Sprintf(`##class(%%SYSTEM.OBJ).ImportDir("%s","*.xml","ck",,1)`, path)
 }
 
 func addSshKey() {
