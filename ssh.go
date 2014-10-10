@@ -74,6 +74,7 @@ func sshExec(instance string, sshfn sshExecFn, sshArgs ...string) {
 
 		args := append([]string{
 			"root@localhost",
+			"-t",
 			"-p", existing.ports.ssh.String(),
 			"-o", "UserKnownHostsFile=/dev/null",
 			"-o", "StrictHostKeyChecking=no",
@@ -96,5 +97,5 @@ func sshExec(instance string, sshfn sshExecFn, sshArgs ...string) {
 
 func syscallSshFn(sshbin string, args []string) error {
 	sargs := append([]string{"ssh"}, args...)
-	return syscall.Exec(sshbin, sargs, []string{})
+	return syscall.Exec(sshbin, sargs, []string{"TERM=xterm"})
 }
