@@ -33,10 +33,31 @@ func init() {
 }
 
 func pull(_ *cobra.Command, _ []string) {
-	imgopts := docker.PullImageOptions{Repository: REPOSITORY, OutputStream: os.Stdout}
-	authcfg := docker.AuthConfiguration{}
+	imgopts := docker.PullImageOptions{Registry: REGISTRY, Repository: REPOSITORY, OutputStream: os.Stdout}
+	authcfg := getAuthConfig()
 	err := dockerClient.PullImage(imgopts, authcfg)
 	if err != nil {
 		fatalf("Could not pull latest ISC product version images, error: %s\n", err)
 	}
+}
+
+func getAuthConfig() docker.AuthConfiguration {
+	authcfg := docker.AuthConfiguration{}
+
+	cfg, err := loadDefaultDockerConfig()
+	if err != nil {
+		fatalf("Error loading ~/.dockercfg, error: %s\n", err)
+	}
+
+	if cfg != nil {
+		if auth, ok := cfg[REGISTRY]; ok {
+			authcfg.Username, authcfg.Password, err = auth.credentials()
+			if err != nil {
+				fatalf("Could not parse credentials from ~/.dockercfg, error: %s\n", err)
+			}
+			authcfg.Email = auth.Email
+		}
+	}
+
+	return authcfg
 }
