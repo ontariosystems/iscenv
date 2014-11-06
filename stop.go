@@ -32,7 +32,7 @@ var stopCommand = &cobra.Command{
 
 func init() {
 	stopCommand.Run = stop
-	stopCommand.Flags().UintVarP(&stopTimeout, "time", "t", 60, "The port offset for this instance's ports.  -1 means autodetect.  Will increment by 1 if more than 1 instance is specified.")
+	stopCommand.Flags().UintVarP(&stopTimeout, "time", "t", 60, "The amount of time to wait for the instance to stop cleanly before killing it.")
 }
 
 func stop(_ *cobra.Command, args []string) {
