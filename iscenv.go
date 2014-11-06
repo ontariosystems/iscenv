@@ -59,6 +59,7 @@ func AddCommands() {
 	// Container management and use
 	iscenvCommand.AddCommand(startCommand)
 	iscenvCommand.AddCommand(stopCommand)
+	iscenvCommand.AddCommand(restartCommand)
 	iscenvCommand.AddCommand(killCommand)
 	iscenvCommand.AddCommand(rmCommand)
 	iscenvCommand.AddCommand(sshCommand)
