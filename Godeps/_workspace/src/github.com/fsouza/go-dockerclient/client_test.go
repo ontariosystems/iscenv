@@ -55,8 +55,32 @@ func TestNewAPIClient(t *testing.T) {
 	if !client.SkipServerVersionCheck {
 		t.Error("Expected SkipServerVersionCheck to be true, got false")
 	}
-	if client.requestedApiVersion != nil {
-		t.Errorf("Expected requestedApiVersion to be nil, got %#v.", client.requestedApiVersion)
+	if client.requestedAPIVersion != nil {
+		t.Errorf("Expected requestedAPIVersion to be nil, got %#v.", client.requestedAPIVersion)
+	}
+}
+
+func newTLSClient(endpoint string) (*Client, error) {
+	return NewTLSClient(endpoint,
+		"testing/data/cert.pem",
+		"testing/data/key.pem",
+		"testing/data/ca.pem")
+}
+
+func TestNewTSLAPIClient(t *testing.T) {
+	endpoint := "https://localhost:4243"
+	client, err := newTLSClient(endpoint)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if client.endpoint != endpoint {
+		t.Errorf("Expected endpoint %s. Got %s.", endpoint, client.endpoint)
+	}
+	if !client.SkipServerVersionCheck {
+		t.Error("Expected SkipServerVersionCheck to be true, got false")
+	}
+	if client.requestedAPIVersion != nil {
+		t.Errorf("Expected requestedAPIVersion to be nil, got %#v.", client.requestedAPIVersion)
 	}
 }
 
@@ -72,11 +96,42 @@ func TestNewVersionedClient(t *testing.T) {
 	if client.HTTPClient != http.DefaultClient {
 		t.Errorf("Expected http.Client %#v. Got %#v.", http.DefaultClient, client.HTTPClient)
 	}
-	if reqVersion := client.requestedApiVersion.String(); reqVersion != "1.12" {
-		t.Errorf("Wrong requestApiVersion. Want %q. Got %q.", "1.12", reqVersion)
+	if reqVersion := client.requestedAPIVersion.String(); reqVersion != "1.12" {
+		t.Errorf("Wrong requestAPIVersion. Want %q. Got %q.", "1.12", reqVersion)
 	}
 	if client.SkipServerVersionCheck {
 		t.Error("Expected SkipServerVersionCheck to be false, got true")
+	}
+}
+
+func TestNewTLSVersionedClient(t *testing.T) {
+	certPath := "testing/data/cert.pem"
+	keyPath := "testing/data/key.pem"
+	caPath := "testing/data/ca.pem"
+	endpoint := "https://localhost:4243"
+	client, err := NewVersionnedTLSClient(endpoint, certPath, keyPath, caPath, "1.14")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if client.endpoint != endpoint {
+		t.Errorf("Expected endpoint %s. Got %s.", endpoint, client.endpoint)
+	}
+	if reqVersion := client.requestedAPIVersion.String(); reqVersion != "1.14" {
+		t.Errorf("Wrong requestAPIVersion. Want %q. Got %q.", "1.14", reqVersion)
+	}
+	if client.SkipServerVersionCheck {
+		t.Error("Expected SkipServerVersionCheck to be false, got true")
+	}
+}
+
+func TestNewTLSVersionedClientInvalidCA(t *testing.T) {
+	certPath := "testing/data/cert.pem"
+	keyPath := "testing/data/key.pem"
+	caPath := "testing/data/key.pem"
+	endpoint := "https://localhost:4243"
+	_, err := NewVersionnedTLSClient(endpoint, certPath, keyPath, caPath, "1.14")
+	if err == nil {
+		t.Errorf("Expected invalid ca at %s", caPath)
 	}
 }
 
@@ -93,6 +148,28 @@ func TestNewClientInvalidEndpoint(t *testing.T) {
 		}
 		if !reflect.DeepEqual(err, ErrInvalidEndpoint) {
 			t.Errorf("NewClient(%q): Got invalid error for invalid endpoint. Want %#v. Got %#v.", c, ErrInvalidEndpoint, err)
+		}
+	}
+}
+
+func TestNewTLSClient2376(t *testing.T) {
+	var tests = []struct {
+		endpoint string
+		expected string
+	}{
+		{"tcp://localhost:2376", "https"},
+		{"tcp://localhost:2375", "http"},
+		{"tcp://localhost:4000", "http"},
+	}
+
+	for _, tt := range tests {
+		client, err := newTLSClient(tt.endpoint)
+		if err != nil {
+			t.Error(err)
+		}
+		got := client.endpointURL.Scheme
+		if got != tt.expected {
+			t.Errorf("endpointURL.Scheme: Got %s. Want %s.", got, tt.expected)
 		}
 	}
 }
@@ -163,7 +240,7 @@ func TestQueryString(t *testing.T) {
 	}
 }
 
-func TestNewApiVersionFailures(t *testing.T) {
+func TestNewAPIVersionFailures(t *testing.T) {
 	var tests = []struct {
 		input         string
 		expectedError string
@@ -172,17 +249,17 @@ func TestNewApiVersionFailures(t *testing.T) {
 		{"1.0-beta", `Unable to parse version "1.0-beta": "0-beta" is not an integer`},
 	}
 	for _, tt := range tests {
-		v, err := NewApiVersion(tt.input)
+		v, err := NewAPIVersion(tt.input)
 		if v != nil {
 			t.Errorf("Expected <nil> version, got %v.", v)
 		}
 		if err.Error() != tt.expectedError {
-			t.Errorf("NewApiVersion(%q): wrong error. Want %q. Got %q", tt.input, tt.expectedError, err.Error())
+			t.Errorf("NewAPIVersion(%q): wrong error. Want %q. Got %q", tt.input, tt.expectedError, err.Error())
 		}
 	}
 }
 
-func TestApiVersions(t *testing.T) {
+func TestAPIVersions(t *testing.T) {
 	var tests = []struct {
 		a                              string
 		b                              string
@@ -208,8 +285,8 @@ func TestApiVersions(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		a, _ := NewApiVersion(tt.a)
-		b, _ := NewApiVersion(tt.b)
+		a, _ := NewAPIVersion(tt.a)
+		b, _ := NewAPIVersion(tt.b)
 
 		if tt.expectedALessThanB && !a.LessThan(b) {
 			t.Errorf("Expected %#v < %#v", a, b)
@@ -264,16 +341,22 @@ func TestPingFailingWrongStatus(t *testing.T) {
 type FakeRoundTripper struct {
 	message  string
 	status   int
+	header   map[string]string
 	requests []*http.Request
 }
 
 func (rt *FakeRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 	body := strings.NewReader(rt.message)
 	rt.requests = append(rt.requests, r)
-	return &http.Response{
+	res := &http.Response{
 		StatusCode: rt.status,
 		Body:       ioutil.NopCloser(body),
-	}, nil
+		Header:     make(http.Header),
+	}
+	for k, v := range rt.header {
+		res.Header.Set(k, v)
+	}
+	return res, nil
 }
 
 func (rt *FakeRoundTripper) Reset() {

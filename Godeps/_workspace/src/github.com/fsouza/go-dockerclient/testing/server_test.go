@@ -23,7 +23,6 @@ package testing
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/fsouza/go-dockerclient"
 	"math/rand"
 	"net"
 	"net/http"
@@ -33,6 +32,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/fsouza/go-dockerclient"
 )
 
 func TestNewServer(t *testing.T) {
@@ -135,6 +136,7 @@ func TestListContainers(t *testing.T) {
 			Created: container.Created.Unix(),
 			Status:  container.State.String(),
 			Ports:   container.NetworkSettings.PortMappingAPI(),
+			Names:   []string{"/" + container.Name},
 		}
 	}
 	var got []docker.APIContainers
@@ -358,6 +360,58 @@ func TestInspectContainerNotFound(t *testing.T) {
 	}
 }
 
+func TestTopContainer(t *testing.T) {
+	server := DockerServer{}
+	addContainers(&server, 1)
+	server.containers[0].State.Running = true
+	server.buildMuxer()
+	recorder := httptest.NewRecorder()
+	path := fmt.Sprintf("/containers/%s/top", server.containers[0].ID)
+	request, _ := http.NewRequest("GET", path, nil)
+	server.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusOK {
+		t.Errorf("TopContainer: wrong status. Want %d. Got %d.", http.StatusOK, recorder.Code)
+	}
+	var got docker.TopResult
+	err := json.NewDecoder(recorder.Body).Decode(&got)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(got.Titles, []string{"UID", "PID", "PPID", "C", "STIME", "TTY", "TIME", "CMD"}) {
+		t.Fatalf("TopContainer: Unexpected titles, got: %#v", got.Titles)
+	}
+	if len(got.Processes) != 1 {
+		t.Fatalf("TopContainer: Unexpected process len, got: %d", len(got.Processes))
+	}
+	if got.Processes[0][len(got.Processes[0])-1] != "ls -la .." {
+		t.Fatalf("TopContainer: Unexpected command name, got: %s", got.Processes[0][len(got.Processes[0])-1])
+	}
+}
+
+func TestTopContainerNotFound(t *testing.T) {
+	server := DockerServer{}
+	server.buildMuxer()
+	recorder := httptest.NewRecorder()
+	request, _ := http.NewRequest("GET", "/containers/xyz/top", nil)
+	server.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusNotFound {
+		t.Errorf("TopContainer: wrong status. Want %d. Got %d.", http.StatusNotFound, recorder.Code)
+	}
+}
+
+func TestTopContainerStopped(t *testing.T) {
+	server := DockerServer{}
+	addContainers(&server, 1)
+	server.buildMuxer()
+	recorder := httptest.NewRecorder()
+	path := fmt.Sprintf("/containers/%s/top", server.containers[0].ID)
+	request, _ := http.NewRequest("GET", path, nil)
+	server.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusInternalServerError {
+		t.Errorf("TopContainer: wrong status. Want %d. Got %d.", http.StatusInternalServerError, recorder.Code)
+	}
+}
+
 func TestStartContainer(t *testing.T) {
 	server := DockerServer{}
 	addContainers(&server, 1)
@@ -433,6 +487,23 @@ func TestStopContainer(t *testing.T) {
 	}
 	if server.containers[0].State.Running {
 		t.Error("StopContainer: did not stop the container")
+	}
+}
+
+func TestKillContainer(t *testing.T) {
+	server := DockerServer{}
+	addContainers(&server, 1)
+	server.containers[0].State.Running = true
+	server.buildMuxer()
+	recorder := httptest.NewRecorder()
+	path := fmt.Sprintf("/containers/%s/kill", server.containers[0].ID)
+	request, _ := http.NewRequest("POST", path, nil)
+	server.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusNoContent {
+		t.Errorf("KillContainer: wrong status code. Want %d. Got %d.", http.StatusNoContent, recorder.Code)
+	}
+	if server.containers[0].State.Running {
+		t.Error("KillContainer: did not stop the container")
 	}
 }
 
@@ -734,12 +805,38 @@ func TestPushImageNotFound(t *testing.T) {
 	}
 }
 
+func TestTagImage(t *testing.T) {
+	server := DockerServer{imgIDs: map[string]string{"tsuru/python": "a123"}}
+	server.buildMuxer()
+	recorder := httptest.NewRecorder()
+	request, _ := http.NewRequest("POST", "/images/tsuru/python/tag?repo=tsuru/new-python", nil)
+	server.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusCreated {
+		t.Errorf("TagImage: wrong status. Want %d. Got %d.", http.StatusCreated, recorder.Code)
+	}
+	if server.imgIDs["tsuru/python"] != server.imgIDs["tsuru/new-python"] {
+		t.Errorf("TagImage: did not tag the image")
+	}
+}
+
+func TestTagImageNotFound(t *testing.T) {
+	server := DockerServer{}
+	server.buildMuxer()
+	recorder := httptest.NewRecorder()
+	request, _ := http.NewRequest("POST", "/images/tsuru/python/tag", nil)
+	server.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusNotFound {
+		t.Errorf("TagImage: wrong status. Want %d. Got %d.", http.StatusNotFound, recorder.Code)
+	}
+}
+
 func addContainers(server *DockerServer, n int) {
 	server.cMut.Lock()
 	defer server.cMut.Unlock()
 	for i := 0; i < n; i++ {
 		date := time.Now().Add(time.Duration((rand.Int() % (i + 1))) * time.Hour)
 		container := docker.Container{
+			Name:    fmt.Sprintf("%x", rand.Int()%10000),
 			ID:      fmt.Sprintf("%x", rand.Int()%10000),
 			Created: date,
 			Path:    "ls",
@@ -856,6 +953,36 @@ func TestRemoveImageByName(t *testing.T) {
 	_, ok := server.imgIDs[imgName]
 	if ok {
 		t.Error("RemoveImage: did not remove image tag name.")
+	}
+}
+
+func TestRemoveImageWithMultipleTags(t *testing.T) {
+	server := DockerServer{}
+	addImages(&server, 1, true)
+	server.buildMuxer()
+	imgID := server.images[0].ID
+	imgName := "docker/python-" + imgID
+	server.imgIDs["docker/python-wat"] = imgID
+	recorder := httptest.NewRecorder()
+	path := fmt.Sprintf("/images/%s", imgName)
+	request, _ := http.NewRequest("DELETE", path, nil)
+	server.ServeHTTP(recorder, request)
+	_, ok := server.imgIDs[imgName]
+	if ok {
+		t.Error("RemoveImage: did not remove image tag name.")
+	}
+	id, ok := server.imgIDs["docker/python-wat"]
+	if !ok {
+		t.Error("RemoveImage: removed the wrong tag name.")
+	}
+	if id != imgID {
+		t.Error("RemoveImage: disassociated the wrong ID from the tag")
+	}
+	if len(server.images) < 1 {
+		t.Fatal("RemoveImage: removed the image, but should keep it")
+	}
+	if server.images[0].ID != imgID {
+		t.Error("RemoveImage: changed the ID of the image!")
 	}
 }
 

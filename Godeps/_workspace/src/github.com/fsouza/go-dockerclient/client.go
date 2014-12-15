@@ -20,11 +20,13 @@ limitations under the License.
 
 // Package docker provides a client for the Docker remote API.
 //
-// See http://goo.gl/mxyql for more details on the remote API.
+// See http://goo.gl/G3plxW for more details on the remote API.
 package docker
 
 import (
 	"bytes"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -48,22 +50,22 @@ var (
 	// ErrConnectionRefused is returned when the client cannot connect to the given endpoint.
 	ErrConnectionRefused = errors.New("cannot connect to Docker endpoint")
 
-	apiVersion_1_12, _ = NewApiVersion("1.12")
+	apiVersion1_12, _ = NewAPIVersion("1.12")
 )
 
-// ApiVersion is an internal representation of a version of the Remote API.
-type ApiVersion []int
+// APIVersion is an internal representation of a version of the Remote API.
+type APIVersion []int
 
-// NewApiVersion returns an instance of ApiVersion for the given string.
+// NewAPIVersion returns an instance of APIVersion for the given string.
 //
 // The given string must be in the form <major>.<minor>.<patch>, where <major>,
 // <minor> and <patch> are integer numbers.
-func NewApiVersion(input string) (ApiVersion, error) {
+func NewAPIVersion(input string) (APIVersion, error) {
 	if !strings.Contains(input, ".") {
 		return nil, fmt.Errorf("Unable to parse version %q", input)
 	}
 	arr := strings.Split(input, ".")
-	ret := make(ApiVersion, len(arr))
+	ret := make(APIVersion, len(arr))
 	var err error
 	for i, val := range arr {
 		ret[i], err = strconv.Atoi(val)
@@ -74,7 +76,7 @@ func NewApiVersion(input string) (ApiVersion, error) {
 	return ret, nil
 }
 
-func (version ApiVersion) String() string {
+func (version APIVersion) String() string {
 	var str string
 	for i, val := range version {
 		str += strconv.Itoa(val)
@@ -85,23 +87,27 @@ func (version ApiVersion) String() string {
 	return str
 }
 
-func (version ApiVersion) LessThan(other ApiVersion) bool {
+// LessThan is a function for comparing APIVersion structs
+func (version APIVersion) LessThan(other APIVersion) bool {
 	return version.compare(other) < 0
 }
 
-func (version ApiVersion) LessThanOrEqualTo(other ApiVersion) bool {
+// LessThanOrEqualTo is a function for comparing APIVersion structs
+func (version APIVersion) LessThanOrEqualTo(other APIVersion) bool {
 	return version.compare(other) <= 0
 }
 
-func (version ApiVersion) GreaterThan(other ApiVersion) bool {
+// GreaterThan is a function for comparing APIVersion structs
+func (version APIVersion) GreaterThan(other APIVersion) bool {
 	return version.compare(other) > 0
 }
 
-func (version ApiVersion) GreaterThanOrEqualTo(other ApiVersion) bool {
+// GreaterThanOrEqualTo is a function for comparing APIVersion structs
+func (version APIVersion) GreaterThanOrEqualTo(other APIVersion) bool {
 	return version.compare(other) >= 0
 }
 
-func (version ApiVersion) compare(other ApiVersion) int {
+func (version APIVersion) compare(other APIVersion) int {
 	for i, v := range version {
 		if i <= len(other)-1 {
 			otherVersion := other[i]
@@ -127,13 +133,14 @@ func (version ApiVersion) compare(other ApiVersion) int {
 type Client struct {
 	SkipServerVersionCheck bool
 	HTTPClient             *http.Client
+	TLSConfig              *tls.Config
 
 	endpoint            string
 	endpointURL         *url.URL
 	eventMonitor        *eventMonitoringState
-	requestedApiVersion ApiVersion
-	serverApiVersion    ApiVersion
-	expectedApiVersion  ApiVersion
+	requestedAPIVersion APIVersion
+	serverAPIVersion    APIVersion
+	expectedAPIVersion  APIVersion
 }
 
 // NewClient returns a Client instance ready for communication with the given
@@ -148,6 +155,18 @@ func NewClient(endpoint string) (*Client, error) {
 	return client, nil
 }
 
+// NewTLSClient returns a Client instance ready for TLS communications with the givens
+// server endpoint, key and certificates . It will use the latest remote API version
+// available in the server.
+func NewTLSClient(endpoint string, cert, key, ca string) (*Client, error) {
+	client, err := NewVersionnedTLSClient(endpoint, cert, key, ca, "")
+	if err != nil {
+		return nil, err
+	}
+	client.SkipServerVersionCheck = true
+	return client, nil
+}
+
 // NewVersionedClient returns a Client instance ready for communication with
 // the given server endpoint, using a specific remote API version.
 func NewVersionedClient(endpoint string, apiVersionString string) (*Client, error) {
@@ -155,9 +174,9 @@ func NewVersionedClient(endpoint string, apiVersionString string) (*Client, erro
 	if err != nil {
 		return nil, err
 	}
-	var requestedApiVersion ApiVersion
+	var requestedAPIVersion APIVersion
 	if strings.Contains(apiVersionString, ".") {
-		requestedApiVersion, err = NewApiVersion(apiVersionString)
+		requestedAPIVersion, err = NewAPIVersion(apiVersionString)
 		if err != nil {
 			return nil, err
 		}
@@ -167,23 +186,74 @@ func NewVersionedClient(endpoint string, apiVersionString string) (*Client, erro
 		endpoint:            endpoint,
 		endpointURL:         u,
 		eventMonitor:        new(eventMonitoringState),
-		requestedApiVersion: requestedApiVersion,
+		requestedAPIVersion: requestedAPIVersion,
 	}, nil
 }
 
-func (c *Client) checkApiVersion() error {
-	serverApiVersionString, err := c.getServerApiVersionString()
+// NewVersionnedTLSClient returns a Client instance ready for TLS communications with the givens
+// server endpoint, key and certificates, using a specific remote API version.
+func NewVersionnedTLSClient(endpoint string, cert, key, ca, apiVersionString string) (*Client, error) {
+	u, err := parseEndpoint(endpoint)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	c.serverApiVersion, err = NewApiVersion(serverApiVersionString)
+	var requestedAPIVersion APIVersion
+	if strings.Contains(apiVersionString, ".") {
+		requestedAPIVersion, err = NewAPIVersion(apiVersionString)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if cert == "" || key == "" {
+		return nil, errors.New("Both cert and key path are required")
+	}
+	tlsCert, err := tls.LoadX509KeyPair(cert, key)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if c.requestedApiVersion == nil {
-		c.expectedApiVersion = c.serverApiVersion
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{tlsCert}}
+	if ca == "" {
+		tlsConfig.InsecureSkipVerify = true
 	} else {
-		c.expectedApiVersion = c.requestedApiVersion
+		cert, err := ioutil.ReadFile(ca)
+		if err != nil {
+			return nil, err
+		}
+		caPool := x509.NewCertPool()
+		if !caPool.AppendCertsFromPEM(cert) {
+			return nil, errors.New("Could not add RootCA pem")
+		}
+		tlsConfig.RootCAs = caPool
+	}
+	tr := &http.Transport{
+		TLSClientConfig: tlsConfig,
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &Client{
+		HTTPClient:          &http.Client{Transport: tr},
+		TLSConfig:           tlsConfig,
+		endpoint:            endpoint,
+		endpointURL:         u,
+		eventMonitor:        new(eventMonitoringState),
+		requestedAPIVersion: requestedAPIVersion,
+	}, nil
+}
+
+func (c *Client) checkAPIVersion() error {
+	serverAPIVersionString, err := c.getServerAPIVersionString()
+	if err != nil {
+		return err
+	}
+	c.serverAPIVersion, err = NewAPIVersion(serverAPIVersionString)
+	if err != nil {
+		return err
+	}
+	if c.requestedAPIVersion == nil {
+		c.expectedAPIVersion = c.serverAPIVersion
+	} else {
+		c.expectedAPIVersion = c.requestedAPIVersion
 	}
 	return nil
 }
@@ -203,7 +273,7 @@ func (c *Client) Ping() error {
 	return nil
 }
 
-func (c *Client) getServerApiVersionString() (version string, err error) {
+func (c *Client) getServerAPIVersionString() (version string, err error) {
 	body, status, err := c.do("GET", "/version", nil)
 	if err != nil {
 		return "", err
@@ -229,8 +299,8 @@ func (c *Client) do(method, path string, data interface{}) ([]byte, int, error) 
 		}
 		params = bytes.NewBuffer(buf)
 	}
-	if path != "/version" && !c.SkipServerVersionCheck && c.expectedApiVersion == nil {
-		err := c.checkApiVersion()
+	if path != "/version" && !c.SkipServerVersionCheck && c.expectedAPIVersion == nil {
+		err := c.checkAPIVersion()
 		if err != nil {
 			return nil, -1, err
 		}
@@ -280,12 +350,12 @@ func (c *Client) do(method, path string, data interface{}) ([]byte, int, error) 
 	return body, resp.StatusCode, nil
 }
 
-func (c *Client) stream(method, path string, setRawTerminal bool, headers map[string]string, in io.Reader, stdout, stderr io.Writer) error {
+func (c *Client) stream(method, path string, setRawTerminal, rawJSONStream bool, headers map[string]string, in io.Reader, stdout, stderr io.Writer) error {
 	if (method == "POST" || method == "PUT") && in == nil {
 		in = bytes.NewReader(nil)
 	}
-	if path != "/version" && !c.SkipServerVersionCheck && c.expectedApiVersion == nil {
-		err := c.checkApiVersion()
+	if path != "/version" && !c.SkipServerVersionCheck && c.expectedAPIVersion == nil {
+		err := c.checkAPIVersion()
 		if err != nil {
 			return err
 		}
@@ -336,6 +406,12 @@ func (c *Client) stream(method, path string, setRawTerminal bool, headers map[st
 		return newError(resp.StatusCode, body)
 	}
 	if resp.Header.Get("Content-Type") == "application/json" {
+		// if we want to get raw json stream, just copy it back to output
+		// without decoding it
+		if rawJSONStream {
+			_, err = io.Copy(stdout, resp.Body)
+			return err
+		}
 		dec := json.NewDecoder(resp.Body)
 		for {
 			var m jsonMessage
@@ -366,20 +442,30 @@ func (c *Client) stream(method, path string, setRawTerminal bool, headers map[st
 	return nil
 }
 
-func (c *Client) hijack(method, path string, success chan struct{}, setRawTerminal bool, in io.Reader, stderr, stdout io.Writer) error {
-	if path != "/version" && !c.SkipServerVersionCheck && c.expectedApiVersion == nil {
-		err := c.checkApiVersion()
+func (c *Client) hijack(method, path string, success chan struct{}, setRawTerminal bool, in io.Reader, stderr, stdout io.Writer, data interface{}) error {
+	if path != "/version" && !c.SkipServerVersionCheck && c.expectedAPIVersion == nil {
+		err := c.checkAPIVersion()
 		if err != nil {
 			return err
 		}
 	}
+
+	var params io.Reader
+	if data != nil {
+		buf, err := json.Marshal(data)
+		if err != nil {
+			return err
+		}
+		params = bytes.NewBuffer(buf)
+	}
+
 	if stdout == nil {
 		stdout = ioutil.Discard
 	}
 	if stderr == nil {
 		stderr = ioutil.Discard
 	}
-	req, err := http.NewRequest(method, c.getURL(path), nil)
+	req, err := http.NewRequest(method, c.getURL(path), params)
 	if err != nil {
 		return err
 	}
@@ -434,11 +520,10 @@ func (c *Client) getURL(path string) string {
 		urlStr = ""
 	}
 
-	if c.requestedApiVersion != nil {
-		return fmt.Sprintf("%s/v%s%s", urlStr, c.requestedApiVersion, path)
-	} else {
-		return fmt.Sprintf("%s%s", urlStr, path)
+	if c.requestedAPIVersion != nil {
+		return fmt.Sprintf("%s/v%s%s", urlStr, c.requestedAPIVersion, path)
 	}
+	return fmt.Sprintf("%s%s", urlStr, path)
 }
 
 type jsonMessage struct {
@@ -520,7 +605,22 @@ func parseEndpoint(endpoint string) (*url.URL, error) {
 		return nil, ErrInvalidEndpoint
 	}
 	if u.Scheme == "tcp" {
-		u.Scheme = "http"
+		_, port, err := net.SplitHostPort(u.Host)
+		if err != nil {
+			if e, ok := err.(*net.AddrError); ok {
+				if e.Err == "missing port in address" {
+					return u, nil
+				}
+			}
+			return nil, ErrInvalidEndpoint
+		}
+
+		number, err := strconv.ParseInt(port, 10, 64)
+		if err == nil && number == 2376 {
+			u.Scheme = "https"
+		} else {
+			u.Scheme = "http"
+		}
 	}
 	if u.Scheme != "http" && u.Scheme != "https" && u.Scheme != "unix" {
 		return nil, ErrInvalidEndpoint
