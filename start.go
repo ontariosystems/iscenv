@@ -127,7 +127,7 @@ func start(_ *cobra.Command, args []string) {
 }
 
 func createInstance(instance string, version string, portOffset int64, volumesFrom volumeList) *docker.Container {
-	container, err := dockerClient.CreateContainer(getCreateOpts(instance, version, portOffset))
+	container, err := dockerClient.CreateContainer(getCreateOpts(instance, version, portOffset, volumesFrom))
 	if err != nil {
 		fatalf("Could not create instance, name: %s\n", instance)
 	}
@@ -140,7 +140,7 @@ func createInstance(instance string, version string, portOffset int64, volumesFr
 	return container
 }
 
-func getCreateOpts(name string, version string, portOffset int64) docker.CreateContainerOptions {
+func getCreateOpts(name string, version string, portOffset int64, volumesFrom volumeList) docker.CreateContainerOptions {
 	image := REPOSITORY + ":" + version
 
 	home := homeDir()
@@ -156,8 +156,9 @@ func getCreateOpts(name string, version string, portOffset int64) docker.CreateC
 		}}
 
 	opts := docker.CreateContainerOptions{
-		Name:   containerName(name),
-		Config: &config,
+		Name:       containerName(name),
+		Config:     &config,
+		HostConfig: getStartOpts(portOffset, volumesFrom),
 	}
 
 	return opts

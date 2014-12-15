@@ -1,7 +1,6 @@
 language: go
 go:
-  - 1.1.2
-  - 1.2
+  - 1.2.2
   - 1.3.1
   - tip
 env:
@@ -11,3 +10,4 @@ install:
   - go get -d ./...
 script:
   - go test ./...
+  - ./testing/bin/fmtpolice

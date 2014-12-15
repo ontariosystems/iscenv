@@ -456,6 +456,27 @@ func TestCreateContainerImageNotFound(t *testing.T) {
 	}
 }
 
+func TestCreateContainerWithHostConfig(t *testing.T) {
+	fakeRT := &FakeRoundTripper{message: "{}", status: http.StatusOK}
+	client := newTestClient(fakeRT)
+	config := Config{}
+	hostConfig := HostConfig{PublishAllPorts: true}
+	opts := CreateContainerOptions{Name: "TestCreateContainerWithHostConfig", Config: &config, HostConfig: &hostConfig}
+	_, err := client.CreateContainer(opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := fakeRT.requests[0]
+	var gotBody map[string]interface{}
+	err = json.NewDecoder(req.Body).Decode(&gotBody)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := gotBody["HostConfig"]; !ok {
+		t.Errorf("CreateContainer: wrong body. HostConfig was not serialized")
+	}
+}
+
 func TestStartContainer(t *testing.T) {
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusOK}
 	client := newTestClient(fakeRT)
@@ -509,6 +530,15 @@ func TestStartContainerNotFound(t *testing.T) {
 	}
 }
 
+func TestStartContainerAlreadyRunning(t *testing.T) {
+	client := newTestClient(&FakeRoundTripper{message: "container already running", status: http.StatusNotModified})
+	err := client.StartContainer("a2334", &HostConfig{})
+	expected := &ContainerAlreadyRunning{ID: "a2334"}
+	if !reflect.DeepEqual(err, expected) {
+		t.Errorf("StartContainer: Wrong error returned. Want %#v. Got %#v.", expected, err)
+	}
+}
+
 func TestStopContainer(t *testing.T) {
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusNoContent}
 	client := newTestClient(fakeRT)
@@ -531,6 +561,15 @@ func TestStopContainerNotFound(t *testing.T) {
 	client := newTestClient(&FakeRoundTripper{message: "no such container", status: http.StatusNotFound})
 	err := client.StopContainer("a2334", 10)
 	expected := &NoSuchContainer{ID: "a2334"}
+	if !reflect.DeepEqual(err, expected) {
+		t.Errorf("StopContainer: Wrong error returned. Want %#v. Got %#v.", expected, err)
+	}
+}
+
+func TestStopContainerNotRunning(t *testing.T) {
+	client := newTestClient(&FakeRoundTripper{message: "container not running", status: http.StatusNotModified})
+	err := client.StopContainer("a2334", 10)
+	expected := &ContainerNotRunning{ID: "a2334"}
 	if !reflect.DeepEqual(err, expected) {
 		t.Errorf("StopContainer: Wrong error returned. Want %#v. Got %#v.", expected, err)
 	}
@@ -1249,7 +1288,7 @@ func TestLogsNoContainer(t *testing.T) {
 }
 
 func TestNoSuchContainerError(t *testing.T) {
-	var err error = &NoSuchContainer{ID: "i345"}
+	var err = &NoSuchContainer{ID: "i345"}
 	expected := "No such container: i345"
 	if got := err.Error(); got != expected {
 		t.Errorf("NoSuchContainer: wrong message. Want %q. Got %q.", expected, got)
@@ -1329,8 +1368,12 @@ func TestExportContainerNoId(t *testing.T) {
 	client := Client{}
 	out := stdoutMock{bytes.NewBufferString("")}
 	err := client.ExportContainer(ExportContainerOptions{OutputStream: out})
-	if err != (NoSuchContainer{}) {
-		t.Errorf("ExportContainer: wrong error. Want %#v. Got %#v.", NoSuchContainer{}, err)
+	e, ok := err.(*NoSuchContainer)
+	if !ok {
+		t.Errorf("ExportContainer: wrong error. Want NoSuchContainer. Got %#v.", e)
+	}
+	if e.ID != "" {
+		t.Errorf("ExportContainer: wrong ID. Want %q. Got %q", "", e.ID)
 	}
 }
 
@@ -1383,19 +1426,19 @@ func TestAlwaysRestart(t *testing.T) {
 	if policy.Name != "always" {
 		t.Errorf("AlwaysRestart(): wrong policy name. Want %q. Got %q", "always", policy.Name)
 	}
-	if policy.MaxRetry != 0 {
-		t.Errorf("AlwaysRestart(): wrong MaxRetry. Want 0. Got %d", policy.MaxRetry)
+	if policy.MaximumRetryCount != 0 {
+		t.Errorf("AlwaysRestart(): wrong MaximumRetryCount. Want 0. Got %d", policy.MaximumRetryCount)
 	}
 }
 
-func TestRestartOnFailure(t* testing.T) {
+func TestRestartOnFailure(t *testing.T) {
 	const retry = 5
 	policy := RestartOnFailure(retry)
 	if policy.Name != "on-failure" {
 		t.Errorf("RestartOnFailure(%d): wrong policy name. Want %q. Got %q", retry, "on-failure", policy.Name)
 	}
-	if policy.MaxRetry != retry {
-		t.Errorf("RestartOnFailure(%d): wrong MaxRetry. Want %d. Got %d", retry, retry, policy.MaxRetry)
+	if policy.MaximumRetryCount != retry {
+		t.Errorf("RestartOnFailure(%d): wrong MaximumRetryCount. Want %d. Got %d", retry, retry, policy.MaximumRetryCount)
 	}
 }
 
@@ -1404,7 +1447,86 @@ func TestNeverRestart(t *testing.T) {
 	if policy.Name != "no" {
 		t.Errorf("NeverRestart(): wrong policy name. Want %q. Got %q", "always", policy.Name)
 	}
-	if policy.MaxRetry != 0 {
-		t.Errorf("NeverRestart(): wrong MaxRetry. Want 0. Got %d", policy.MaxRetry)
+	if policy.MaximumRetryCount != 0 {
+		t.Errorf("NeverRestart(): wrong MaximumRetryCount. Want 0. Got %d", policy.MaximumRetryCount)
+	}
+}
+
+func TestTopContainer(t *testing.T) {
+	jsonTop := `{
+  "Processes": [
+    [
+      "ubuntu",
+      "3087",
+      "815",
+      "0",
+      "01:44",
+      "?",
+      "00:00:00",
+      "cmd1"
+    ],
+    [
+      "root",
+      "3158",
+      "3087",
+      "0",
+      "01:44",
+      "?",
+      "00:00:01",
+      "cmd2"
+    ]
+  ],
+  "Titles": [
+    "UID",
+    "PID",
+    "PPID",
+    "C",
+    "STIME",
+    "TTY",
+    "TIME",
+    "CMD"
+  ]
+}`
+	var expected TopResult
+	err := json.Unmarshal([]byte(jsonTop), &expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := "4fa6e0f0"
+	fakeRT := &FakeRoundTripper{message: jsonTop, status: http.StatusOK}
+	client := newTestClient(fakeRT)
+	processes, err := client.TopContainer(id, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(processes, expected) {
+		t.Errorf("TopContainer: Expected %#v. Got %#v.", expected, processes)
+	}
+	if len(processes.Processes) != 2 || len(processes.Processes[0]) != 8 ||
+		processes.Processes[0][7] != "cmd1" {
+		t.Errorf("TopContainer: Process list to include cmd1. Got %#v.", expected, processes)
+	}
+	expectedURI := "/containers/" + id + "/top"
+	if !strings.HasSuffix(fakeRT.requests[0].URL.String(), expectedURI) {
+		t.Errorf("TopContainer: Expected URI to have %q. Got %q.", expectedURI, fakeRT.requests[0].URL.String())
+	}
+}
+
+func TestTopContainerNotFound(t *testing.T) {
+	client := newTestClient(&FakeRoundTripper{message: "no such container", status: http.StatusNotFound})
+	_, err := client.TopContainer("abef348", "")
+	expected := &NoSuchContainer{ID: "abef348"}
+	if !reflect.DeepEqual(err, expected) {
+		t.Errorf("StopContainer: Wrong error returned. Want %#v. Got %#v.", expected, err)
+	}
+}
+
+func TestTopContainerWithPsArgs(t *testing.T) {
+	fakeRT := &FakeRoundTripper{message: "no such container", status: http.StatusNotFound}
+	client := newTestClient(fakeRT)
+	client.TopContainer("abef348", "aux")
+	expectedURI := "/containers/abef348/top?ps_args=aux"
+	if !strings.HasSuffix(fakeRT.requests[0].URL.String(), expectedURI) {
+		t.Errorf("TopContainer: Expected URI to have %q. Got %q.", expectedURI, fakeRT.requests[0].URL.String())
 	}
 }
