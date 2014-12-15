@@ -30,7 +30,7 @@ const DEFAULT_DOCKER_CONFIG_NAME = ".dockercfg"
 
 type DockerConfigEntry struct {
 	Auth  string `json:"auth"`
-	Email string `json:"email`
+	Email string `json:"email"`
 }
 
 type DockerConfig map[string]DockerConfigEntry
