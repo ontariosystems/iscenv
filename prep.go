@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Ontario Systems
+Copyright 2015 Ontario Systems
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,8 +19,11 @@ package main
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"io"
 	"io/ioutil"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -33,6 +36,7 @@ const (
 	CACHEUSR_GID      = "500"
 	LOG_LOCATION      = "/var/log/ensemble/"
 	CCONSOLE_LOCATION = LOG_LOCATION + "docker-cconsole.log"
+	STATLER_URL       = "http://statler.ontsys.com"
 )
 
 var prepUID string
@@ -99,6 +103,8 @@ func prep(_ *cobra.Command, _ []string) {
 	}
 
 	addSshKey()
+
+	updateCacheKey()
 }
 
 func waitForEnsembleStatus(status string) {
@@ -215,6 +221,77 @@ func addSshKey() {
 	fmt.Println("Adding the ssh key to /root/.ssh...")
 	// /root/.ssh should already be there
 	ioutil.WriteFile("/root/.ssh/id_rsa", []byte(SSH_KEY), 0600)
+}
+
+func updateCacheKey() {
+	fmt.Println("Attempting to update cache.key to latest version from Statler")
+	err := fetchCacheKey()
+	if err != nil {
+		fmt.Printf("WARNING: Could not fetch new cache.key file, error: %s\n", err)
+		return
+	}
+
+	out, err := exec.Command("deployment_service", "license", "-u", "root", "-p", "password").CombinedOutput()
+	if err != nil {
+		fmt.Printf("WARNING: Could not activate new cache.key file, error: %s\n", err)
+		return
+	}
+
+	fmt.Println(string(out))
+}
+
+func fetchCacheKey() error {
+	path, version, err := getEnsembleInfo()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("  ISC product Path: %s\n", path)
+	fmt.Printf("  ISC product Version: %s\n", version)
+
+	url := getCacheKeyUrl(version)
+	fmt.Printf("  ISC product Key URL: %s\n", url)
+	response, err := unsafeGet(url)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+
+	keypath := getCacheKeyPath(path)
+	fmt.Printf("  ISC product Key Path: %s\n", keypath)
+	file, err := os.Create(keypath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, response.Body)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getEnsembleInfo() (path string, version string, err error) {
+	out, err := exec.Command("ccontrol", "qlist").CombinedOutput()
+	if err != nil {
+		return "", "", err
+	}
+
+	s := strings.Split(string(out), "^")
+	if len(s) < 3 {
+		return "", "", fmt.Errorf("Could not determine ISC product version: ccontrol qlist returned too few pieces")
+	}
+
+	return s[1], s[2], nil
+}
+
+func getCacheKeyUrl(version string) string {
+	return fmt.Sprintf("%s/products/Ensemble/releases/%s/artifacts/cache.key", STATLER_URL, version)
+}
+
+func getCacheKeyPath(ensemblePath string) string {
+	return filepath.Join(ensemblePath, "mgr", "cache.key")
 }
 
 func updateHostsFile(hostIp string) {
