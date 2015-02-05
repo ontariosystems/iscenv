@@ -21,6 +21,7 @@ import (
 	"github.com/spf13/cobra"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -254,6 +255,11 @@ func fetchCacheKey() error {
 	if err != nil {
 		return err
 	}
+
+	if response.StatusCode != http.StatusOK {
+		return fmt.Errorf("Unexpected status code returned from Statler, code: %d", response.StatusCode)
+	}
+
 	defer response.Body.Close()
 
 	keypath := getCacheKeyPath(path)
