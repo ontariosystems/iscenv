@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Ontario Systems
+Copyright 2015 Ontario Systems
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -48,6 +48,7 @@ var startVersion string
 var startPortOffset int64
 var startQuiet bool
 var volumesFrom volumeList
+var startCacheKeyUrl string
 
 var startCommand = &cobra.Command{
 	Use:   "start INSTANCE [INSTANCE...]",
@@ -62,6 +63,7 @@ func init() {
 	startCommand.Flags().Int64VarP(&startPortOffset, "port-offset", "p", -1, "The port offset for this instance's ports.  -1 means autodetect.  Will increment by 1 if more than 1 instance is specified.")
 	startCommand.Flags().BoolVarP(&startQuiet, "quiet", "q", false, "Only display numeric IDs")
 	startCommand.Flags().VarP(&volumesFrom, "volumes-from", "", "Mount volumes from the specified container(s)")
+	startCommand.Flags().StringVarP(&startCacheKeyUrl, "license-key-url", "k", "", "Download the cache.key file from the provided location rather than the default Statler URL")
 }
 
 func start(_ *cobra.Command, args []string) {
@@ -201,6 +203,10 @@ func executePrepWithOpts(instance string, containerId string, opts []string) {
 		opts = append(opts, "-i", hostIp)
 	} else {
 		nqf(startQuiet, "WARNING: Could not find docker0's address, 'host' entry will not be added to /etc/hosts, err: %s\n", err)
+	}
+
+	if startCacheKeyUrl != "" {
+		opts = append(opts, "-k", startCacheKeyUrl)
 	}
 
 	baseopts := []string{
