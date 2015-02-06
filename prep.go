@@ -279,6 +279,16 @@ func fetchCacheKey(url string) error {
 		return err
 	}
 
+	_, err = exec.Command("chown", fmt.Sprintf("root:%s", CACHEUSR_UID), keypath).CombinedOutput()
+	if err != nil {
+		return err
+	}
+
+	_, err = exec.Command("chmod", "755", keypath).CombinedOutput()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
