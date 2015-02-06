@@ -44,6 +44,7 @@ var prepUID string
 var prepGID string
 var prepHgCachePath string
 var prepHostIp string
+var prepCacheKeyUrl string
 
 var prepCommand = &cobra.Command{
 	Use:   "prep",
@@ -57,6 +58,7 @@ func init() {
 	prepCommand.Flags().StringVarP(&prepGID, "gid", "g", "", "The GID of the external user's group.")
 	prepCommand.Flags().StringVarP(&prepHgCachePath, "hg-cache-path", "h", "", "The path to hg cache.")
 	prepCommand.Flags().StringVarP(&prepHostIp, "host-ip", "i", "", "The ip address of the host.  This will be added to /etc/hosts as 'host'")
+	prepCommand.Flags().StringVarP(&prepCacheKeyUrl, "license-key-url", "k", "", "Download the cache.key file from the provided location rather than the default Statler URL")
 }
 
 func prep(_ *cobra.Command, _ []string) {
@@ -105,7 +107,7 @@ func prep(_ *cobra.Command, _ []string) {
 
 	addSshKey()
 
-	updateCacheKey()
+	updateCacheKey(prepCacheKeyUrl)
 }
 
 func waitForEnsembleStatus(status string) {
@@ -224,9 +226,9 @@ func addSshKey() {
 	ioutil.WriteFile("/root/.ssh/id_rsa", []byte(SSH_KEY), 0600)
 }
 
-func updateCacheKey() {
+func updateCacheKey(url string) {
 	fmt.Println("Attempting to update cache.key to latest version from Statler")
-	err := fetchCacheKey()
+	err := fetchCacheKey(url)
 	if err != nil {
 		fmt.Printf("WARNING: Could not fetch new cache.key file, error: %s\n", err)
 		return
@@ -241,7 +243,7 @@ func updateCacheKey() {
 	fmt.Println(string(out))
 }
 
-func fetchCacheKey() error {
+func fetchCacheKey(url string) error {
 	path, version, err := getEnsembleInfo()
 	if err != nil {
 		return err
@@ -249,7 +251,9 @@ func fetchCacheKey() error {
 	fmt.Printf("  ISC product Path: %s\n", path)
 	fmt.Printf("  ISC product Version: %s\n", version)
 
-	url := getCacheKeyUrl(version)
+	if url == "" {
+		url = getCacheKeyUrl(version)
+	}
 	fmt.Printf("  ISC product Key URL: %s\n", url)
 	response, err := unsafeGet(url)
 	if err != nil {
