@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Ontario Systems
+Copyright 2015 Ontario Systems
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -29,6 +29,8 @@ var restartCommand = &cobra.Command{
 func init() {
 	restartCommand.Run = restart
 	restartCommand.Flags().UintVarP(&stopTimeout, "time", "t", 60, "The amount of time to wait for the instance to stop cleanly before killing it.")
+	restartCommand.Flags().StringVarP(&startCacheKeyUrl, "license-key-url", "k", "", "Download the cache.key file from the provided location rather than the default Statler URL")
+	addMultiInstanceFlags(restartCommand, "restart")
 }
 
 func restart(c *cobra.Command, args []string) {
