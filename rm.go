@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Ontario Systems
+Copyright 2015 Ontario Systems
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,11 +31,13 @@ var rmCommand = &cobra.Command{
 
 func init() {
 	rmCommand.Run = rm
+	addMultiInstanceFlags(rmCommand, "rm")
 }
 
 func rm(_ *cobra.Command, args []string) {
-	for _, arg := range args {
-		instance := strings.ToLower(arg)
+	instances := multiInstanceFlags.getInstances(args)
+	for _, instanceName := range instances {
+		instance := strings.ToLower(instanceName)
 		current := getInstances()
 		existing := current.find(instance)
 
@@ -46,7 +48,7 @@ func rm(_ *cobra.Command, args []string) {
 			}
 			fmt.Println(existing.id)
 		} else {
-			fmt.Printf("No such instance, name: %s\n", arg)
+			fmt.Printf("No such instance, name: %s\n", instanceName)
 		}
 	}
 }

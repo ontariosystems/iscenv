@@ -64,6 +64,7 @@ func init() {
 	startCommand.Flags().BoolVarP(&startQuiet, "quiet", "q", false, "Only display numeric IDs")
 	startCommand.Flags().VarP(&volumesFrom, "volumes-from", "", "Mount volumes from the specified container(s)")
 	startCommand.Flags().StringVarP(&startCacheKeyUrl, "license-key-url", "k", "", "Download the cache.key file from the provided location rather than the default Statler URL")
+	addMultiInstanceFlags(startCommand, "start")
 }
 
 func start(_ *cobra.Command, args []string) {
@@ -71,9 +72,10 @@ func start(_ *cobra.Command, args []string) {
 		startVersion = getVersions().latest().version
 	}
 
+	instances := multiInstanceFlags.getInstances(args)
 	// This loop is somewhat inefficient (with the multiple getInstances())  I doubt there will ever be enough to make it a performance issue.
-	for _, arg := range args {
-		instance := strings.ToLower(arg)
+	for _, instanceName := range instances {
+		instance := strings.ToLower(instanceName)
 		current := getInstances()
 
 		var offset int64 = -1
