@@ -55,6 +55,10 @@ func (this multiInstanceOps) validate(args []string) {
 func (this multiInstanceOps) getInstances(args []string) []string {
 	this.validate(args)
 
+	if len(args) > 0 {
+		return args
+	}
+
 	names := []string{}
 	instances := getInstances()
 	for _, instance := range instances {
