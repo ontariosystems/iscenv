@@ -23,6 +23,7 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/spf13/cobra"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"os/user"
@@ -96,7 +97,7 @@ func start(_ *cobra.Command, args []string) {
 					// Even if we're just starting a container we need to bump the ascending port counter so the next instance doesn't collide with this one
 					startPortOffset++
 				}
-				executePrepWithOpts(instance, existing.id, []string{})
+				executePrepWithOpts(existing, []string{})
 				fmt.Println(existing.id)
 				continue
 			}
@@ -122,7 +123,11 @@ func start(_ *cobra.Command, args []string) {
 
 		if !current.usedPortOffset(offset) {
 			container := createInstance(instance, startVersion, offset, volumesFrom)
-			executePrep(instance, container.ID)
+			existing := getInstances().find(instance)
+			if existing == nil {
+				fatalf("Error loading instance after creation, name: %s", instance)
+			}
+			executePrep(existing)
 			fmt.Println(container.ID)
 		} else {
 			nqf(startQuiet, "ERROR: Could not create instance due to port offset conflict, instance: %s, port offset: %d\n", instance, offset)
@@ -184,27 +189,27 @@ func getStartOpts(portOffset int64, volumesFrom volumeList) *docker.HostConfig {
 	}
 }
 
-func executePrep(instance string, containerId string) {
+func executePrep(ensInstance *iscInstance) {
 	opts := []string{
 		"-u", strconv.Itoa(os.Getuid()),
 		"-g", strconv.Itoa(os.Getgid()),
 		"-h", hgcachePath(),
 	}
 
-	executePrepWithOpts(instance, containerId, opts)
+	executePrepWithOpts(ensInstance, opts)
 }
 
-func executePrepWithOpts(instance string, containerId string, opts []string) {
-	err := waitForServices(instance, containerId, 60*time.Second)
-	if err != nil {
-		fatalf("Error while waiting for services to start, name: %s, error: %s\n", instance, err)
-	}
-
+func executePrepWithOpts(ensInstance *iscInstance, opts []string) {
 	hostIp, err := getDocker0InterfaceIP()
 	if err == nil {
 		opts = append(opts, "-i", hostIp)
 	} else {
 		nqf(startQuiet, "WARNING: Could not find docker0's address, 'host' entry will not be added to /etc/hosts, err: %s\n", err)
+	}
+
+	err = waitForSSH(hostIp, ensInstance.ports.ssh, 60*time.Second)
+	if err != nil {
+		fatalf("Error while waiting for SSH, name: %s, error: %s", ensInstance.name, err)
 	}
 
 	if startCacheKeyUrl != "" {
@@ -215,7 +220,7 @@ func executePrepWithOpts(instance string, containerId string, opts []string) {
 		"/iscenv/iscenv", "prep",
 	}
 
-	sshExec(instance, osSshFn, append(baseopts, opts...)...)
+	sshExec(ensInstance.name, osSshFn, append(baseopts, opts...)...)
 }
 
 func homeDir() string {
@@ -273,103 +278,37 @@ func osSshFn(sshbin string, args []string) error {
 	return cmd.Wait()
 }
 
-func waitForServices(instance string, containerId string, timeout time.Duration) error {
-	fmt.Println("Waiting for services to start...")
+func waitForSSH(ip string, port containerPort, timeout time.Duration) error {
+	fmt.Println("Waiting for SSH...")
 	c := make(chan error, 1)
 
-	go waitForServicesForever(containerId, c)
+	go waitForSSHForever(ip, port, c)
 	select {
 	case err := <-c:
-		if err != nil {
-			return fmt.Errorf("Error retrieving docker logs for instance, name: %s, error: %s", instance, err)
-		} else {
-			fmt.Println("\tStarted!")
+		if err == nil {
+			fmt.Println("\tSuccess!")
 		}
+		return err
 	case <-time.After(timeout):
-		return fmt.Errorf("Timed out waiting for services to come up in instance, name: %s", instance)
+		return fmt.Errorf("Timed out waiting for SSH")
 	}
 
 	return nil
 }
 
-func waitForServicesForever(containerId string, c chan error) {
-	startedAt, err := getContainerStartedAt(containerId)
-	if err != nil {
-		c <- err
-		return
-	}
-
+func waitForSSHForever(ip string, port containerPort, c chan error) {
 	for {
-		up, err := servicesAreUp(containerId, startedAt)
-		if err != nil {
-			c <- err
-			break
-		}
-
-		if up {
+		if conn, err := net.Dial("tcp", ip+":"+port.String()); err == nil {
+			conn.Close()
 			c <- nil
-			break
-		}
-		time.Sleep(500 * time.Millisecond)
-	}
-}
-
-func getContainerStartedAt(containerId string) (time.Time, error) {
-	var t time.Time
-	container, err := dockerClient.InspectContainer(containerId)
-	if err != nil {
-		return t, err
-	}
-
-	if !container.State.Running {
-		return t, fmt.Errorf("Container is not running")
-	}
-
-	return container.State.StartedAt, nil
-}
-
-func servicesAreUp(containerId string, startedAt time.Time) (bool, error) {
-	services := map[string]bool{
-		"sshd":     false,
-		"ensemble": false,
-	}
-
-	lines, err := getDockerLogs(containerId)
-	if err != nil {
-		return false, err
-	}
-
-	for _, line := range lines {
-		if strings.TrimSpace(line) == "" {
-			continue
-		}
-
-		s := strings.Split(line, " ")
-		if len(s) == 0 {
-			return false, fmt.Errorf("Malformed docker log line when determining if services were up")
-		}
-
-		logTime, err := time.Parse(time.RFC3339Nano, s[0])
-		if err != nil {
-			return false, err
-		}
-
-		if logTime.Before(startedAt) {
-			continue
-		}
-
-		for svc, _ := range services {
-			if strings.Contains(line, svcUpLine(svc)) {
-				services[svc] = true
+		} else {
+			if strings.HasSuffix(err.Error(), "connection refused") {
+				time.Sleep(500 * time.Millisecond)
+			} else {
+				c <- err
 			}
 		}
-
-		if allTrue(services) {
-			return true, nil
-		}
 	}
-
-	return false, nil
 }
 
 func getDockerLogs(containerId string) ([]string, error) {
