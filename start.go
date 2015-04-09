@@ -23,7 +23,6 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/spf13/cobra"
 	"io"
-	"net"
 	"os"
 	"os/exec"
 	"os/user"
@@ -207,8 +206,11 @@ func executePrepWithOpts(ensInstance *iscInstance, opts []string) {
 		nqf(startQuiet, "WARNING: Could not find docker0's address, 'host' entry will not be added to /etc/hosts, err: %s\n", err)
 	}
 
-	err = waitForSSH(hostIp, ensInstance.ports.ssh, 60*time.Second)
-	if err != nil {
+	fmt.Println("Waiting for SSH...")
+	err = waitForPort(hostIp, ensInstance.ports.ssh.String(), 60*time.Second)
+	if err == nil {
+		fmt.Println("\tSuccess!")
+	} else {
 		fatalf("Error while waiting for SSH, name: %s, error: %s", ensInstance.name, err)
 	}
 
@@ -276,39 +278,6 @@ func osSshFn(sshbin string, args []string) error {
 	}
 
 	return cmd.Wait()
-}
-
-func waitForSSH(ip string, port containerPort, timeout time.Duration) error {
-	fmt.Println("Waiting for SSH...")
-	c := make(chan error, 1)
-
-	go waitForSSHForever(ip, port, c)
-	select {
-	case err := <-c:
-		if err == nil {
-			fmt.Println("\tSuccess!")
-		}
-		return err
-	case <-time.After(timeout):
-		return fmt.Errorf("Timed out waiting for SSH")
-	}
-
-	return nil
-}
-
-func waitForSSHForever(ip string, port containerPort, c chan error) {
-	for {
-		if conn, err := net.Dial("tcp", ip+":"+port.String()); err == nil {
-			conn.Close()
-			c <- nil
-		} else {
-			if strings.HasSuffix(err.Error(), "connection refused") {
-				time.Sleep(500 * time.Millisecond)
-			} else {
-				c <- err
-			}
-		}
-	}
 }
 
 func getDockerLogs(containerId string) ([]string, error) {
