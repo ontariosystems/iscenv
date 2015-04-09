@@ -62,13 +62,9 @@ func init() {
 }
 
 func prep(_ *cobra.Command, _ []string) {
-	//	err := exec.Command("ln -sf /iscenv/iscenv /usr/local/bin/iscenv").Run()
-	//	if err != nil {
-	//		fatalf("Failed to create symbolic link for iscenv, error: %s\n", err)
-	//	}
-
 	// Make sure ISC product is fully up before taking any further actions (including trying to stop it halfway through startup)
 	waitForEnsembleStatus("running")
+	waitForEnsembleHTTP()
 
 	// Intentionally using the name here so we can make sure the permissions are correct on restarts rather than only on creation
 	cmd("chown", fmt.Sprintf("%s:%s", CACHEUSR_NAME, CACHEUSR_NAME), LOG_LOCATION)
@@ -91,7 +87,10 @@ func prep(_ *cobra.Command, _ []string) {
 
 		cmd("supervisorctl", "start", "ensemble")
 		waitForEnsembleStatus("running")
+		waitForEnsembleHTTP()
 	}
+
+	updateCacheKey(prepCacheKeyUrl)
 
 	if prepHgCachePath != "" {
 		css("%SYS", cacheimport(prepHgCachePath))
@@ -106,8 +105,16 @@ func prep(_ *cobra.Command, _ []string) {
 	}
 
 	addSshKey()
+}
 
-	updateCacheKey(prepCacheKeyUrl)
+func waitForEnsembleHTTP() {
+	fmt.Println("Waiting for ISC product HTTP...")
+	err := waitForPort("127.0.0.1", "57772", 60*time.Second)
+	if err == nil {
+		fmt.Println("\tSuccess!")
+	} else {
+		fatalf("Error while waiting for ISC product HTTP, error: %s", err)
+	}
 }
 
 func waitForEnsembleStatus(status string) {
@@ -224,6 +231,7 @@ func addSshKey() {
 	fmt.Println("Adding the ssh key to /root/.ssh...")
 	// /root/.ssh should already be there
 	ioutil.WriteFile("/root/.ssh/id_rsa", []byte(SSH_KEY), 0600)
+	fmt.Println("\tSuccess!")
 }
 
 func updateCacheKey(url string) {
@@ -240,7 +248,7 @@ func updateCacheKey(url string) {
 		return
 	}
 
-	fmt.Println(string(out))
+	fmt.Print(string(out))
 }
 
 func fetchCacheKey(url string) error {
@@ -340,4 +348,5 @@ func updateHostsFile(hostIp string) {
 	}
 
 	ioutil.WriteFile("/etc/hosts", []byte(strings.Join(lines, "\n")), 0644)
+	fmt.Println("\tSuccess!")
 }
