@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Ontario Systems
+Copyright 2015 Ontario Systems
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ func init() {
 	dockerClient = dc
 }
 
-func port(port containerPort) docker.Port {
+func port(port ContainerPort) docker.Port {
 	return docker.Port(port.String()) + "/tcp"
 }
 
@@ -44,13 +44,13 @@ func portBinding(port int64, portOffset int64) []docker.PortBinding {
 }
 
 // Assumes a single binding
-func getBindingPort(bindings []docker.PortBinding) containerPort {
+func getBindingPort(bindings []docker.PortBinding) ContainerPort {
 	port, err := strconv.ParseInt(bindings[0].HostPort, 10, 64)
 	if err != nil {
 		fatalf("Could not parse port, error: %s\n", err)
 	}
 
-	return containerPort(port)
+	return ContainerPort(port)
 }
 
 func getDocker0InterfaceIP() (string, error) {

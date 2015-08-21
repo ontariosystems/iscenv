@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Ontario Systems
+Copyright 2015 Ontario Systems
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -75,7 +75,7 @@ func sshExec(instance string, sshfn sshExecFn, sshArgs ...string) {
 		args := append([]string{
 			"root@localhost",
 			"-t",
-			"-p", existing.ports.ssh.String(),
+			"-p", existing.Ports.SSH.String(),
 			"-o", "UserKnownHostsFile=/dev/null",
 			"-o", "StrictHostKeyChecking=no",
 			"-o", "LogLevel=error",

@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Ontario Systems
+Copyright 2015 Ontario Systems
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -47,20 +47,20 @@ func list(_ *cobra.Command, _ []string) {
 	}
 
 	for _, instance := range instances {
-		id := instance.id
+		id := instance.ID
 		if !listNoTrunc {
 			id = id[:12]
 		}
 		if !listQuiet {
 			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\t%d\t%d\t%s\n",
 				id,
-				instance.version,
-				time.Unix(instance.created, 0).Format(time.RFC3339),
-				instance.status,
-				instance.ports.ssh,
-				instance.ports.superserver,
-				instance.ports.web,
-				instance.name)
+				instance.Version,
+				time.Unix(instance.Created, 0).Format(time.RFC3339),
+				instance.Status,
+				instance.Ports.SSH,
+				instance.Ports.SuperServer,
+				instance.Ports.Web,
+				instance.Name)
 		} else {
 			fmt.Println(id)
 		}
