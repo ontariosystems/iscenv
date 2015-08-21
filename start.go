@@ -85,7 +85,7 @@ func start(_ *cobra.Command, args []string) {
 			if !startRemove {
 				nqf(startQuiet, "Ensuring instance '%s' is started...\n", instance)
 				// NOTE: I wish this wasn't necessary (and maybe it isn't) but it seems that the api uses a blank hostConfig instead of nil which seems to wipe out all of the settings
-				dockerClient.StartContainer(existing.id, existing.container().HostConfig)
+				dockerClient.StartContainer(existing.ID, existing.container().HostConfig)
 
 				if startPortOffset >= 0 {
 					epo := int64(existing.portOffset())
@@ -97,7 +97,7 @@ func start(_ *cobra.Command, args []string) {
 					startPortOffset++
 				}
 				executePrepWithOpts(existing, []string{})
-				fmt.Println(existing.id)
+				fmt.Println(existing.ID)
 				continue
 			}
 
@@ -188,7 +188,7 @@ func getStartOpts(portOffset int64, volumesFrom volumeList) *docker.HostConfig {
 	}
 }
 
-func executePrep(ensInstance *iscInstance) {
+func executePrep(ensInstance *ISCInstance) {
 	opts := []string{
 		"-u", strconv.Itoa(os.Getuid()),
 		"-g", strconv.Itoa(os.Getgid()),
@@ -198,7 +198,7 @@ func executePrep(ensInstance *iscInstance) {
 	executePrepWithOpts(ensInstance, opts)
 }
 
-func executePrepWithOpts(ensInstance *iscInstance, opts []string) {
+func executePrepWithOpts(ensInstance *ISCInstance, opts []string) {
 	hostIp, err := getDocker0InterfaceIP()
 	if err == nil {
 		opts = append(opts, "-i", hostIp)
@@ -207,11 +207,11 @@ func executePrepWithOpts(ensInstance *iscInstance, opts []string) {
 	}
 
 	fmt.Println("Waiting for SSH...")
-	err = waitForPort(hostIp, ensInstance.ports.ssh.String(), 60*time.Second)
+	err = waitForPort(hostIp, ensInstance.Ports.SSH.String(), 60*time.Second)
 	if err == nil {
 		fmt.Println("\tSuccess!")
 	} else {
-		fatalf("Error while waiting for SSH, name: %s, error: %s", ensInstance.name, err)
+		fatalf("Error while waiting for SSH, name: %s, error: %s", ensInstance.Name, err)
 	}
 
 	if startCacheKeyUrl != "" {
@@ -222,7 +222,7 @@ func executePrepWithOpts(ensInstance *iscInstance, opts []string) {
 		"/iscenv/iscenv", "prep",
 	}
 
-	sshExec(ensInstance.name, osSshFn, append(baseopts, opts...)...)
+	sshExec(ensInstance.Name, osSshFn, append(baseopts, opts...)...)
 }
 
 func homeDir() string {

@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Ontario Systems
+Copyright 2015 Ontario Systems
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,48 +22,48 @@ import (
 	"strings"
 )
 
-type containerPort int64
+type ContainerPort int64
 
 type containerPorts struct {
-	ssh         containerPort
-	superserver containerPort
-	web         containerPort
+	SSH         ContainerPort
+	SuperServer ContainerPort
+	Web         ContainerPort
 }
 
-type iscInstance struct {
-	id      string
-	name    string
-	version string
-	created int64
-	status  string
-	ports   containerPorts
+type ISCInstance struct {
+	ID      string
+	Name    string
+	Version string
+	Created int64
+	Status  string
+	Ports   containerPorts
 }
 
-type iscInstances []iscInstance
+type ISCInstances []ISCInstance
 
-func (p containerPort) String() string {
+func (p ContainerPort) String() string {
 	return strconv.FormatInt(int64(p), 10)
 }
 
-func (i iscInstance) portOffset() containerPort {
-	if i.ports.ssh < EXTERNAL_PORT_SSH {
-		fatalf("SSH Port is outside of range, instance: %s, port: %s\n", i.name, i.ports.ssh)
+func (i ISCInstance) portOffset() ContainerPort {
+	if i.Ports.SSH < EXTERNAL_PORT_SSH {
+		fatalf("SSH Port is outside of range, instance: %s, port: %s\n", i.Name, i.Ports.SSH)
 	}
 
-	return i.ports.ssh - EXTERNAL_PORT_SSH
+	return i.Ports.SSH - EXTERNAL_PORT_SSH
 }
 
-func (i iscInstance) container() *docker.Container {
-	container, err := dockerClient.InspectContainer(i.id)
+func (i ISCInstance) container() *docker.Container {
+	container, err := dockerClient.InspectContainer(i.ID)
 	if err != nil {
-		fatalf("Could not inspect container, instance: %s, id: %s\n", i.name, i.id)
+		fatalf("Could not inspect container, instance: %s, id: %s\n", i.Name, i.ID)
 	}
 
 	return container
 }
 
-func (is iscInstances) byPortOffsets() map[containerPort]iscInstance {
-	offsets := make(map[containerPort]iscInstance)
+func (is ISCInstances) byPortOffsets() map[ContainerPort]ISCInstance {
+	offsets := make(map[ContainerPort]ISCInstance)
 	for _, i := range is {
 		offsets[i.portOffset()] = i
 	}
@@ -71,10 +71,10 @@ func (is iscInstances) byPortOffsets() map[containerPort]iscInstance {
 	return offsets
 }
 
-func (is iscInstances) calculatePortOffset() int64 {
+func (is ISCInstances) calculatePortOffset() int64 {
 	offsets := is.byPortOffsets()
 
-	var i containerPort
+	var i ContainerPort
 	for i = 0; i < 65535; i++ {
 		if _, in := offsets[i]; !in {
 			return int64(i)
@@ -85,15 +85,15 @@ func (is iscInstances) calculatePortOffset() int64 {
 	return -1
 }
 
-func (is iscInstances) usedPortOffset(offset int64) bool {
+func (is ISCInstances) usedPortOffset(offset int64) bool {
 	offsets := is.byPortOffsets()
-	_, used := offsets[containerPort(offset)]
+	_, used := offsets[ContainerPort(offset)]
 	return used
 }
 
-func (is iscInstances) find(name string) *iscInstance {
+func (is ISCInstances) find(name string) *ISCInstance {
 	for _, i := range is {
-		if i.name == name {
+		if i.Name == name {
 			return &i
 		}
 	}
@@ -101,17 +101,17 @@ func (is iscInstances) find(name string) *iscInstance {
 	return nil
 }
 
-func (is iscInstances) exists(name string) bool {
+func (is ISCInstances) exists(name string) bool {
 	return is.find(name) != nil
 }
 
-func getInstances() iscInstances {
+func getInstances() ISCInstances {
 	containers, err := dockerClient.ListContainers(docker.ListContainersOptions{All: true})
 	if err != nil {
 		fatalf("Could not list containers, error: %s\n", err)
 	}
 
-	instances := []iscInstance{}
+	instances := []ISCInstance{}
 	for _, apicontainer := range containers {
 		name := ""
 		for _, cn := range apicontainer.Names {
@@ -134,21 +134,21 @@ func getInstances() iscInstances {
 				version = "Unknown"
 			}
 
-			instance := iscInstance{
-				id:      container.ID,
-				name:    strings.TrimPrefix(name, "/"+CONTAINER_PREFIX),
-				version: version,
-				status:  apicontainer.Status,
-				created: apicontainer.Created}
+			instance := ISCInstance{
+				ID:      container.ID,
+				Name:    strings.TrimPrefix(name, "/"+CONTAINER_PREFIX),
+				Version: version,
+				Status:  apicontainer.Status,
+				Created: apicontainer.Created}
 
 			for intPort, bindings := range container.HostConfig.PortBindings {
 				switch intPort {
 				case port(INTERNAL_PORT_SSH):
-					instance.ports.ssh = getBindingPort(bindings)
+					instance.Ports.SSH = getBindingPort(bindings)
 				case port(INTERNAL_PORT_SS):
-					instance.ports.superserver = getBindingPort(bindings)
+					instance.Ports.SuperServer = getBindingPort(bindings)
 				case port(INTERNAL_PORT_WEB):
-					instance.ports.web = getBindingPort(bindings)
+					instance.Ports.Web = getBindingPort(bindings)
 				}
 			}
 

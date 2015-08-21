@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Ontario Systems
+Copyright 2015 Ontario Systems
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -76,6 +76,9 @@ func AddCommands() {
 
 	// ISCEnv information
 	iscenvCommand.AddCommand(versionCommand)
+
+	// Bonus!
+	iscenvCommand.AddCommand(apacheCommand)
 }
 
 func nq(quiet bool, a ...interface{}) {

@@ -62,8 +62,8 @@ func (this multiInstanceOps) getInstances(args []string) []string {
 	names := []string{}
 	instances := getInstances()
 	for _, instance := range instances {
-		if this.all || (this.up && strings.HasPrefix(instance.status, "Up")) || (this.exited && strings.HasPrefix(instance.status, "Exited")) {
-			names = append(names, instance.name)
+		if this.all || (this.up && strings.HasPrefix(instance.Status, "Up")) || (this.exited && strings.HasPrefix(instance.Status, "Exited")) {
+			names = append(names, instance.Name)
 		}
 	}
 

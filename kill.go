@@ -42,12 +42,12 @@ func kill(_ *cobra.Command, args []string) {
 		existing := current.find(instance)
 
 		if existing != nil {
-			err := dockerClient.KillContainer(docker.KillContainerOptions{ID: existing.id})
+			err := dockerClient.KillContainer(docker.KillContainerOptions{ID: existing.ID})
 			if err != nil {
-				fatalf("Could not kill instance, name: %s, error: %s\n", existing.name, err)
+				fatalf("Could not kill instance, name: %s, error: %s\n", existing.Name, err)
 			}
 
-			fmt.Println(existing.id)
+			fmt.Println(existing.ID)
 		} else {
 			fmt.Printf("No such instance, name: %s\n", instanceName)
 		}
