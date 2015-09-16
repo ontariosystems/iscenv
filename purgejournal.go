@@ -17,7 +17,9 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
 	"github.com/spf13/cobra"
+	"strings"
 )
 
 var purgeJournalCommand = &cobra.Command{
@@ -28,12 +30,14 @@ var purgeJournalCommand = &cobra.Command{
 
 func init() {
 	purgeJournalCommand.Run = purgeJournal
+	addMultiInstanceFlags(purgeJournalCommand, "start")
 }
 
 func purgeJournal(_ *cobra.Command, args []string) {
-	if len(args) > 0 {
-		sshExec(args[0], nil, "/iscenv/iscenv", "_purgejournal")
-	} else {
-		fatal("Must provide an instance")
+	instances := multiInstanceFlags.getInstances(args)
+	for _, instanceName := range instances {
+		fmt.Printf(" Purging journals for %s\n", instanceName)
+		instance := strings.ToLower(instanceName)
+		sshExec(instance, osSshFn, "/iscenv/iscenv", "_purgejournal")
 	}
 }
