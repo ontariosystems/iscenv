@@ -35,8 +35,7 @@ const (
 	gatewayDir    = "/opt/iscenv-csp-gateway"
 	cspINIPath    = gatewayDir + "/bin/CSP.ini"
 	srcGatewayDir = "/ensemble/cspgateway"
-
-	apacheDir = "/etc/apache2"
+	apacheDir     = "/etc/apache2"
 )
 
 var apacheCommand = &cobra.Command{

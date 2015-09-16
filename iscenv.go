@@ -66,19 +66,21 @@ func AddCommands() {
 	iscenvCommand.AddCommand(csessionCommand)
 	iscenvCommand.AddCommand(listCommand)
 	iscenvCommand.AddCommand(tailCommand)
-
-	// Run in container
-	iscenvCommand.AddCommand(prepCommand)
+	iscenvCommand.AddCommand(purgeJournalCommand)
 
 	// Image management
 	iscenvCommand.AddCommand(versionsCommand)
 	iscenvCommand.AddCommand(pullCommand)
 
+	// Bonus!
+	iscenvCommand.AddCommand(apacheCommand)
+
 	// ISCEnv information
 	iscenvCommand.AddCommand(versionCommand)
 
-	// Bonus!
-	iscenvCommand.AddCommand(apacheCommand)
+	// Internal commands
+	iscenvCommand.AddCommand(internalPrepCommand)
+	iscenvCommand.AddCommand(internalPurgeJournalCommand)
 }
 
 func nq(quiet bool, a ...interface{}) {

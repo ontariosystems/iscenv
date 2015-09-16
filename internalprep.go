@@ -40,28 +40,31 @@ const (
 	STATLER_URL       = "http://statler.ontsys.com"
 )
 
-var prepUID string
-var prepGID string
-var prepHgCachePath string
-var prepHostIp string
-var prepCacheKeyUrl string
+var internalPrepUID string
+var internalPrepGID string
+var internalPrepHgCachePath string
+var internalPrepHostIp string
+var internalPrepCacheKeyUrl string
 
-var prepCommand = &cobra.Command{
-	Use:   "prep",
-	Short: "Prepare the instance",
+var internalPrepCommand = &cobra.Command{
+	Use:   "_prep",
+	Short: "internal: Prepare the instance",
 	Long:  "DO NOT RUN THIS OUTSIDE OF AN INSTANCE CONTAINER.  This command sets up the instance comtainer",
 }
 
 func init() {
-	prepCommand.Run = prep
-	prepCommand.Flags().StringVarP(&prepUID, "uid", "u", "", "The UID of the external user.")
-	prepCommand.Flags().StringVarP(&prepGID, "gid", "g", "", "The GID of the external user's group.")
-	prepCommand.Flags().StringVarP(&prepHgCachePath, "hg-cache-path", "h", "", "The path to hg cache.")
-	prepCommand.Flags().StringVarP(&prepHostIp, "host-ip", "i", "", "The ip address of the host.  This will be added to /etc/hosts as 'host'")
-	prepCommand.Flags().StringVarP(&prepCacheKeyUrl, "license-key-url", "k", "", "Download the cache.key file from the provided location rather than the default Statler URL")
+	internalPrepCommand.Run = prep
+	internalPrepCommand.Flags().StringVarP(&internalPrepUID, "uid", "u", "", "The UID of the external user.")
+	internalPrepCommand.Flags().StringVarP(&internalPrepGID, "gid", "g", "", "The GID of the external user's group.")
+	internalPrepCommand.Flags().StringVarP(&internalPrepHgCachePath, "hg-cache-path", "h", "", "The path to hg cache.")
+	internalPrepCommand.Flags().StringVarP(&internalPrepHostIp, "host-ip", "i", "", "The ip address of the host.  This will be added to /etc/hosts as 'host'")
+	internalPrepCommand.Flags().StringVarP(&internalPrepCacheKeyUrl, "license-key-url", "k", "", "Download the cache.key file from the provided location rather than the default Statler URL")
 }
 
 func prep(_ *cobra.Command, _ []string) {
+	// verify we are running in a container
+	ensureWithinContainer("_prep")
+
 	// Make sure ISC product is fully up before taking any further actions (including trying to stop it halfway through startup)
 	waitForEnsembleStatus("running")
 	waitForEnsembleHTTP()
@@ -73,35 +76,35 @@ func prep(_ *cobra.Command, _ []string) {
 	// Doing this before the stop so that the first useful start's logs will be in the appropriate place
 	cmd("deployment_service", "config", "-u", "root", "-p", "password", "-s", "config", "-i", "ConsoleFile", "-v", CCONSOLE_LOCATION)
 
-	if prepUID != "" && prepGID != "" {
+	if internalPrepUID != "" && internalPrepGID != "" {
 		cmd("supervisorctl", "stop", "ensemble")
 		cmd("ccontrol", "stop", "docker", "quietly") // This shouldn't be necessary but we've seen weird cases where supervisor thinks it stopped ensemble but it did not
 		waitForEnsembleStatus("down")
 		waitForUserFree(CACHEUSR_NAME)
 
-		cmd("usermod", "-u", prepUID, CACHEUSR_NAME)
-		cmd("groupmod", "-g", prepGID, CACHEUSR_NAME)
+		cmd("usermod", "-u", internalPrepUID, CACHEUSR_NAME)
+		cmd("groupmod", "-g", internalPrepGID, CACHEUSR_NAME)
 
-		cmd("find", "/", "-user", CACHEUSR_UID, "-not", "-path", "/proc/*", "-exec", "chown", "-h", prepUID, "{}", ";")
-		cmd("find", "/", "-group", CACHEUSR_GID, "-not", "-path", "/proc/*", "-exec", "chgrp", "-h", prepGID, "{}", ";")
+		cmd("find", "/", "-user", CACHEUSR_UID, "-not", "-path", "/proc/*", "-exec", "chown", "-h", internalPrepUID, "{}", ";")
+		cmd("find", "/", "-group", CACHEUSR_GID, "-not", "-path", "/proc/*", "-exec", "chgrp", "-h", internalPrepGID, "{}", ";")
 
 		cmd("supervisorctl", "start", "ensemble")
 		waitForEnsembleStatus("running")
 		waitForEnsembleHTTP()
 	}
 
-	updateCacheKey(prepCacheKeyUrl)
+	updateCacheKey(internalPrepCacheKeyUrl)
 
-	if prepHgCachePath != "" {
-		css("%SYS", cacheimport(prepHgCachePath))
+	if internalPrepHgCachePath != "" {
+		css("%SYS", cacheimport(internalPrepHgCachePath))
 		cmd("sh", "-c", "rm -f /ensemble/instances/docker/devuser/studio/templates/*") // TODO: use native go to remove these
 	}
 
 	cmd("deployment_service", "seccfg", "-u", "root", "-p", "password", "-s", "Services", "-N", "%Service_Bindings", "-i", "Enabled", "-v", "1")
 
-	if prepHostIp != "" {
+	if internalPrepHostIp != "" {
 		// I could have done this by executing a sed one-liner but i resisted the urge and wrote it in native go
-		updateHostsFile(prepHostIp)
+		updateHostsFile(internalPrepHostIp)
 	}
 
 	addSshKey()
@@ -197,7 +200,7 @@ func waitForUserFreeForever(user string, c chan bool) {
 
 func css(namespace string, command string) {
 	re := regexp.MustCompile(`(?m)^<[^>]+>[^\^]*\^.*$`)
-	fmt.Println("Running csession prep command...")
+	fmt.Println("Running csession _prep command...")
 	fmt.Printf("\tnamespace: %s, command: %s\n", namespace, command)
 	out, err := exec.Command("csession", "docker", "-U", namespace, command).CombinedOutput()
 	if err != nil {
@@ -213,7 +216,7 @@ func css(namespace string, command string) {
 }
 
 func cmd(name string, args ...string) {
-	fmt.Println("Running prep command...")
+	fmt.Println("Running _prep command...")
 	fmt.Printf("\tcommand: %s, arguments: %s\n", name, args)
 	out, err := exec.Command(name, args...).CombinedOutput()
 	if err == nil {
