@@ -22,7 +22,6 @@ import (
 	"fmt"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/spf13/cobra"
-	"io"
 	"os"
 	"os/exec"
 	"os/user"
@@ -258,26 +257,6 @@ func expandHome(path string) string {
 	}
 
 	return path
-}
-
-func osSshFn(sshbin string, args []string) error {
-	cmd := exec.Command(sshbin, args...)
-
-	stdoutPipe, err := cmd.StdoutPipe()
-	if err != nil {
-		return err
-	}
-
-	err = cmd.Start()
-	if err != nil {
-		return err
-	}
-
-	if !startQuiet {
-		go io.Copy(os.Stdout, stdoutPipe)
-	}
-
-	return cmd.Wait()
 }
 
 func getDockerLogs(containerId string) ([]string, error) {

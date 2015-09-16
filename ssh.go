@@ -22,7 +22,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"syscall"
 )
 
 type sshExecFn func(string, []string) error
@@ -93,9 +92,4 @@ func sshExec(instance string, sshfn sshExecFn, sshArgs ...string) {
 	} else {
 		fatalf("No such instance, name: %s\n", instance)
 	}
-}
-
-func syscallSshFn(sshbin string, args []string) error {
-	sargs := append([]string{"ssh"}, args...)
-	return syscall.Exec(sshbin, sargs, []string{"TERM=xterm"})
 }

@@ -92,7 +92,7 @@ func deleteNotLastVisit(path string, f os.FileInfo, err error) error {
 	matched, err := regexp.MatchString(`^/data/journal/[0-9]{8}\.[0-9]{3}$`, path)
 	if matched {
 		os.Remove(path)
-		fmt.Printf(" - deleted: %s\n", path)
+		fmt.Printf("  - deleted: %s\n", path)
 	}
 
 	return nil
