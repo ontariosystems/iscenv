@@ -219,7 +219,7 @@ func executePrepWithOpts(ensInstance *ISCInstance, opts []string) {
 	}
 
 	baseopts := []string{
-		"/iscenv/iscenv", "prep",
+		"/iscenv/iscenv", "_prep",
 	}
 
 	sshExec(ensInstance.Name, osSshFn, append(baseopts, opts...)...)
