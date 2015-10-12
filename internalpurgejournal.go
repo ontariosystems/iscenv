@@ -21,8 +21,7 @@ import (
 	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strings"
+	"sort"
 )
 
 var internalPurgeJournalCommand = &cobra.Command{
@@ -40,60 +39,34 @@ var internalPurgeJournalLastFilePath string
 
 func internalPurgeJournal(_ *cobra.Command, _ []string) {
 	// verify we are running in a container
-	ensureWithinContainer("_prep")
+	ensureWithinContainer("_purgejournal")
 
-	internalPurgeJournalLastFileInfo = nil
-	err := filepath.Walk("/data/journal/", findLastVisit)
-
+	journals, err := filepath.Glob("/data/journal/[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].[0-9][0-9][0-9]")
 	if err != nil {
-		fatalf("Failed to find journal files: ", err)
+		fatalf("Failed to list journal files: ", err)
 	}
 
-	err = filepath.Walk("/data/journal/", deleteNotLastVisit)
-
-	if err != nil {
-		fatalf("Failed to delete journal files: ", err)
-	}
-}
-
-func findLastVisit(path string, f os.FileInfo, err error) error {
-
-	if f.IsDir() {
-		return nil
+	if len(journals) < 2 {
+		fmt.Printf("  - no old journal files found\n")
+		return
 	}
 
-	if strings.HasSuffix(path, "cache.lck") {
-		return nil
+	sort.Strings(journals)
+	for _, journal := range journals[0 : len(journals)-1] {
+		f, err := os.Open(journal)
+		if err != nil {
+			fatalf("Could not open journal file %s: %s", journal, err)
+		}
+
+		fi, err := f.Stat()
+		if err != nil {
+			fatalf("Could not stat journal file %s: %s", journal, err)
+		}
+
+		if err := os.Remove(journal); err != nil {
+			fatalf("Could not delete journal, path: %s, error: %s", journal, err)
+		} else {
+			fmt.Printf("  - deleted: %s (%v MB)\n", journal, fi.Size()/1024/1024)
+		}
 	}
-
-	if internalPurgeJournalLastFileInfo == nil || f.ModTime().After(internalPurgeJournalLastFileInfo.ModTime()) {
-		internalPurgeJournalLastFileInfo = f
-		internalPurgeJournalLastFilePath = path
-	}
-
-	return nil
-}
-
-func deleteNotLastVisit(path string, f os.FileInfo, err error) error {
-
-	if path == internalPurgeJournalLastFilePath {
-		return nil
-	}
-
-	if f.IsDir() {
-		return nil
-	}
-
-	if strings.HasSuffix(path, "cache.lck") {
-		return nil
-	}
-
-	// one last check to verify it is a journal file and not something unexpected
-	matched, err := regexp.MatchString(`^/data/journal/[0-9]{8}\.[0-9]{3}$`, path)
-	if matched {
-		os.Remove(path)
-		fmt.Printf("  - deleted: %s\n", path)
-	}
-
-	return nil
 }
