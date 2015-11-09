@@ -31,7 +31,7 @@ func ensureWithinContainer(commandName string) {
 
 	// if we have some control groups owned by docker, then we are within a container
 	contents := string(proc1CGroupContents)
-	if !strings.Contains(contents, ":/docker/") {
+	if !strings.Contains(contents, ":/docker/") && !strings.Contains(contents, ":/system.slice/docker-") {
 		fatalf("Cannot run `%s` outside of a container!\n", commandName)
 	}
 }
