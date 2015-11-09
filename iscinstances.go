@@ -17,9 +17,10 @@ limitations under the License.
 package main
 
 import (
-	docker "github.com/fsouza/go-dockerclient"
 	"strconv"
 	"strings"
+
+	docker "github.com/fsouza/go-dockerclient"
 )
 
 type ContainerPort int64
@@ -114,8 +115,10 @@ func getInstances() ISCInstances {
 	instances := []ISCInstance{}
 	for _, apicontainer := range containers {
 		name := ""
+
 		for _, cn := range apicontainer.Names {
-			if strings.HasPrefix(cn, "/"+CONTAINER_PREFIX) {
+			// Skip over link/name container names.  Root names will be "/{CONTAINER_PREFIX}-{name}".
+			if strings.Count(cn, "/") == 1 && strings.HasPrefix(cn, "/"+CONTAINER_PREFIX) {
 				name = cn
 				break
 			}
