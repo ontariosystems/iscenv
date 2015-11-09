@@ -17,11 +17,8 @@ limitations under the License.
 package main
 
 import (
-	"bitbucket.org/kardianos/osext"
 	"bytes"
 	"fmt"
-	docker "github.com/fsouza/go-dockerclient"
-	"github.com/spf13/cobra"
 	"os"
 	"os/exec"
 	"os/user"
@@ -29,6 +26,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"bitbucket.org/kardianos/osext"
+	docker "github.com/fsouza/go-dockerclient"
+	"github.com/spf13/cobra"
 )
 
 type volumeList []string
@@ -36,9 +37,18 @@ type volumeList []string
 func (vf *volumeList) String() string {
 	return fmt.Sprint([]string(*vf))
 }
-
 func (vf *volumeList) Set(value string) error {
 	*vf = append(*vf, value)
+	return nil
+}
+
+type linkList []string
+
+func (ll *linkList) String() string {
+	return fmt.Sprint([]string(*ll))
+}
+func (ll *linkList) Set(value string) error {
+	*ll = append(*ll, value)
 	return nil
 }
 
@@ -47,6 +57,7 @@ var startVersion string
 var startPortOffset int64
 var startQuiet bool
 var volumesFrom volumeList
+var containerLinks linkList
 var startCacheKeyUrl string
 
 var startCommand = &cobra.Command{
@@ -59,6 +70,7 @@ func init() {
 	startCommand.Run = start
 	startCommand.Flags().BoolVarP(&startRemove, "rm", "", false, "Remove existing instance before starting.  By default, this switch will preserve port settings when recreating the instance.")
 	startCommand.Flags().StringVarP(&startVersion, "version", "v", "", "The version of ISC product to start.  By default this will find the latest version on your system.")
+	startCommand.Flags().VarP(&containerLinks, "link", "", "Add link to another container.  They should be in the format 'iscenv-{iscenvname}', 'iscenv-{iscenvname}:{alias}' or '{containername}:{alias}'")
 	startCommand.Flags().Int64VarP(&startPortOffset, "port-offset", "p", -1, "The port offset for this instance's ports.  -1 means autodetect.  Will increment by 1 if more than 1 instance is specified.")
 	startCommand.Flags().BoolVarP(&startQuiet, "quiet", "q", false, "Only display numeric IDs")
 	startCommand.Flags().VarP(&volumesFrom, "volumes-from", "", "Mount volumes from the specified container(s)")
@@ -120,7 +132,7 @@ func start(_ *cobra.Command, args []string) {
 		}
 
 		if !current.usedPortOffset(offset) {
-			container := createInstance(instance, startVersion, offset, volumesFrom)
+			container := createInstance(instance, startVersion, offset, volumesFrom, containerLinks)
 			existing := getInstances().find(instance)
 			if existing == nil {
 				fatalf("Error loading instance after creation, name: %s", instance)
@@ -133,21 +145,21 @@ func start(_ *cobra.Command, args []string) {
 	}
 }
 
-func createInstance(instance string, version string, portOffset int64, volumesFrom volumeList) *docker.Container {
-	container, err := dockerClient.CreateContainer(getCreateOpts(instance, version, portOffset, volumesFrom))
+func createInstance(instance string, version string, portOffset int64, volumesFrom volumeList, containerLinks linkList) *docker.Container {
+	container, err := dockerClient.CreateContainer(getCreateOpts(instance, version, portOffset, volumesFrom, containerLinks))
 	if err != nil {
-		fatalf("Could not create instance, name: %s\n", instance)
+		fatalf("Could not create instance, name: %s\n%v", instance, err)
 	}
 
-	err = dockerClient.StartContainer(container.ID, getStartOpts(portOffset, volumesFrom))
+	err = dockerClient.StartContainer(container.ID, getStartOpts(portOffset, volumesFrom, containerLinks))
 	if err != nil {
-		fatalf("Could not start created instance, name: %s\n", instance)
+		fatalf("Could not start created instance, name: %s\n%v", instance, err)
 	}
 
 	return container
 }
 
-func getCreateOpts(name string, version string, portOffset int64, volumesFrom volumeList) docker.CreateContainerOptions {
+func getCreateOpts(name string, version string, portOffset int64, volumesFrom volumeList, containerLinks linkList) docker.CreateContainerOptions {
 	image := REPOSITORY + ":" + version
 
 	home := homeDir()
@@ -165,19 +177,20 @@ func getCreateOpts(name string, version string, portOffset int64, volumesFrom vo
 	opts := docker.CreateContainerOptions{
 		Name:       containerName(name),
 		Config:     &config,
-		HostConfig: getStartOpts(portOffset, volumesFrom),
+		HostConfig: getStartOpts(portOffset, volumesFrom, containerLinks),
 	}
 
 	return opts
 }
 
-func getStartOpts(portOffset int64, volumesFrom volumeList) *docker.HostConfig {
+func getStartOpts(portOffset int64, volumesFrom volumeList, containerLinks linkList) *docker.HostConfig {
 	return &docker.HostConfig{
 		Privileged: true,
 		Binds: []string{
 			exeDir() + ":/iscenv:ro",
 			homeDir() + ":" + homeDir(),
 		},
+		Links: containerLinks,
 		PortBindings: map[docker.Port][]docker.PortBinding{
 			port(INTERNAL_PORT_SSH): portBinding(EXTERNAL_PORT_SSH, portOffset),
 			port(INTERNAL_PORT_SS):  portBinding(EXTERNAL_PORT_SS, portOffset),
