@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Ontario Systems
+Copyright 2015 Ontario Systems
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,9 +17,10 @@ limitations under the License.
 package main
 
 import (
+	"os"
+
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 var pullCommand = &cobra.Command{

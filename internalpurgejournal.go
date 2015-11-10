@@ -18,10 +18,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
 	"sort"
+
+	"github.com/spf13/cobra"
 )
 
 var internalPurgeJournalCommand = &cobra.Command{
