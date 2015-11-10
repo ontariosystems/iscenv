@@ -18,7 +18,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -28,6 +27,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/spf13/cobra"
 )
 
 const (
@@ -56,7 +57,7 @@ func init() {
 	internalPrepCommand.Run = prep
 	internalPrepCommand.Flags().StringVarP(&internalPrepUID, "uid", "u", "", "The UID of the external user.")
 	internalPrepCommand.Flags().StringVarP(&internalPrepGID, "gid", "g", "", "The GID of the external user's group.")
-	internalPrepCommand.Flags().StringVarP(&internalPrepHgCachePath, "hg-cache-path", "h", "", "The path to hg cache.")
+	internalPrepCommand.Flags().StringVarP(&internalPrepHgCachePath, "hg-cache-path", "c", "", "The path to hg cache.")
 	internalPrepCommand.Flags().StringVarP(&internalPrepHostIp, "host-ip", "i", "", "The ip address of the host.  This will be added to /etc/hosts as 'host'")
 	internalPrepCommand.Flags().StringVarP(&internalPrepCacheKeyUrl, "license-key-url", "k", "", "Download the cache.key file from the provided location rather than the default Statler URL")
 }
