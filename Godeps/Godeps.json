@@ -3,11 +3,6 @@
 	"GoVersion": "go1.5",
 	"Deps": [
 		{
-			"ImportPath": "bitbucket.org/kardianos/osext",
-			"Comment": "null-13",
-			"Rev": "5d3ddcf53a508cc2f7404eaebf546ef2cb5cdb6e"
-		},
-		{
 			"ImportPath": "github.com/fsouza/go-dockerclient",
 			"Comment": "0.2.1-719-gaf9789b",
 			"Rev": "af9789bbd78acf3e279274caa54682185eb7ed33"
@@ -15,6 +10,10 @@
 		{
 			"ImportPath": "github.com/inconshreveable/mousetrap",
 			"Rev": "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
+		},
+		{
+			"ImportPath": "github.com/kardianos/osext",
+			"Rev": "6e7f843663477789fac7c02def0d0909e969b4e5"
 		},
 		{
 			"ImportPath": "github.com/mcuadros/go-version",
