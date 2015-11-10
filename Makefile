@@ -1,5 +1,6 @@
 PKGDIR=pkg
 CACHEDIR=cache
+compile=GO15VENDOREXPERIMENT=1 GOOS=$(1) GOARCH=$(2) go build -ldflags "-X main.VERSION=$(VERSION)" -o=$(PKGDIR)/$(1)/$(2)/bin/iscenv_$(1)_$(2)$(3) .
 
 .PHONY: all clean prep version build
 
@@ -15,7 +16,8 @@ version:
 # While we are only building one platform right now, we are considering making iscenv work on windows, so why not just use our fairly standard cross-compile methodology
 build: version
 	mkdir -p $(PKGDIR)
-	go build -ldflags "-X github.com/ontariosystems/iscenv.VERSION=$(VERSION)" -o $(PKGDIR)/iscenv .
+	$(call compile,linux,amd64,)
+	echo PRODUCT_VERSION=$(VERSION) > pkg/versions.properties
 
 # This is a temporary target until we sort out a good single Travis-like build system
 build	@echo "[trusted]\nusers = $(shell stat -c "%u" .)\n" > /etc/mercurial/hgrc.d/trust.rc
