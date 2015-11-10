@@ -1,6 +1,6 @@
 {
-	"ImportPath": "ontsys.com/ospair/iscenv",
-	"GoVersion": "go1.3",
+	"ImportPath": "github.com/ontariosystems/iscenv",
+	"GoVersion": "go1.5",
 	"Deps": [
 		{
 			"ImportPath": "bitbucket.org/kardianos/osext",
@@ -8,66 +8,25 @@
 			"Rev": "5d3ddcf53a508cc2f7404eaebf546ef2cb5cdb6e"
 		},
 		{
-			"ImportPath": "github.com/Sirupsen/logrus",
-			"Comment": "v0.6.2-5-g7096056",
-			"Rev": "7096056d3cab4d7d11436441f5fc2935cb1cf58c"
-		},
-		{
-			"ImportPath": "github.com/docker/docker/pkg/archive",
-			"Comment": "v1.4.0-46-g03142fd",
-			"Rev": "03142fd5d24bc5509b06742665b2f89ebdbefb87"
-		},
-		{
-			"ImportPath": "github.com/docker/docker/pkg/fileutils",
-			"Comment": "v1.4.0-46-g03142fd",
-			"Rev": "03142fd5d24bc5509b06742665b2f89ebdbefb87"
-		},
-		{
-			"ImportPath": "github.com/docker/docker/pkg/ioutils",
-			"Comment": "v1.4.0-46-g03142fd",
-			"Rev": "03142fd5d24bc5509b06742665b2f89ebdbefb87"
-		},
-		{
-			"ImportPath": "github.com/docker/docker/pkg/pools",
-			"Comment": "v1.4.0-46-g03142fd",
-			"Rev": "03142fd5d24bc5509b06742665b2f89ebdbefb87"
-		},
-		{
-			"ImportPath": "github.com/docker/docker/pkg/promise",
-			"Comment": "v1.4.0-46-g03142fd",
-			"Rev": "03142fd5d24bc5509b06742665b2f89ebdbefb87"
-		},
-		{
-			"ImportPath": "github.com/docker/docker/pkg/system",
-			"Comment": "v1.4.0-46-g03142fd",
-			"Rev": "03142fd5d24bc5509b06742665b2f89ebdbefb87"
-		},
-		{
-			"ImportPath": "github.com/docker/docker/pkg/units",
-			"Comment": "v1.4.0-46-g03142fd",
-			"Rev": "03142fd5d24bc5509b06742665b2f89ebdbefb87"
-		},
-		{
-			"ImportPath": "github.com/docker/docker/vendor/src/code.google.com/p/go/src/pkg/archive/tar",
-			"Comment": "v1.4.0-46-g03142fd",
-			"Rev": "03142fd5d24bc5509b06742665b2f89ebdbefb87"
-		},
-		{
 			"ImportPath": "github.com/fsouza/go-dockerclient",
-			"Comment": "0.2.1-328-g446890d",
-			"Rev": "446890d53ef68f11e6fb154092e8774a65ae511c"
+			"Comment": "0.2.1-719-gaf9789b",
+			"Rev": "af9789bbd78acf3e279274caa54682185eb7ed33"
+		},
+		{
+			"ImportPath": "github.com/inconshreveable/mousetrap",
+			"Rev": "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
 		},
 		{
 			"ImportPath": "github.com/mcuadros/go-version",
-			"Rev": "11c5628a7f346b8078ad86a23e0b57e1b027d934"
+			"Rev": "d52711f8d6bea8dc01efafdb68ad95a4e2606630"
 		},
 		{
 			"ImportPath": "github.com/spf13/cobra",
-			"Rev": "e174a40cf5ac0768181065462ef36ec1ad07470c"
+			"Rev": "db0518444643a7b170abb78164bbeaf5a2bb816f"
 		},
 		{
 			"ImportPath": "github.com/spf13/pflag",
-			"Rev": "94e98a55fb412fcbcfc302555cb990f5e1590627"
+			"Rev": "112aaa578dfdd0e913663b05153be974bd72497a"
 		}
 	]
 }

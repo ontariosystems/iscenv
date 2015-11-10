@@ -17,11 +17,12 @@ limitations under the License.
 package main
 
 import (
-	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/spf13/cobra"
 )
 
 type sshExecFn func(string, []string) error
@@ -84,6 +85,7 @@ func sshExec(instance string, sshfn sshExecFn, sshArgs ...string) {
 		if sshfn == nil {
 			sshfn = syscallSshFn
 		}
+
 		err = sshfn(sshbin, args)
 
 		if err != nil {

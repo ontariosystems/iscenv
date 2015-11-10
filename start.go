@@ -27,37 +27,17 @@ import (
 	"strings"
 	"time"
 
-	"bitbucket.org/kardianos/osext"
 	docker "github.com/fsouza/go-dockerclient"
+	"github.com/kardianos/osext"
 	"github.com/spf13/cobra"
 )
-
-type volumeList []string
-
-func (vf *volumeList) String() string {
-	return fmt.Sprint([]string(*vf))
-}
-func (vf *volumeList) Set(value string) error {
-	*vf = append(*vf, value)
-	return nil
-}
-
-type linkList []string
-
-func (ll *linkList) String() string {
-	return fmt.Sprint([]string(*ll))
-}
-func (ll *linkList) Set(value string) error {
-	*ll = append(*ll, value)
-	return nil
-}
 
 var startRemove bool
 var startVersion string
 var startPortOffset int64
 var startQuiet bool
-var volumesFrom volumeList
-var containerLinks linkList
+var volumesFrom []string
+var containerLinks []string
 var startCacheKeyUrl string
 
 var startCommand = &cobra.Command{
@@ -70,10 +50,10 @@ func init() {
 	startCommand.Run = start
 	startCommand.Flags().BoolVarP(&startRemove, "rm", "", false, "Remove existing instance before starting.  By default, this switch will preserve port settings when recreating the instance.")
 	startCommand.Flags().StringVarP(&startVersion, "version", "v", "", "The version of ISC product to start.  By default this will find the latest version on your system.")
-	startCommand.Flags().VarP(&containerLinks, "link", "", "Add link to another container.  They should be in the format 'iscenv-{iscenvname}', 'iscenv-{iscenvname}:{alias}' or '{containername}:{alias}'")
+	startCommand.Flags().StringSliceVar(&containerLinks, "link", nil, "Add link to another container.  They should be in the format 'iscenv-{iscenvname}', 'iscenv-{iscenvname}:{alias}' or '{containername}:{alias}'")
 	startCommand.Flags().Int64VarP(&startPortOffset, "port-offset", "p", -1, "The port offset for this instance's ports.  -1 means autodetect.  Will increment by 1 if more than 1 instance is specified.")
 	startCommand.Flags().BoolVarP(&startQuiet, "quiet", "q", false, "Only display numeric IDs")
-	startCommand.Flags().VarP(&volumesFrom, "volumes-from", "", "Mount volumes from the specified container(s)")
+	startCommand.Flags().StringSliceVar(&volumesFrom, "volumes-from", nil, "Mount volumes from the specified container(s)")
 	startCommand.Flags().StringVarP(&startCacheKeyUrl, "license-key-url", "k", "", "Download the cache.key file from the provided location rather than the default Statler URL")
 	addMultiInstanceFlags(startCommand, "start")
 }
@@ -145,7 +125,7 @@ func start(_ *cobra.Command, args []string) {
 	}
 }
 
-func createInstance(instance string, version string, portOffset int64, volumesFrom volumeList, containerLinks linkList) *docker.Container {
+func createInstance(instance string, version string, portOffset int64, volumesFrom []string, containerLinks []string) *docker.Container {
 	container, err := dockerClient.CreateContainer(getCreateOpts(instance, version, portOffset, volumesFrom, containerLinks))
 	if err != nil {
 		fatalf("Could not create instance, name: %s\n%v", instance, err)
@@ -159,7 +139,7 @@ func createInstance(instance string, version string, portOffset int64, volumesFr
 	return container
 }
 
-func getCreateOpts(name string, version string, portOffset int64, volumesFrom volumeList, containerLinks linkList) docker.CreateContainerOptions {
+func getCreateOpts(name string, version string, portOffset int64, volumesFrom []string, containerLinks []string) docker.CreateContainerOptions {
 	image := REPOSITORY + ":" + version
 
 	home := homeDir()
@@ -183,7 +163,7 @@ func getCreateOpts(name string, version string, portOffset int64, volumesFrom vo
 	return opts
 }
 
-func getStartOpts(portOffset int64, volumesFrom volumeList, containerLinks linkList) *docker.HostConfig {
+func getStartOpts(portOffset int64, volumesFrom []string, containerLinks []string) *docker.HostConfig {
 	return &docker.HostConfig{
 		Privileged: true,
 		Binds: []string{
@@ -196,7 +176,7 @@ func getStartOpts(portOffset int64, volumesFrom volumeList, containerLinks linkL
 			port(INTERNAL_PORT_SS):  portBinding(EXTERNAL_PORT_SS, portOffset),
 			port(INTERNAL_PORT_WEB): portBinding(EXTERNAL_PORT_WEB, portOffset),
 		},
-		VolumesFrom: []string(volumesFrom),
+		VolumesFrom: volumesFrom,
 	}
 }
 
@@ -204,7 +184,7 @@ func executePrep(ensInstance *ISCInstance) {
 	opts := []string{
 		"-u", strconv.Itoa(os.Getuid()),
 		"-g", strconv.Itoa(os.Getgid()),
-		"-h", hgcachePath(),
+		"-c", hgcachePath(),
 	}
 
 	executePrepWithOpts(ensInstance, opts)

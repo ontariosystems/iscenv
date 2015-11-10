@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Ontario Systems
+Copyright 2015 Ontario Systems
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,10 +17,11 @@ limitations under the License.
 package main
 
 import (
-	docker "github.com/fsouza/go-dockerclient"
-	version "github.com/mcuadros/go-version"
 	"regexp"
 	"strings"
+
+	docker "github.com/fsouza/go-dockerclient"
+	version "github.com/mcuadros/go-version"
 )
 
 type iscVersion struct {
@@ -39,7 +40,7 @@ func (evs iscVersions) latest() iscVersion {
 }
 
 func getVersions() iscVersions {
-	images, err := dockerClient.ListImages(false)
+	images, err := dockerClient.ListImages(docker.ListImagesOptions{All: false})
 	if err != nil {
 		fatalf("Could not list images, error: %s\n", err)
 	}
