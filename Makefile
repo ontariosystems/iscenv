@@ -20,4 +20,6 @@ build: version
 	echo PRODUCT_VERSION=$(VERSION) > pkg/versions.properties
 
 # This is a temporary target until we sort out a good single Travis-like build system
-build	@echo "[trusted]\nusers = $(shell stat -c "%u" .)\n" > /etc/mercurial/hgrc.d/trust.rc
+build	@curl -Ss -o /usr/local/share/ca-certificates/os_root_ca.crt http://statler.ontsys.com/v2/OS%20Certificate%20Bundle/1.0/os_root_ca.crt
+	@update-ca-certificates
+	@echo "[trusted]\nusers = $(shell stat -c "%u" .)\n" > /etc/mercurial/hgrc.d/trust.rc
