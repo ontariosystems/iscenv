@@ -18,8 +18,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
 	"strings"
+
+	"github.com/spf13/cobra"
 )
 
 var purgeJournalCommand = &cobra.Command{

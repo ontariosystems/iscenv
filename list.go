@@ -18,10 +18,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
 	"os"
 	"text/tabwriter"
 	"time"
+
+	"github.com/spf13/cobra"
 )
 
 var listNoTrunc bool

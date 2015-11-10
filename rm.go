@@ -18,9 +18,10 @@ package main
 
 import (
 	"fmt"
+	"strings"
+
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/spf13/cobra"
-	"strings"
 )
 
 var rmCommand = &cobra.Command{

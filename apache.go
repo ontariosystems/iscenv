@@ -18,7 +18,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
 	"io"
 	"os"
 	"os/exec"
@@ -26,6 +25,8 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	"github.com/spf13/cobra"
 )
 
 type ensurableFunc func() error

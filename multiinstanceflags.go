@@ -17,8 +17,9 @@ limitations under the License.
 package main
 
 import (
-	"github.com/spf13/cobra"
 	"strings"
+
+	"github.com/spf13/cobra"
 )
 
 var multiInstanceFlags multiInstanceOps

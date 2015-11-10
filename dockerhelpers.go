@@ -18,10 +18,11 @@ package main
 
 import (
 	"fmt"
-	docker "github.com/fsouza/go-dockerclient"
 	"net"
 	"strconv"
 	"strings"
+
+	docker "github.com/fsouza/go-dockerclient"
 )
 
 var dockerClient *docker.Client
