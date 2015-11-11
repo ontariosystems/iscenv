@@ -22,9 +22,9 @@ import (
 )
 
 // Just using one struct for simplicity even though it will never have both instance & instances
-type TemplateData struct {
-	Instance   *ISCInstance
-	Instances  []*ISCInstance
+type templateData struct {
+	Instance   *iscInstance
+	Instances  []*iscInstance
 	GatewayDir string
 }
 

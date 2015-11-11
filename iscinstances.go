@@ -23,15 +23,15 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 )
 
-type ContainerPort int64
+type containerPort int64
 
 type containerPorts struct {
-	SSH         ContainerPort
-	SuperServer ContainerPort
-	Web         ContainerPort
+	SSH         containerPort
+	SuperServer containerPort
+	Web         containerPort
 }
 
-type ISCInstance struct {
+type iscInstance struct {
 	ID      string
 	Name    string
 	Version string
@@ -40,13 +40,13 @@ type ISCInstance struct {
 	Ports   containerPorts
 }
 
-type ISCInstances []ISCInstance
+type iscInstances []iscInstance
 
-func (p ContainerPort) String() string {
+func (p containerPort) String() string {
 	return strconv.FormatInt(int64(p), 10)
 }
 
-func (i ISCInstance) portOffset() ContainerPort {
+func (i iscInstance) portOffset() containerPort {
 	if i.Ports.SSH < portExternalSSH {
 		fatalf("SSH Port is outside of range, instance: %s, port: %s\n", i.Name, i.Ports.SSH)
 	}
@@ -54,7 +54,7 @@ func (i ISCInstance) portOffset() ContainerPort {
 	return i.Ports.SSH - portExternalSSH
 }
 
-func (i ISCInstance) container() *docker.Container {
+func (i iscInstance) container() *docker.Container {
 	container, err := dockerClient.InspectContainer(i.ID)
 	if err != nil {
 		fatalf("Could not inspect container, instance: %s, id: %s\n", i.Name, i.ID)
@@ -63,8 +63,8 @@ func (i ISCInstance) container() *docker.Container {
 	return container
 }
 
-func (is ISCInstances) byPortOffsets() map[ContainerPort]ISCInstance {
-	offsets := make(map[ContainerPort]ISCInstance)
+func (is iscInstances) byPortOffsets() map[containerPort]iscInstance {
+	offsets := make(map[containerPort]iscInstance)
 	for _, i := range is {
 		offsets[i.portOffset()] = i
 	}
@@ -72,10 +72,10 @@ func (is ISCInstances) byPortOffsets() map[ContainerPort]ISCInstance {
 	return offsets
 }
 
-func (is ISCInstances) calculatePortOffset() int64 {
+func (is iscInstances) calculatePortOffset() int64 {
 	offsets := is.byPortOffsets()
 
-	var i ContainerPort
+	var i containerPort
 	for i = 0; i < 65535; i++ {
 		if _, in := offsets[i]; !in {
 			return int64(i)
@@ -86,13 +86,13 @@ func (is ISCInstances) calculatePortOffset() int64 {
 	return -1
 }
 
-func (is ISCInstances) usedPortOffset(offset int64) bool {
+func (is iscInstances) usedPortOffset(offset int64) bool {
 	offsets := is.byPortOffsets()
-	_, used := offsets[ContainerPort(offset)]
+	_, used := offsets[containerPort(offset)]
 	return used
 }
 
-func (is ISCInstances) find(name string) *ISCInstance {
+func (is iscInstances) find(name string) *iscInstance {
 	for _, i := range is {
 		if i.Name == name {
 			return &i
@@ -102,17 +102,17 @@ func (is ISCInstances) find(name string) *ISCInstance {
 	return nil
 }
 
-func (is ISCInstances) exists(name string) bool {
+func (is iscInstances) exists(name string) bool {
 	return is.find(name) != nil
 }
 
-func getInstances() ISCInstances {
+func getInstances() iscInstances {
 	containers, err := dockerClient.ListContainers(docker.ListContainersOptions{All: true})
 	if err != nil {
 		fatalf("Could not list containers, error: %s\n", err)
 	}
 
-	instances := []ISCInstance{}
+	instances := []iscInstance{}
 	for _, apicontainer := range containers {
 		name := ""
 
@@ -137,7 +137,7 @@ func getInstances() ISCInstances {
 				version = "Unknown"
 			}
 
-			instance := ISCInstance{
+			instance := iscInstance{
 				ID:      container.ID,
 				Name:    strings.TrimPrefix(name, "/"+containerPrefix),
 				Version: version,

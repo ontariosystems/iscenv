@@ -28,14 +28,14 @@ import (
 
 const defaultDockerConfigName = ".dockercfg"
 
-type DockerConfigEntry struct {
+type dockerConfigEntry struct {
 	Auth  string `json:"auth"`
 	Email string `json:"email"`
 }
 
-type DockerConfig map[string]DockerConfigEntry
+type dockerConfig map[string]dockerConfigEntry
 
-func (dce DockerConfigEntry) credentials() (string, string, error) {
+func (dce dockerConfigEntry) credentials() (string, string, error) {
 	creds, err := base64.StdEncoding.DecodeString(dce.Auth)
 	if err != nil {
 		return "", "", err
@@ -46,7 +46,7 @@ func (dce DockerConfigEntry) credentials() (string, string, error) {
 }
 
 // Will return nil, nil if the file simply doesn't exist
-func loadDefaultDockerConfig() (DockerConfig, error) {
+func loadDefaultDockerConfig() (dockerConfig, error) {
 	usr, err := user.Current()
 	if err != nil {
 		return nil, err
@@ -63,13 +63,13 @@ func loadDefaultDockerConfig() (DockerConfig, error) {
 	return loadDockerConfig(cfgpath)
 }
 
-func loadDockerConfig(path string) (DockerConfig, error) {
+func loadDockerConfig(path string) (dockerConfig, error) {
 	bytes, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	cfg := DockerConfig{}
+	cfg := dockerConfig{}
 	err = json.Unmarshal(bytes, &cfg)
 	if err != nil {
 		return nil, err

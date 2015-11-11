@@ -179,7 +179,7 @@ func getStartOpts(portOffset int64, volumesFrom []string, containerLinks []strin
 	}
 }
 
-func executePrep(ensInstance *ISCInstance) {
+func executePrep(ensInstance *iscInstance) {
 	opts := []string{
 		"-u", strconv.Itoa(os.Getuid()),
 		"-g", strconv.Itoa(os.Getgid()),
@@ -189,7 +189,7 @@ func executePrep(ensInstance *ISCInstance) {
 	executePrepWithOpts(ensInstance, opts)
 }
 
-func executePrepWithOpts(ensInstance *ISCInstance, opts []string) {
+func executePrepWithOpts(ensInstance *iscInstance, opts []string) {
 	hostIP, err := getDocker0InterfaceIP()
 	if err == nil {
 		opts = append(opts, "-i", hostIP)
