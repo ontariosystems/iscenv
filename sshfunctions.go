@@ -23,7 +23,7 @@ import (
 	"syscall"
 )
 
-func osSshFn(sshbin string, args []string) error {
+func osSSHFn(sshbin string, args []string) error {
 	cmd := exec.Command(sshbin, args...)
 
 	stdoutPipe, err := cmd.StdoutPipe()
@@ -44,7 +44,7 @@ func osSshFn(sshbin string, args []string) error {
 }
 
 /// This replaces the current process with the ssh process.
-func syscallSshFn(sshbin string, args []string) error {
+func syscallSSHFn(sshbin string, args []string) error {
 	sargs := append([]string{"ssh"}, args...)
 	return syscall.Exec(sshbin, sargs, []string{"TERM=xterm"})
 }

@@ -37,7 +37,7 @@ var startPortOffset int64
 var startQuiet bool
 var volumesFrom []string
 var containerLinks []string
-var startCacheKeyUrl string
+var startCacheKeyURL string
 
 var startCommand = &cobra.Command{
 	Use:   "start INSTANCE [INSTANCE...]",
@@ -53,7 +53,7 @@ func init() {
 	startCommand.Flags().Int64VarP(&startPortOffset, "port-offset", "p", -1, "The port offset for this instance's ports.  -1 means autodetect.  Will increment by 1 if more than 1 instance is specified.")
 	startCommand.Flags().BoolVarP(&startQuiet, "quiet", "q", false, "Only display numeric IDs")
 	startCommand.Flags().StringSliceVar(&volumesFrom, "volumes-from", nil, "Mount volumes from the specified container(s)")
-	startCommand.Flags().StringVarP(&startCacheKeyUrl, "license-key-url", "k", "", "Download the cache.key file from the provided location rather than the default Statler URL")
+	startCommand.Flags().StringVarP(&startCacheKeyURL, "license-key-url", "k", "", "Download the cache.key file from the provided location rather than the default Statler URL")
 	addMultiInstanceFlags(startCommand, "start")
 }
 
@@ -190,30 +190,30 @@ func executePrep(ensInstance *ISCInstance) {
 }
 
 func executePrepWithOpts(ensInstance *ISCInstance, opts []string) {
-	hostIp, err := getDocker0InterfaceIP()
+	hostIP, err := getDocker0InterfaceIP()
 	if err == nil {
-		opts = append(opts, "-i", hostIp)
+		opts = append(opts, "-i", hostIP)
 	} else {
 		nqf(startQuiet, "WARNING: Could not find docker0's address, 'host' entry will not be added to /etc/hosts, err: %s\n", err)
 	}
 
 	fmt.Println("Waiting for SSH...")
-	err = waitForPort(hostIp, ensInstance.Ports.SSH.String(), 60*time.Second)
+	err = waitForPort(hostIP, ensInstance.Ports.SSH.String(), 60*time.Second)
 	if err == nil {
 		fmt.Println("\tSuccess!")
 	} else {
 		fatalf("Error while waiting for SSH, name: %s, error: %s", ensInstance.Name, err)
 	}
 
-	if startCacheKeyUrl != "" {
-		opts = append(opts, "-k", startCacheKeyUrl)
+	if startCacheKeyURL != "" {
+		opts = append(opts, "-k", startCacheKeyURL)
 	}
 
 	baseopts := []string{
 		"/iscenv/iscenv", "_prep",
 	}
 
-	sshExec(ensInstance.Name, osSshFn, append(baseopts, opts...)...)
+	sshExec(ensInstance.Name, osSSHFn, append(baseopts, opts...)...)
 }
 
 func homeDir() string {
