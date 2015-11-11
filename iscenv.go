@@ -51,12 +51,12 @@ func init() {
 	iscenvCommand.PersistentFlags().BoolVarP(&verbose, "verbose", "", false, "Verbose output")
 }
 
-func Execute() {
-	AddCommands()
+func execute() {
+	addCommands()
 	iscenvCommand.Execute()
 }
 
-func AddCommands() {
+func addCommands() {
 	// Container management and use
 	iscenvCommand.AddCommand(startCommand)
 	iscenvCommand.AddCommand(stopCommand)

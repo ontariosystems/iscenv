@@ -30,7 +30,7 @@ import (
 )
 
 type ensurableFunc func() error
-type withInstanceFunc func(instance *ISCInstance) error
+type withInstanceFunc func(instance *iscInstance) error
 
 const (
 	gatewayDir    = "/opt/iscenv-csp-gateway"
@@ -54,7 +54,7 @@ func configureApacheSite(_ *cobra.Command, args []string) {
 	ensure(isRoot)
 
 	instances := multiInstanceFlags.getInstances(args)
-	var validInstances []*ISCInstance
+	var validInstances []*iscInstance
 	for _, instanceName := range instances {
 		instance := strings.ToLower(instanceName)
 		current := getInstances()
@@ -95,7 +95,7 @@ func isRoot() error {
 	return nil
 }
 
-func copyCSPGateway(instance *ISCInstance) error {
+func copyCSPGateway(instance *iscInstance) error {
 	var err error
 
 	_, err = os.Stat(gatewayDir)
@@ -150,11 +150,11 @@ func copyCSPGateway(instance *ISCInstance) error {
 
 func configureModCSP() error {
 	fmt.Println("Configuring Apache CSP module")
-	if err := writeTemplate(filepath.Join(apacheDir, "mods-available", "csp.conf"), cspConf, TemplateData{GatewayDir: gatewayDir}, true); err != nil {
+	if err := writeTemplate(filepath.Join(apacheDir, "mods-available", "csp.conf"), cspConf, templateData{GatewayDir: gatewayDir}, true); err != nil {
 		return err
 	}
 
-	if err := writeTemplate(filepath.Join(apacheDir, "mods-available", "csp.load"), cspLoad, TemplateData{GatewayDir: gatewayDir}, true); err != nil {
+	if err := writeTemplate(filepath.Join(apacheDir, "mods-available", "csp.load"), cspLoad, templateData{GatewayDir: gatewayDir}, true); err != nil {
 		return err
 	}
 
@@ -167,11 +167,11 @@ func configureModCSP() error {
 	return nil
 }
 
-func createApacheSite(instance *ISCInstance) error {
+func createApacheSite(instance *iscInstance) error {
 	siteName := strings.ToLower(instance.Name) + "-iscenv"
 	fmt.Printf("Creating Apache site, name: %s\n", siteName)
 
-	if err := writeTemplate(filepath.Join(apacheDir, "sites-available", siteName+".conf"), siteConf, TemplateData{Instance: instance}, false); err != nil {
+	if err := writeTemplate(filepath.Join(apacheDir, "sites-available", siteName+".conf"), siteConf, templateData{Instance: instance}, false); err != nil {
 		return err
 	}
 
@@ -184,9 +184,9 @@ func createApacheSite(instance *ISCInstance) error {
 	return nil
 }
 
-func configureCSPGateway(instances []*ISCInstance) error {
+func configureCSPGateway(instances []*iscInstance) error {
 	fmt.Println("Configuring CSP Gateway")
-	return writeTemplate(cspINIPath, cspIni, TemplateData{Instances: instances}, false)
+	return writeTemplate(cspINIPath, cspIni, templateData{Instances: instances}, false)
 }
 
 func restartApache() error {
@@ -208,7 +208,7 @@ func ensure(fn ensurableFunc) {
 	}
 }
 
-func withInstance(instance *ISCInstance, fn withInstanceFunc) ensurableFunc {
+func withInstance(instance *iscInstance, fn withInstanceFunc) ensurableFunc {
 	return func() error {
 		return fn(instance)
 	}

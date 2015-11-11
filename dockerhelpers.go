@@ -36,7 +36,7 @@ func init() {
 	dockerClient = dc
 }
 
-func port(port ContainerPort) docker.Port {
+func port(port containerPort) docker.Port {
 	return docker.Port(port.String()) + "/tcp"
 }
 
@@ -45,13 +45,13 @@ func portBinding(port int64, portOffset int64) []docker.PortBinding {
 }
 
 // Assumes a single binding
-func getBindingPort(bindings []docker.PortBinding) ContainerPort {
+func getBindingPort(bindings []docker.PortBinding) containerPort {
 	port, err := strconv.ParseInt(bindings[0].HostPort, 10, 64)
 	if err != nil {
 		fatalf("Could not parse port, error: %s\n", err)
 	}
 
-	return ContainerPort(port)
+	return containerPort(port)
 }
 
 func getDocker0InterfaceIP() (string, error) {
