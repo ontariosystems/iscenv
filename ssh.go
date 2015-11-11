@@ -64,7 +64,7 @@ func sshExec(instance string, sshfn sshExecFn, sshArgs ...string) {
 		defer key.Close()
 		defer os.Remove(key.Name())
 
-		key.WriteString(SSH_KEY)
+		key.WriteString(sshKey)
 		key.Close()
 
 		sshbin, err := exec.LookPath("ssh")

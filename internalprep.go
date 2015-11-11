@@ -234,7 +234,7 @@ func cacheimport(path string) string {
 func addSshKey() {
 	fmt.Println("Adding the ssh key to /root/.ssh...")
 	// /root/.ssh should already be there
-	ioutil.WriteFile("/root/.ssh/id_rsa", []byte(SSH_KEY), 0600)
+	ioutil.WriteFile("/root/.ssh/id_rsa", []byte(sshKey), 0600)
 	fmt.Println("\tSuccess!")
 }
 

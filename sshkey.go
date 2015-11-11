@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Ontario Systems
+Copyright 2015 Ontario Systems
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package main
 
 // This is a completely insecure ssh key (as intended) which is used to log into the VMs
 
-const SSH_KEY = `-----BEGIN RSA PRIVATE KEY-----
+const sshKey = `-----BEGIN RSA PRIVATE KEY-----
 MIIEpQIBAAKCAQEA3cTVC+yzYJrAyVrKTLi9BDEFsgg6Jio2qe7U7t/ba4Agq2HX
 phKqMdJfhToZw+oO5jhaDSV3r3dVrbEfS4zuSdNk+c7pCsLU8WT+VacToQr+C1wy
 9qufcssGBdDpLrxAqUS4pg+OWWhKzdI7WpLTZWKq/tL9/h/LVM/DXU3SNoC8yv2q
