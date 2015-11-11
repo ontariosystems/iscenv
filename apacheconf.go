@@ -35,8 +35,8 @@ var (
 	}
 
 	// enable mods rewrite, proxy, proxy_http
-	csp_conf = template.Must(template.New("csp_conf").Funcs(funcMap).Parse("CSPModulePath {{.GatewayDir}}/bin\n"))
-	csp_load = template.Must(template.New("csp_load").Funcs(funcMap).Parse("LoadModule csp_module_sa {{.GatewayDir}}/bin/CSPa24.so\n"))
+	cspConf = template.Must(template.New("csp_conf").Funcs(funcMap).Parse("CSPModulePath {{.GatewayDir}}/bin\n"))
+	cspLoad = template.Must(template.New("csp_load").Funcs(funcMap).Parse("LoadModule csp_module_sa {{.GatewayDir}}/bin/CSPa24.so\n"))
 
 	site_conf = template.Must(template.New("site_conf").Funcs(funcMap).Parse(`<VirtualHost *:80>
 	ServerName {{.Instance.Name}}-iscenv
@@ -59,7 +59,7 @@ var (
 </VirtualHost>
 `))
 
-	csp_ini = template.Must(template.New("csp_ini").Funcs(funcMap).Parse(`[SYSTEM_INDEX]
+	cspIni = template.Must(template.New("csp_ini").Funcs(funcMap).Parse(`[SYSTEM_INDEX]
 LOCAL=Enabled
 {{range .Instances}}{{.Name | ToUpper}}=Enabled
 {{end}}
