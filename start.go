@@ -140,7 +140,7 @@ func createInstance(instance string, version string, portOffset int64, volumesFr
 }
 
 func getCreateOpts(name string, version string, portOffset int64, volumesFrom []string, containerLinks []string) docker.CreateContainerOptions {
-	image := REPOSITORY + ":" + version
+	image := repository + ":" + version
 
 	home := homeDir()
 	config := docker.Config{
@@ -172,9 +172,9 @@ func getStartOpts(portOffset int64, volumesFrom []string, containerLinks []strin
 		},
 		Links: containerLinks,
 		PortBindings: map[docker.Port][]docker.PortBinding{
-			port(INTERNAL_PORT_SSH): portBinding(EXTERNAL_PORT_SSH, portOffset),
-			port(INTERNAL_PORT_SS):  portBinding(EXTERNAL_PORT_SS, portOffset),
-			port(INTERNAL_PORT_WEB): portBinding(EXTERNAL_PORT_WEB, portOffset),
+			port(portInternalSSH): portBinding(portExternalSSH, portOffset),
+			port(portInternalSS):  portBinding(portExternalSS, portOffset),
+			port(portInternalWeb): portBinding(portExternalWeb, portOffset),
 		},
 		VolumesFrom: volumesFrom,
 	}
@@ -272,7 +272,7 @@ func getDockerLogs(containerId string) ([]string, error) {
 }
 
 func containerName(instance string) string {
-	return CONTAINER_PREFIX + instance
+	return containerPrefix + instance
 }
 
 func svcUpLine(name string) string {

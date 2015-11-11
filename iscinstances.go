@@ -47,11 +47,11 @@ func (p ContainerPort) String() string {
 }
 
 func (i ISCInstance) portOffset() ContainerPort {
-	if i.Ports.SSH < EXTERNAL_PORT_SSH {
+	if i.Ports.SSH < portExternalSSH {
 		fatalf("SSH Port is outside of range, instance: %s, port: %s\n", i.Name, i.Ports.SSH)
 	}
 
-	return i.Ports.SSH - EXTERNAL_PORT_SSH
+	return i.Ports.SSH - portExternalSSH
 }
 
 func (i ISCInstance) container() *docker.Container {
@@ -118,7 +118,7 @@ func getInstances() ISCInstances {
 
 		for _, cn := range apicontainer.Names {
 			// Skip over link/name container names.  Root names will be "/{CONTAINER_PREFIX}-{name}".
-			if strings.Count(cn, "/") == 1 && strings.HasPrefix(cn, "/"+CONTAINER_PREFIX) {
+			if strings.Count(cn, "/") == 1 && strings.HasPrefix(cn, "/"+ containerPrefix) {
 				name = cn
 				break
 			}
@@ -139,18 +139,18 @@ func getInstances() ISCInstances {
 
 			instance := ISCInstance{
 				ID:      container.ID,
-				Name:    strings.TrimPrefix(name, "/"+CONTAINER_PREFIX),
+				Name:    strings.TrimPrefix(name, "/"+ containerPrefix),
 				Version: version,
 				Status:  apicontainer.Status,
 				Created: apicontainer.Created}
 
 			for intPort, bindings := range container.HostConfig.PortBindings {
 				switch intPort {
-				case port(INTERNAL_PORT_SSH):
+				case port(portInternalSSH):
 					instance.Ports.SSH = getBindingPort(bindings)
-				case port(INTERNAL_PORT_SS):
+				case port(portInternalSS):
 					instance.Ports.SuperServer = getBindingPort(bindings)
-				case port(INTERNAL_PORT_WEB):
+				case port(portInternalWeb):
 					instance.Ports.Web = getBindingPort(bindings)
 				}
 			}

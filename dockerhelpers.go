@@ -28,9 +28,9 @@ import (
 var dockerClient *docker.Client
 
 func init() {
-	dc, err := docker.NewClient(DOCKER_SOCKET)
+	dc, err := docker.NewClient(dockerSocket)
 	if err != nil {
-		fatalf("Could not open Docker client, socket: %s\n", DOCKER_SOCKET)
+		fatalf("Could not open Docker client, socket: %s\n", dockerSocket)
 	}
 
 	dockerClient = dc
