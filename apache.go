@@ -54,7 +54,7 @@ func configureApacheSite(_ *cobra.Command, args []string) {
 	ensure(isRoot)
 
 	instances := multiInstanceFlags.getInstances(args)
-	validInstances := make([]*ISCInstance, 0)
+	var validInstances []*ISCInstance
 	for _, instanceName := range instances {
 		instance := strings.ToLower(instanceName)
 		current := getInstances()
