@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Ontario Systems
+Copyright 2015 Ontario Systems
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import (
 	"strings"
 )
 
-const DEFAULT_DOCKER_CONFIG_NAME = ".dockercfg"
+const defaultDockerConfigName = ".dockercfg"
 
 type DockerConfigEntry struct {
 	Auth  string `json:"auth"`
@@ -52,7 +52,7 @@ func loadDefaultDockerConfig() (DockerConfig, error) {
 		return nil, err
 	}
 
-	cfgpath := path.Join(usr.HomeDir, DEFAULT_DOCKER_CONFIG_NAME)
+	cfgpath := path.Join(usr.HomeDir, defaultDockerConfigName)
 	if _, err = os.Stat(cfgpath); err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil

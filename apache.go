@@ -171,7 +171,7 @@ func createApacheSite(instance *ISCInstance) error {
 	siteName := strings.ToLower(instance.Name) + "-iscenv"
 	fmt.Printf("Creating Apache site, name: %s\n", siteName)
 
-	if err := writeTemplate(filepath.Join(apacheDir, "sites-available", siteName+".conf"), site_conf, TemplateData{Instance: instance}, false); err != nil {
+	if err := writeTemplate(filepath.Join(apacheDir, "sites-available", siteName+".conf"), siteConf, TemplateData{Instance: instance}, false); err != nil {
 		return err
 	}
 

@@ -83,7 +83,7 @@ func sshExec(instance string, sshfn sshExecFn, sshArgs ...string) {
 			sshArgs...)
 
 		if sshfn == nil {
-			sshfn = syscallSshFn
+			sshfn = syscallSSHFn
 		}
 
 		err = sshfn(sshbin, args)

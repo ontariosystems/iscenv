@@ -44,8 +44,8 @@ const (
 var internalPrepUID string
 var internalPrepGID string
 var internalPrepHgCachePath string
-var internalPrepHostIp string
-var internalPrepCacheKeyUrl string
+var internalPrepHostIP string
+var internalPrepCacheKeyURL string
 
 var internalPrepCommand = &cobra.Command{
 	Use:   "_prep",
@@ -58,8 +58,8 @@ func init() {
 	internalPrepCommand.Flags().StringVarP(&internalPrepUID, "uid", "u", "", "The UID of the external user.")
 	internalPrepCommand.Flags().StringVarP(&internalPrepGID, "gid", "g", "", "The GID of the external user's group.")
 	internalPrepCommand.Flags().StringVarP(&internalPrepHgCachePath, "hg-cache-path", "c", "", "The path to hg cache.")
-	internalPrepCommand.Flags().StringVarP(&internalPrepHostIp, "host-ip", "i", "", "The ip address of the host.  This will be added to /etc/hosts as 'host'")
-	internalPrepCommand.Flags().StringVarP(&internalPrepCacheKeyUrl, "license-key-url", "k", "", "Download the cache.key file from the provided location rather than the default Statler URL")
+	internalPrepCommand.Flags().StringVarP(&internalPrepHostIP, "host-ip", "i", "", "The ip address of the host.  This will be added to /etc/hosts as 'host'")
+	internalPrepCommand.Flags().StringVarP(&internalPrepCacheKeyURL, "license-key-url", "k", "", "Download the cache.key file from the provided location rather than the default Statler URL")
 }
 
 func prep(_ *cobra.Command, _ []string) {
@@ -94,21 +94,21 @@ func prep(_ *cobra.Command, _ []string) {
 		waitForEnsembleHTTP()
 	}
 
-	updateCacheKey(internalPrepCacheKeyUrl)
+	updateCacheKey(internalPrepCacheKeyURL)
 
 	if internalPrepHgCachePath != "" {
-		css("%SYS", cacheimport(internalPrepHgCachePath))
+		css("%SYS", cacheImport(internalPrepHgCachePath))
 		cmd("sh", "-c", "rm -f /ensemble/instances/docker/devuser/studio/templates/*") // TODO: use native go to remove these
 	}
 
 	cmd("deployment_service", "seccfg", "-u", "root", "-p", "password", "-s", "Services", "-N", "%Service_Bindings", "-i", "Enabled", "-v", "1")
 
-	if internalPrepHostIp != "" {
+	if internalPrepHostIP != "" {
 		// I could have done this by executing a sed one-liner but i resisted the urge and wrote it in native go
-		updateHostsFile(internalPrepHostIp)
+		updateHostsFile(internalPrepHostIP)
 	}
 
-	addSshKey()
+	addSSHKey()
 }
 
 func waitForEnsembleHTTP() {
@@ -227,11 +227,11 @@ func cmd(name string, args ...string) {
 	}
 }
 
-func cacheimport(path string) string {
+func cacheImport(path string) string {
 	return fmt.Sprintf(`##class(%%SYSTEM.OBJ).ImportDir("%s","*.xml","ck",,1)`, path)
 }
 
-func addSshKey() {
+func addSSHKey() {
 	fmt.Println("Adding the ssh key to /root/.ssh...")
 	// /root/.ssh should already be there
 	ioutil.WriteFile("/root/.ssh/id_rsa", []byte(sshKey), 0600)
@@ -264,7 +264,7 @@ func fetchCacheKey(url string) error {
 	fmt.Printf("  ISC product Version: %s\n", version)
 
 	if url == "" {
-		url = getCacheKeyUrl(version)
+		url = getCacheKeyURL(version)
 	}
 	fmt.Printf("  ISC product Key URL: %s\n", url)
 	response, err := unsafeGet(url)
@@ -318,7 +318,7 @@ func getEnsembleInfo() (path string, version string, err error) {
 	return s[1], s[2], nil
 }
 
-func getCacheKeyUrl(version string) string {
+func getCacheKeyURL(version string) string {
 	return fmt.Sprintf("%s/products/Ensemble/releases/%s/artifacts/cache.key", statlerURL, version)
 }
 
@@ -326,14 +326,14 @@ func getCacheKeyPath(ensemblePath string) string {
 	return filepath.Join(ensemblePath, "mgr", "cache.key")
 }
 
-func updateHostsFile(hostIp string) {
+func updateHostsFile(hostIP string) {
 	fmt.Println("Updating /etc/hosts with host machine's IP address...")
 	bytes, err := ioutil.ReadFile("/etc/hosts")
 	if err != nil {
 		fatalf("Could not read hosts file, error: %s\n", err)
 	}
 
-	hostLine := hostIp + " host"
+	hostLine := hostIP + " host"
 	found := false
 	lines := strings.Split(string(bytes), "\n")
 	for i, line := range lines {
