@@ -33,8 +33,6 @@ func waitForPort(ip string, port string, timeout time.Duration) error {
 	case <-time.After(timeout):
 		return fmt.Errorf("Timed out waiting for port, ip: %s, port: %s", ip, port)
 	}
-
-	return nil
 }
 
 func waitForPortForever(ip string, port string, c chan error) {

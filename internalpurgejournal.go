@@ -44,7 +44,7 @@ func internalPurgeJournal(_ *cobra.Command, _ []string) {
 
 	journals, err := filepath.Glob("/data/journal/[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].[0-9][0-9][0-9]")
 	if err != nil {
-		fatalf("Failed to list journal files: ", err)
+		fatalf("Failed to list journal files: %s", err)
 	}
 
 	if len(journals) < 2 {
