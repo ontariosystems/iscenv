@@ -33,5 +33,5 @@ func init() {
 }
 
 func iscenvVersion(_ *cobra.Command, _ []string) {
-	fmt.Printf("ISCEnv version: %s\n", VERSION)
+	fmt.Printf("ISCEnv version: %s\n", Version)
 }
