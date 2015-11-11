@@ -118,7 +118,7 @@ func getInstances() ISCInstances {
 
 		for _, cn := range apicontainer.Names {
 			// Skip over link/name container names.  Root names will be "/{CONTAINER_PREFIX}-{name}".
-			if strings.Count(cn, "/") == 1 && strings.HasPrefix(cn, "/"+ containerPrefix) {
+			if strings.Count(cn, "/") == 1 && strings.HasPrefix(cn, "/"+containerPrefix) {
 				name = cn
 				break
 			}
@@ -139,7 +139,7 @@ func getInstances() ISCInstances {
 
 			instance := ISCInstance{
 				ID:      container.ID,
-				Name:    strings.TrimPrefix(name, "/"+ containerPrefix),
+				Name:    strings.TrimPrefix(name, "/"+containerPrefix),
 				Version: version,
 				Status:  apicontainer.Status,
 				Created: apicontainer.Created}
