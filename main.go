@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Ontario Systems
+Copyright 2015 Ontario Systems
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@ limitations under the License.
 
 package main
 
-// Using automatic tag-based versioning
-var VERSION string = ""
+// Version This version number will be injected by the build system based on the Mercurial tags on the repository
+var Version string
 
 func main() {
 	Execute()
