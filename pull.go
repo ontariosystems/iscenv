@@ -34,7 +34,7 @@ func init() {
 }
 
 func pull(_ *cobra.Command, _ []string) {
-	imgopts := docker.PullImageOptions{Registry: REGISTRY, Repository: REPOSITORY, OutputStream: os.Stdout}
+	imgopts := docker.PullImageOptions{Registry: registry, Repository: repository, OutputStream: os.Stdout}
 	authcfg := getAuthConfig()
 	err := dockerClient.PullImage(imgopts, authcfg)
 	if err != nil {
@@ -51,7 +51,7 @@ func getAuthConfig() docker.AuthConfiguration {
 	}
 
 	if cfg != nil {
-		if auth, ok := cfg[REGISTRY]; ok {
+		if auth, ok := cfg[registry]; ok {
 			authcfg.Username, authcfg.Password, err = auth.credentials()
 			if err != nil {
 				fatalf("Could not parse credentials from ~/.dockercfg, error: %s\n", err)

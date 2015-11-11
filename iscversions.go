@@ -50,7 +50,7 @@ func getVersions() iscVersions {
 	for _, image := range images {
 		for _, repoTag := range image.RepoTags {
 			repo, tag := splitRepoTag(repoTag)
-			if repo == REPOSITORY {
+			if repo == repository {
 				if m, _ := regexp.MatchString("^\\d+(\\.\\d+)?", tag); m {
 					vm[tag] = image
 					vs = append(vs, tag)

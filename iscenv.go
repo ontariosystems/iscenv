@@ -24,19 +24,19 @@ import (
 )
 
 const (
-	DOCKER_SOCKET    = "unix:///var/run/docker.sock"
-	CONTAINER_PREFIX = "iscenv-"
-	REGISTRY         = "quay.io"
-	REPOSITORY       = REGISTRY + "/ontsys/centos-ensemble"
+	dockerSocket = "unix:///var/run/docker.sock"
+	containerPrefix = "iscenv-"
+	registry = "quay.io"
+	repository = registry + "/ontsys/centos-ensemble"
 
-	INTERNAL_PORT_SSH = 22
-	EXTERNAL_PORT_SSH = 22822
+	portInternalSSH = 22
+	portExternalSSH = 22822
 
-	INTERNAL_PORT_SS = 56772
-	EXTERNAL_PORT_SS = 56772
+	portInternalSS = 56772
+	portExternalSS = 56772
 
-	EXTERNAL_PORT_WEB = 57772
-	INTERNAL_PORT_WEB = 57772
+	portInternalWeb = 57772
+	portExternalWeb = 57772
 )
 
 var verbose bool
