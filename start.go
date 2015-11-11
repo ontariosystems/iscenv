@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -252,39 +251,6 @@ func expandHome(path string) string {
 	return path
 }
 
-func getDockerLogs(containerId string) ([]string, error) {
-	var buf bytes.Buffer
-	// TODO: There's probably a better way to do this with follow and continuous reading from the stream
-	err := dockerClient.Logs(docker.LogsOptions{
-		Container:    containerId,
-		OutputStream: &buf,
-		Stdout:       true,
-		Stderr:       true,
-		Timestamps:   true,
-		Follow:       false,
-	})
-
-	if err != nil {
-		return []string{}, err
-	}
-
-	return strings.Split(buf.String(), "\n"), nil
-}
-
 func containerName(instance string) string {
 	return containerPrefix + instance
-}
-
-func svcUpLine(name string) string {
-	return fmt.Sprintf("success: %s entered RUNNING state, process has stayed up for > than 1 seconds", name)
-}
-
-func allTrue(items map[string]bool) bool {
-	for _, i := range items {
-		if !i {
-			return false
-		}
-	}
-
-	return true
 }

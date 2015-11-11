@@ -84,12 +84,6 @@ func AddCommands() {
 	iscenvCommand.AddCommand(internalPurgeJournalCommand)
 }
 
-func nq(quiet bool, a ...interface{}) {
-	if !quiet {
-		fmt.Println(a...)
-	}
-}
-
 func nqf(quiet bool, format string, a ...interface{}) {
 	if !quiet {
 		fmt.Printf(format, a...)
