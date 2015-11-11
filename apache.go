@@ -150,11 +150,11 @@ func copyCSPGateway(instance *ISCInstance) error {
 
 func configureModCSP() error {
 	fmt.Println("Configuring Apache CSP module")
-	if err := writeTemplate(filepath.Join(apacheDir, "mods-available", "csp.conf"), csp_conf, TemplateData{GatewayDir: gatewayDir}, true); err != nil {
+	if err := writeTemplate(filepath.Join(apacheDir, "mods-available", "csp.conf"), cspConf, TemplateData{GatewayDir: gatewayDir}, true); err != nil {
 		return err
 	}
 
-	if err := writeTemplate(filepath.Join(apacheDir, "mods-available", "csp.load"), csp_load, TemplateData{GatewayDir: gatewayDir}, true); err != nil {
+	if err := writeTemplate(filepath.Join(apacheDir, "mods-available", "csp.load"), cspLoad, TemplateData{GatewayDir: gatewayDir}, true); err != nil {
 		return err
 	}
 
@@ -186,7 +186,7 @@ func createApacheSite(instance *ISCInstance) error {
 
 func configureCSPGateway(instances []*ISCInstance) error {
 	fmt.Println("Configuring CSP Gateway")
-	return writeTemplate(cspINIPath, csp_ini, TemplateData{Instances: instances}, false)
+	return writeTemplate(cspINIPath, cspIni, TemplateData{Instances: instances}, false)
 }
 
 func restartApache() error {
