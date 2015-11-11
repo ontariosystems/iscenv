@@ -32,13 +32,13 @@ import (
 )
 
 const (
-	waitSeconds = 600
-	cacheusrName = "cacheusr"
-	cacheusrUID = "500"
-	cacheusrGID = "500"
-	logLocation = "/var/log/ensemble/"
+	waitSeconds      = 600
+	cacheusrName     = "cacheusr"
+	cacheusrUID      = "500"
+	cacheusrGID      = "500"
+	logLocation      = "/var/log/ensemble/"
 	cconsoleLocation = logLocation + "docker-cconsole.log"
-	statlerURL = "http://statler.ontsys.com"
+	statlerURL       = "http://statler.ontsys.com"
 )
 
 var internalPrepUID string

@@ -24,10 +24,10 @@ import (
 )
 
 const (
-	dockerSocket = "unix:///var/run/docker.sock"
+	dockerSocket    = "unix:///var/run/docker.sock"
 	containerPrefix = "iscenv-"
-	registry = "quay.io"
-	repository = registry + "/ontsys/centos-ensemble"
+	registry        = "quay.io"
+	repository      = registry + "/ontsys/centos-ensemble"
 
 	portInternalSSH = 22
 	portExternalSSH = 22822
