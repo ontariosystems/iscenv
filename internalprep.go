@@ -32,13 +32,13 @@ import (
 )
 
 const (
-	WAIT_SECONDS      = 600
-	CACHEUSR_NAME     = "cacheusr"
-	CACHEUSR_UID      = "500"
-	CACHEUSR_GID      = "500"
-	LOG_LOCATION      = "/var/log/ensemble/"
-	CCONSOLE_LOCATION = LOG_LOCATION + "docker-cconsole.log"
-	STATLER_URL       = "http://statler.ontsys.com"
+	waitSeconds = 600
+	cacheusrName = "cacheusr"
+	cacheusrUID = "500"
+	cacheusrGID = "500"
+	logLocation = "/var/log/ensemble/"
+	cconsoleLocation = logLocation + "docker-cconsole.log"
+	statlerURL = "http://statler.ontsys.com"
 )
 
 var internalPrepUID string
@@ -71,23 +71,23 @@ func prep(_ *cobra.Command, _ []string) {
 	waitForEnsembleHTTP()
 
 	// Intentionally using the name here so we can make sure the permissions are correct on restarts rather than only on creation
-	cmd("chown", fmt.Sprintf("%s:%s", CACHEUSR_NAME, CACHEUSR_NAME), LOG_LOCATION)
-	cmd("chmod", "775", LOG_LOCATION)
+	cmd("chown", fmt.Sprintf("%s:%s", cacheusrName, cacheusrName), logLocation)
+	cmd("chmod", "775", logLocation)
 
 	// Doing this before the stop so that the first useful start's logs will be in the appropriate place
-	cmd("deployment_service", "config", "-u", "root", "-p", "password", "-s", "config", "-i", "ConsoleFile", "-v", CCONSOLE_LOCATION)
+	cmd("deployment_service", "config", "-u", "root", "-p", "password", "-s", "config", "-i", "ConsoleFile", "-v", cconsoleLocation)
 
 	if internalPrepUID != "" && internalPrepGID != "" {
 		cmd("supervisorctl", "stop", "ensemble")
 		cmd("ccontrol", "stop", "docker", "quietly") // This shouldn't be necessary but we've seen weird cases where supervisor thinks it stopped ensemble but it did not
 		waitForEnsembleStatus("down")
-		waitForUserFree(CACHEUSR_NAME)
+		waitForUserFree(cacheusrName)
 
-		cmd("usermod", "-u", internalPrepUID, CACHEUSR_NAME)
-		cmd("groupmod", "-g", internalPrepGID, CACHEUSR_NAME)
+		cmd("usermod", "-u", internalPrepUID, cacheusrName)
+		cmd("groupmod", "-g", internalPrepGID, cacheusrName)
 
-		cmd("find", "/", "-user", CACHEUSR_UID, "-not", "-path", "/proc/*", "-exec", "chown", "-h", internalPrepUID, "{}", ";")
-		cmd("find", "/", "-group", CACHEUSR_GID, "-not", "-path", "/proc/*", "-exec", "chgrp", "-h", internalPrepGID, "{}", ";")
+		cmd("find", "/", "-user", cacheusrUID, "-not", "-path", "/proc/*", "-exec", "chown", "-h", internalPrepUID, "{}", ";")
+		cmd("find", "/", "-group", cacheusrGID, "-not", "-path", "/proc/*", "-exec", "chgrp", "-h", internalPrepGID, "{}", ";")
 
 		cmd("supervisorctl", "start", "ensemble")
 		waitForEnsembleStatus("running")
@@ -131,7 +131,7 @@ func waitForEnsembleStatus(status string) {
 	case <-c:
 		fmt.Println("\tSuccess!")
 		break
-	case <-time.After(WAIT_SECONDS * time.Second):
+	case <-time.After(waitSeconds * time.Second):
 		fatalf("\tTimed out waiting for ISC product status: %s", status)
 	}
 }
@@ -168,7 +168,7 @@ func waitForUserFree(user string) {
 	case <-c:
 		fmt.Println("\tSuccess!")
 		break
-	case <-time.After(WAIT_SECONDS * time.Second):
+	case <-time.After(waitSeconds * time.Second):
 		fatalf("\tTimed out waiting for user '%s' to be free", user)
 	}
 }
@@ -291,7 +291,7 @@ func fetchCacheKey(url string) error {
 		return err
 	}
 
-	_, err = exec.Command("chown", fmt.Sprintf("root:%s", CACHEUSR_UID), keypath).CombinedOutput()
+	_, err = exec.Command("chown", fmt.Sprintf("root:%s", cacheusrUID), keypath).CombinedOutput()
 	if err != nil {
 		return err
 	}
@@ -319,7 +319,7 @@ func getEnsembleInfo() (path string, version string, err error) {
 }
 
 func getCacheKeyUrl(version string) string {
-	return fmt.Sprintf("%s/products/Ensemble/releases/%s/artifacts/cache.key", STATLER_URL, version)
+	return fmt.Sprintf("%s/products/Ensemble/releases/%s/artifacts/cache.key", statlerURL, version)
 }
 
 func getCacheKeyPath(ensemblePath string) string {
