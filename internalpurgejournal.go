@@ -35,9 +35,6 @@ func init() {
 	internalPurgeJournalCommand.Run = internalPurgeJournal
 }
 
-var internalPurgeJournalLastFileInfo os.FileInfo = nil
-var internalPurgeJournalLastFilePath string
-
 func internalPurgeJournal(_ *cobra.Command, _ []string) {
 	// verify we are running in a container
 	ensureWithinContainer("_purgejournal")
