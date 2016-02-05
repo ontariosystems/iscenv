@@ -1,5 +1,5 @@
 /*
-Copyright 2015 Ontario Systems
+Copyright 2016 Ontario Systems
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -127,12 +127,12 @@ func start(_ *cobra.Command, args []string) {
 func createInstance(instance string, version string, portOffset int64, volumesFrom []string, containerLinks []string) *docker.Container {
 	container, err := dockerClient.CreateContainer(getCreateOpts(instance, version, portOffset, volumesFrom, containerLinks))
 	if err != nil {
-		fatalf("Could not create instance, name: %s\n%v", instance, err)
+		fatalf("Could not create instance, name: %s\n%s", instance, err)
 	}
 
 	err = dockerClient.StartContainer(container.ID, getStartOpts(portOffset, volumesFrom, containerLinks))
 	if err != nil {
-		fatalf("Could not start created instance, name: %s\n%v", instance, err)
+		fatalf("Could not start created instance, name: %s\n%s", instance, err)
 	}
 
 	return container
