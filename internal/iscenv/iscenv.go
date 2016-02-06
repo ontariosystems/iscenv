@@ -35,4 +35,6 @@ const (
 	Registry        = "quay.io"
 	ImageName       = "ontsys/centos-ensemble"
 	Repository      = Registry + "/" + ImageName
+
+	InternalISCEnvPath = "/bin/iscenv"
 )
