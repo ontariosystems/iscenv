@@ -172,8 +172,8 @@ func getStartOpts(portOffset int64, volumesFrom []string, containerLinks []strin
 	return &docker.HostConfig{
 		Privileged: true,
 		Binds: []string{
-			exeDir() + ":/iscenv:ro",
-			homeDir() + ":" + homeDir(),
+			fmt.Sprintf("%s:%s:ro", exe(), iscenv.InternalISCEnvPath),
+			fmt.Sprintf("%s:%s", homeDir(), homeDir()),
 		},
 		Links: containerLinks,
 		PortBindings: map[docker.Port][]docker.PortBinding{
@@ -216,7 +216,7 @@ func executePrepWithOpts(ensInstance *iscenv.ISCInstance, opts []string) {
 	}
 
 	baseopts := []string{
-		"/iscenv/iscenv", "_prep",
+		iscenv.InternalISCEnvPath, "_prep",
 	}
 
 	sshExec(ensInstance.Name, iscenv.ManagedSSHFn, append(baseopts, opts...)...)
@@ -231,13 +231,13 @@ func homeDir() string {
 	return usr.HomeDir
 }
 
-func exeDir() string {
-	folder, err := osext.ExecutableFolder()
+func exe() string {
+	exe, err := osext.Executable()
 	if err != nil {
-		iscenv.Fatalf("Could not determine executable folder, err: %s\n", err)
+		iscenv.Fatalf("Could not determine executable path, err: %s\n", err)
 	}
 
-	return folder
+	return exe
 }
 
 func hgcachePath() string {
