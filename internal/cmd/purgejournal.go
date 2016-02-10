@@ -43,6 +43,6 @@ func purgeJournal(_ *cobra.Command, args []string) {
 	for _, instanceName := range instances {
 		fmt.Printf(" Purging journals for %s\n", instanceName)
 		instance := strings.ToLower(instanceName)
-		sshExec(instance, iscenv.ManagedSSHFn, iscenv.InternalISCEnvPath, "_purgejournal")
+		iscenv.DockerExec(instance, false, iscenv.InternalISCEnvPath, "_purgejournal")
 	}
 }

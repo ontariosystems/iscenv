@@ -114,8 +114,6 @@ func prep(_ *cobra.Command, _ []string) {
 		// I could have done this by executing a sed one-liner but i resisted the urge and wrote it in native go
 		updateHostsFile(internalPrepFlags.HostIP)
 	}
-
-	addSSHKey()
 }
 
 func waitForEnsembleHTTP() {
@@ -236,13 +234,6 @@ func cmd(name string, args ...string) {
 
 func cacheImport(path string) string {
 	return fmt.Sprintf(`##class(%%SYSTEM.OBJ).ImportDir("%s","*.xml","ck",,1)`, path)
-}
-
-func addSSHKey() {
-	fmt.Println("Adding the ssh key to /root/.ssh...")
-	// /root/.ssh should already be there
-	ioutil.WriteFile("/root/.ssh/id_rsa", []byte(iscenv.SSHKey), 0600)
-	fmt.Println("\tSuccess!")
 }
 
 func updateCacheKey(url string) {

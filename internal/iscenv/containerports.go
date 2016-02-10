@@ -23,7 +23,6 @@ import (
 type ContainerPort int64
 
 type ContainerPorts struct {
-	SSH         ContainerPort
 	SuperServer ContainerPort
 	Web         ContainerPort
 }

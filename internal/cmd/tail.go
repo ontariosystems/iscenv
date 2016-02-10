@@ -30,7 +30,7 @@ var tailFlags = struct {
 var tailCmd = &cobra.Command{
 	Use:   "tail INSTANCE",
 	Short: "tail a file within an instance; cconsole by default",
-	Long:  "Connect to an instance with SSH and tail the given file.",
+	Long:  "Connect to a container and tail the given file.",
 	Run:   tail,
 }
 
@@ -68,7 +68,7 @@ func tail(_ *cobra.Command, args []string) {
 			tailArgs = append(tailArgs, tailFlags.Filename)
 		}
 
-		sshExec(args[0], nil, tailArgs...)
+		iscenv.DockerExec(args[0], false, tailArgs...)
 	} else {
 		iscenv.Fatal("Must provide an instance")
 	}

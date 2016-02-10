@@ -107,8 +107,6 @@ func GetInstances() ISCInstances {
 
 			for intPort, bindings := range container.HostConfig.PortBindings {
 				switch intPort {
-				case DockerPort(PortInternalSSH):
-					instance.Ports.SSH = GetDockerBindingPort(bindings)
 				case DockerPort(PortInternalSS):
 					instance.Ports.SuperServer = GetDockerBindingPort(bindings)
 				case DockerPort(PortInternalWeb):

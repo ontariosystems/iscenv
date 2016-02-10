@@ -35,7 +35,7 @@ var listFlags = struct {
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List existing ISC product containers",
-	Long:  "List the existing ISC product containers.  This is searching for any containers whose names begin with \"iscenv-\".  So, it is possible to confuse this command.",
+	Long:  "List the existing ISC product instance containers.  This is searching for any containers whose names begin with \"iscenv-\".  So, it is possible to confuse this command.",
 	Run:   list,
 }
 
@@ -50,7 +50,7 @@ func list(_ *cobra.Command, _ []string) {
 	instances := iscenv.GetInstances()
 	w := tabwriter.NewWriter(os.Stdout, 20, 1, 3, ' ', 0)
 	if !listFlags.Quiet {
-		fmt.Fprintln(w, "CONTAINER ID\tVERSION\tCREATED\tSTATUS\tSSH\tSUPERSERVER\tWEB\tNAME")
+		fmt.Fprintln(w, "CONTAINER ID\tVERSION\tCREATED\tSTATUS\tSUPERSERVER\tWEB\tNAME")
 	}
 
 	for _, instance := range instances {
@@ -59,12 +59,11 @@ func list(_ *cobra.Command, _ []string) {
 			id = id[:12]
 		}
 		if !listFlags.Quiet {
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\t%d\t%d\t%s\n",
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\t%d\t%s\n",
 				id,
 				instance.Version,
 				time.Unix(instance.Created, 0).Format(time.RFC3339),
 				instance.Status,
-				instance.Ports.SSH,
 				instance.Ports.SuperServer,
 				instance.Ports.Web,
 				instance.Name)

@@ -20,9 +20,6 @@ package iscenv
 var Version string
 
 const (
-	PortInternalSSH = 22
-	PortExternalSSH = 22822
-
 	PortInternalSS = 56772
 	PortExternalSS = 56772
 

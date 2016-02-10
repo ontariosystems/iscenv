@@ -24,7 +24,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/ontariosystems/iscenv/internal/iscenv"
 
@@ -177,7 +176,6 @@ func getStartOpts(portOffset int64, volumesFrom []string, containerLinks []strin
 		},
 		Links: containerLinks,
 		PortBindings: map[docker.Port][]docker.PortBinding{
-			iscenv.DockerPort(iscenv.PortInternalSSH): iscenv.DockerPortBinding(iscenv.PortExternalSSH, portOffset),
 			iscenv.DockerPort(iscenv.PortInternalSS):  iscenv.DockerPortBinding(iscenv.PortExternalSS, portOffset),
 			iscenv.DockerPort(iscenv.PortInternalWeb): iscenv.DockerPortBinding(iscenv.PortExternalWeb, portOffset),
 		},
@@ -203,14 +201,6 @@ func executePrepWithOpts(ensInstance *iscenv.ISCInstance, opts []string) {
 		iscenv.Nqf(startFlags.Quiet, "WARNING: Could not find docker0's address, 'host' entry will not be added to /etc/hosts, err: %s\n", err)
 	}
 
-	fmt.Println("Waiting for SSH...")
-	err = iscenv.WaitForPort(hostIP, ensInstance.Ports.SSH.String(), 60*time.Second)
-	if err == nil {
-		fmt.Println("\tSuccess!")
-	} else {
-		iscenv.Fatalf("Error while waiting for SSH, name: %s, error: %s", ensInstance.Name, err)
-	}
-
 	if startFlags.CacheKeyURL != "" {
 		opts = append(opts, "-k", startFlags.CacheKeyURL)
 	}
@@ -219,7 +209,7 @@ func executePrepWithOpts(ensInstance *iscenv.ISCInstance, opts []string) {
 		iscenv.InternalISCEnvPath, "_prep",
 	}
 
-	sshExec(ensInstance.Name, iscenv.ManagedSSHFn, append(baseopts, opts...)...)
+	iscenv.DockerExec(ensInstance.Name, false, append(baseopts, opts...)...)
 }
 
 func homeDir() string {
