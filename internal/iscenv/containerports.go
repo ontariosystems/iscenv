@@ -14,12 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package iscenv
 
 import (
-	"github.com/ontariosystems/iscenv/internal/cmd"
+	"strconv"
 )
 
-func main() {
-	cmd.Execute()
+type ContainerPort int64
+
+type ContainerPorts struct {
+	SSH         ContainerPort
+	SuperServer ContainerPort
+	Web         ContainerPort
+}
+
+func (p ContainerPort) String() string {
+	return strconv.FormatInt(int64(p), 10)
 }

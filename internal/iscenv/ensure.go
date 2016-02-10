@@ -14,12 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package iscenv
 
-import (
-	"github.com/ontariosystems/iscenv/internal/cmd"
-)
+type EnsurableFn func() error
 
-func main() {
-	cmd.Execute()
+func Ensure(fn EnsurableFn) {
+	if err := fn(); err != nil {
+		Fatalf("%s\n", err)
+	}
 }

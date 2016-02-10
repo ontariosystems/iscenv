@@ -14,12 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package iscenv
 
-import (
-	"github.com/ontariosystems/iscenv/internal/cmd"
-)
+type WithInstanceFn func(instance *ISCInstance) error
 
-func main() {
-	cmd.Execute()
+func WithInstance(instance *ISCInstance, fn WithInstanceFn) EnsurableFn {
+	return func() error {
+		return fn(instance)
+	}
 }

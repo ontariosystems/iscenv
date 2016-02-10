@@ -14,12 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package iscenv
 
 import (
-	"github.com/ontariosystems/iscenv/internal/cmd"
+	"os"
 )
 
-func main() {
-	cmd.Execute()
+func FileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
 }

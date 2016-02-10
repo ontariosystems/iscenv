@@ -14,12 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package iscenv
 
 import (
-	"github.com/ontariosystems/iscenv/internal/cmd"
+	"fmt"
+	"os/user"
 )
 
-func main() {
-	cmd.Execute()
+func IsUserRoot() error {
+	user, err := user.Current()
+	if err != nil {
+		return err
+	}
+
+	if user.Uid != "0" {
+		return fmt.Errorf("This command must be run as root (or with sudo)")
+	}
+
+	return nil
 }

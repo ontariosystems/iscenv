@@ -12,9 +12,9 @@ only if they will not complicate the intentionally simple design of this project
 
 ## Needed
 - Evaluate command execution / exits for consistency (use fatal at the same times, always loop over all instances or always fail on first error)
-- Use tag-based versioning instead of committed version
 - Add the ability to run a command with `iscenv csession`
 - Add an inspect command
+- Remove all outputhelper calls outside of the internal/cmd package
 
 ## Maybe
 - Add Service wrappers for the containers which will restart them on reboot
