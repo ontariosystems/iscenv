@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -33,7 +32,7 @@ import (
 const (
 	gatewayDir    = "/opt/iscenv-csp-gateway"
 	cspIniPath    = gatewayDir + "/bin/CSP.ini"
-	srcGatewayDir = "/ensemble/cspgateway"
+	srcGatewayDir = "/ensemble/cspgateway/."
 	apacheDir     = "/etc/apache2"
 )
 
@@ -97,35 +96,9 @@ func copyCSPGateway(instance *iscenv.ISCInstance) error {
 		return err
 	}
 
-	sshExec(instance.Name, func(sshbin string, args []string) error {
-		ssh := exec.Command(sshbin, args...)
-		tar := exec.Command("tar", "-C", gatewayDir, "-xf", "-")
-
-		r, w := io.Pipe()
-		defer w.Close()
-
-		ssh.Stdout = w
-		tar.Stdin = r
-
-		if err := ssh.Start(); err != nil {
-			return err
-		}
-
-		if err := tar.Start(); err != nil {
-			return err
-		}
-
-		if err := ssh.Wait(); err != nil {
-			return err
-		}
-		w.Close()
-
-		if err := tar.Wait(); err != nil {
-			return err
-		}
-
-		return nil
-	}, "tar", "-C", srcGatewayDir, "-cf", "-", "./")
+	if err := iscenv.DockerCopy(instance.Name, srcGatewayDir, gatewayDir); err != nil {
+		return err
+	}
 
 	// remove the CSP.ini so it can be "replaced" only the first time
 	if err := os.Remove(cspIniPath); err != nil {

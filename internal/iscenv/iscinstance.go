@@ -28,11 +28,11 @@ type ISCInstance struct {
 }
 
 func (i ISCInstance) PortOffset() ContainerPort {
-	if i.Ports.SSH < PortExternalSSH {
-		Fatalf("SSH Port is outside of range, instance: %s, port: %s\n", i.Name, i.Ports.SSH)
+	if i.Ports.SuperServer < PortExternalSS {
+		Fatalf("SuperServer Port is outside of range, instance: %s, port: %s\n", i.Name, i.Ports.SuperServer)
 	}
 
-	return i.Ports.SSH - PortExternalSSH
+	return i.Ports.SuperServer - PortExternalSS
 }
 
 func (i ISCInstance) Container() *docker.Container {

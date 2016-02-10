@@ -17,8 +17,12 @@ limitations under the License.
 package iscenv
 
 import (
+	"archive/tar"
 	"fmt"
+	"io"
 	"net"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -34,6 +38,109 @@ func init() {
 	}
 
 	DockerClient = dc
+}
+
+func DockerExec(instanceName string, interactive bool, commandAndArgs ...string) error {
+	instance := GetInstances().Find(strings.ToLower(instanceName))
+	if instance == nil {
+		return fmt.Errorf("Could not find instance, name: %s", instanceName)
+	}
+
+	createOpts := docker.CreateExecOptions{
+		Container:    instance.ID,
+		AttachStdin:  true,
+		AttachStdout: true,
+		AttachStderr: true,
+		Tty:          interactive,
+		Cmd:          commandAndArgs,
+	}
+
+	exec, err := DockerClient.CreateExec(createOpts)
+	if err != nil {
+		return err
+	}
+
+	startOpts := docker.StartExecOptions{
+		Tty:         interactive,
+		RawTerminal: interactive,
+	}
+
+	var stdin *rawTTYStdin
+	if interactive {
+		stdin, err = NewRawTTYStdin()
+		if err != nil {
+			return err
+		}
+
+		startOpts.InputStream = stdin
+	}
+
+	startOpts.OutputStream = os.Stdout
+	startOpts.ErrorStream = os.Stderr
+	cw, err := DockerClient.StartExecNonBlocking(exec.ID, startOpts)
+	if err != nil {
+		return err
+	}
+
+	if cw == nil {
+		return nil
+	}
+
+	if stdin != nil {
+		stdin.MonitorTTYSize(func(height, width int) {
+			DockerClient.ResizeExecTTY(exec.ID, height, width)
+		})
+	}
+
+	return cw.Wait()
+}
+
+func DockerCopy(instanceName, instancePath, localPath string) error {
+	instance := GetInstances().Find(strings.ToLower(instanceName))
+	if instance == nil {
+		return fmt.Errorf("Could not find instance, name: %s", instanceName)
+	}
+
+	r, w := io.Pipe()
+
+	go func() {
+		DockerClient.DownloadFromContainer(instance.ID, docker.DownloadFromContainerOptions{
+			Path:         instancePath,
+			OutputStream: w,
+		})
+	}()
+
+	t := tar.NewReader(r)
+	for {
+		header, err := t.Next()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
+
+		path := filepath.Join(localPath, header.Name)
+		info := header.FileInfo()
+		fmt.Println(path, info.Name())
+		if info.IsDir() {
+			if err = os.MkdirAll(path, info.Mode()); err != nil {
+				return err
+			}
+			continue
+		}
+
+		file, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, info.Mode())
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+		_, err = io.Copy(file, t)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func DockerPort(port ContainerPort) docker.Port {

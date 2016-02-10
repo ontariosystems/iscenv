@@ -17,10 +17,8 @@ limitations under the License.
 package cmd
 
 import (
-	"io/ioutil"
-	"os"
-	"os/exec"
 	"strings"
+	"unicode"
 
 	"github.com/ontariosystems/iscenv/internal/iscenv"
 
@@ -35,69 +33,51 @@ var sshFlags = struct {
 
 var sshCmd = &cobra.Command{
 	Use:   "ssh INSTANCE",
-	Short: "SSH to an instance",
-	Long:  "Connect to an instance with SSH using private key auth.",
+	Short: "Connect to an instance",
+	Long:  "This command is deprecated in favor of exec.  Connect to an instance with docker exec.  This command remains ssh for backwards compatibility but no longer actually uses ssh.",
 	Run:   ssh,
 }
 
 func init() {
 	rootCmd.AddCommand(sshCmd)
-
 	sshCmd.Flags().StringVarP(&sshFlags.Command, "command", "c", "", "Execute an SSH command directly")
 }
 
 func ssh(_ *cobra.Command, args []string) {
-	if len(args) > 0 {
-		sshArgs := []string{}
-		if sshFlags.Command != "" {
-			sshArgs = append(sshArgs, sshFlags.Command)
-		}
-		sshExec(args[0], nil, sshArgs...)
+	if len(args) != 1 {
+		iscenv.Fatal("Must provide exactly 1 instance as the first argument")
+	}
+
+	var cmdArgs []string
+	if sshFlags.Command != "" {
+		cmdArgs = toArgs(sshFlags.Command)
 	} else {
-		iscenv.Fatal("Must provide an instance")
+		cmdArgs = defaultExecCommand
+	}
+
+	err := iscenv.DockerExec(args[0], true, cmdArgs...)
+	if err != nil {
+		iscenv.Fatalf("Error running docker exec, error: %s", err)
 	}
 }
 
-func sshExec(instance string, sshfn sshExecFn, sshArgs ...string) {
-	instance = strings.ToLower(instance)
-	existing := iscenv.GetInstances().Find(instance)
-	if existing != nil {
-		key, err := ioutil.TempFile("", "iscenv-key")
-		if err != nil {
-			iscenv.Fatalf("Could not create ssh key file, error: %s\n", err)
+// If the arguments are too complicated, this will likely fall apart.  In that case, *DO NOT IMPROVE THIS* but point the user at exec
+func toArgs(s string) []string {
+	q := rune(0)
+	f := func(r rune) bool {
+		switch {
+		case r == q:
+			q = rune(0)
+			return false
+		case q != rune(0):
+			return false
+		case unicode.In(r, unicode.Quotation_Mark):
+			q = r
+			return false
+		default:
+			return unicode.IsSpace(r)
 		}
-
-		defer key.Close()
-		defer os.Remove(key.Name())
-
-		key.WriteString(iscenv.SSHKey)
-		key.Close()
-
-		sshbin, err := exec.LookPath("ssh")
-		if err != nil {
-			iscenv.Fatalf("Could not find ssh binary on path, error: %s\n", err)
-		}
-
-		args := append([]string{
-			"root@localhost",
-			"-t",
-			"-p", existing.Ports.SSH.String(),
-			"-o", "UserKnownHostsFile=/dev/null",
-			"-o", "StrictHostKeyChecking=no",
-			"-o", "LogLevel=error",
-			"-i", key.Name()},
-			sshArgs...)
-
-		if sshfn == nil {
-			sshfn = iscenv.ProcessReplacingSSHFn
-		}
-
-		err = sshfn(sshbin, args)
-
-		if err != nil {
-			iscenv.Fatalf("ssh to instance failed, instance: %s, error: %s\n", instance, err)
-		}
-	} else {
-		iscenv.Fatalf("No such instance, name: %s\n", instance)
 	}
+
+	return strings.FieldsFunc(s, f)
 }

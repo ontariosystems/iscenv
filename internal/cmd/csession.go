@@ -28,23 +28,27 @@ var csessionFlags = struct {
 var csessionCmd = &cobra.Command{
 	Use:   "csession INSTANCE",
 	Short: "Start csession for instance",
-	Long:  "Connect to an instance with SSH using private key auth and initiate a csession.",
+	Long:  "Connect to an instance container and initiate a csession.",
 	Run:   csession,
 }
 
 func init() {
 	rootCmd.AddCommand(csessionCmd)
 
-	csessionCmd.Flags().StringVarP(&csessionFlags.Namespace, "namespace", "n", "%SYS", "Use a specific staring namespace")
+	csessionCmd.Flags().StringVarP(&csessionFlags.Namespace, "namespace", "n", "%SYS", "Use a specific starting namespace")
 }
 
 func csession(_ *cobra.Command, args []string) {
 	if len(args) > 0 {
-		csession := "csession docker"
+		cmdArgs := []string{"csession", "docker"}
 		if csessionFlags.Namespace != "" {
-			csession += " -U" + csessionFlags.Namespace
+			cmdArgs = append(cmdArgs, "-U")
+			cmdArgs = append(cmdArgs, csessionFlags.Namespace)
 		}
-		sshExec(args[0], nil, csession)
+		err := iscenv.DockerExec(args[0], true, cmdArgs...)
+		if err != nil {
+			iscenv.Fatalf("Error running docker exec, error: %s", err)
+		}
 	} else {
 		iscenv.Fatal("Must provide an instance")
 	}

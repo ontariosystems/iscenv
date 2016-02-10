@@ -29,7 +29,7 @@ import (
 var killCmd = &cobra.Command{
 	Use:   "kill INSTANCE [INSTANCE...]",
 	Short: "Kill an ISC product instance",
-	Long:  "Kill a running ISC product instance without attempting a safe shutdown",
+	Long:  "Kill a running ISC product instance container without attempting a safe shutdown",
 	Run:   kill,
 }
 
