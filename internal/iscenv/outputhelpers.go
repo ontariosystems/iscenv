@@ -14,12 +14,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package iscenv
 
 import (
-	"github.com/ontariosystems/iscenv/internal/cmd"
+	"fmt"
+	"os"
 )
 
-func main() {
-	cmd.Execute()
+func Nqf(quiet bool, format string, a ...interface{}) {
+	if !quiet {
+		fmt.Printf(format, a...)
+	}
+}
+
+func Fatal(a ...interface{}) {
+	fmt.Println(a...)
+	os.Exit(1)
+}
+
+func Fatalf(format string, a ...interface{}) {
+	fmt.Printf(format, a...)
+	os.Exit(1)
 }

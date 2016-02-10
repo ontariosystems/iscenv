@@ -14,12 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package iscenv
 
 import (
-	"github.com/ontariosystems/iscenv/internal/cmd"
+	docker "github.com/fsouza/go-dockerclient"
 )
 
-func main() {
-	cmd.Execute()
+func GetAuthConfig() docker.AuthConfiguration {
+	authcfg := docker.AuthConfiguration{}
+	authcfg.Username, authcfg.Password, authcfg.Email = GetRegistryCredentials()
+	return authcfg
 }

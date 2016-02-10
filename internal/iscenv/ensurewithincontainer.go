@@ -14,12 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package iscenv
 
 import (
-	"github.com/ontariosystems/iscenv/internal/cmd"
+	"io/ioutil"
+	"strings"
 )
 
-func main() {
-	cmd.Execute()
+func EnsureWithinContainer(commandName string) {
+
+	proc1CGroupContents, err := ioutil.ReadFile("/proc/1/cgroup")
+
+	if err != nil {
+		Fatalf("Could not read /proc/1/cgroup to determine environment")
+	}
+
+	// if we have some control groups owned by docker, then we are within a container
+	contents := string(proc1CGroupContents)
+	if !strings.Contains(contents, ":/docker/") && !strings.Contains(contents, ":/system.slice/docker-") {
+		Fatalf("Cannot run `%s` outside of a container!\n", commandName)
+	}
 }

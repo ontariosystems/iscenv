@@ -14,12 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package iscenv
 
-import (
-	"github.com/ontariosystems/iscenv/internal/cmd"
+const (
+	DefaultCcontrolCommand = "ccontrol"
 )
 
-func main() {
-	cmd.Execute()
+type InstanceManager struct {
+	// The ccontrol
+	CcontrolCommand string
+
+	// TODO: commands (before start, after start, before stop, decide on events...
+
+}
+
+func (im *InstanceManager) Manage() {
 }

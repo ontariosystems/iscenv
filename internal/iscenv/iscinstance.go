@@ -1,0 +1,45 @@
+/*
+Copyright 2016 Ontario Systems
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package iscenv
+
+import docker "github.com/fsouza/go-dockerclient"
+
+type ISCInstance struct {
+	ID      string
+	Name    string
+	Version string
+	Created int64
+	Status  string
+	Ports   ContainerPorts
+}
+
+func (i ISCInstance) PortOffset() ContainerPort {
+	if i.Ports.SSH < PortExternalSSH {
+		Fatalf("SSH Port is outside of range, instance: %s, port: %s\n", i.Name, i.Ports.SSH)
+	}
+
+	return i.Ports.SSH - PortExternalSSH
+}
+
+func (i ISCInstance) Container() *docker.Container {
+	container, err := DockerClient.InspectContainer(i.ID)
+	if err != nil {
+		Fatalf("Could not inspect container, instance: %s, id: %s\n", i.Name, i.ID)
+	}
+
+	return container
+}

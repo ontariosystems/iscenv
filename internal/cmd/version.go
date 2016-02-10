@@ -14,12 +14,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package cmd
 
 import (
-	"github.com/ontariosystems/iscenv/internal/cmd"
+	"fmt"
+
+	"github.com/ontariosystems/iscenv/internal/iscenv"
+
+	"github.com/spf13/cobra"
 )
 
-func main() {
-	cmd.Execute()
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "ISCEnv version information",
+	Long:  "Show the ISCEnv version information.",
+	Run:   iscenvVersion,
+}
+
+func init() {
+	rootCmd.AddCommand(versionCmd)
+}
+
+func iscenvVersion(_ *cobra.Command, _ []string) {
+	fmt.Printf("ISCEnv version: %s\n", iscenv.Version)
 }
