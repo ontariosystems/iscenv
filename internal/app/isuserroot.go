@@ -14,27 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd
+package app
 
 import (
 	"fmt"
-
-	"github.com/ontariosystems/iscenv/iscenv"
-
-	"github.com/spf13/cobra"
+	"os/user"
 )
 
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "ISCEnv version information",
-	Long:  "Show the ISCEnv version information.",
-	Run:   iscenvVersion,
-}
+func IsUserRoot() error {
+	user, err := user.Current()
+	if err != nil {
+		return err
+	}
 
-func init() {
-	rootCmd.AddCommand(versionCmd)
-}
+	if user.Uid != "0" {
+		return fmt.Errorf("This command must be run as root (or with sudo)")
+	}
 
-func iscenvVersion(_ *cobra.Command, _ []string) {
-	fmt.Printf("ISCEnv version: %s\n", iscenv.Version)
+	return nil
 }

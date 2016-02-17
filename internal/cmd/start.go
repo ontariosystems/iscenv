@@ -25,7 +25,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ontariosystems/iscenv/internal/iscenv"
+	"github.com/ontariosystems/iscenv/iscenv"
+	"github.com/ontariosystems/iscenv/internal/app"
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/kardianos/osext"
@@ -50,6 +51,25 @@ var startCmd = &cobra.Command{
 }
 
 func init() {
+	// Since, we're adding flags and this has to happen in init, we're unfortunately going to have to load up and close the plugins here and in the start function, we could persist the manager globally but it's not as safe as a failure in init could concievably leave rpc servers running
+	pm, err := app.NewPluginManager(iscenv.ApplicationName, iscenv.StarterKey, iscenv.StarterPlugin{})
+	if err != nil {
+		app.Fatalf("Could not load raw interfaces, error: %S", err)
+	}
+	defer pm.Close()
+
+	if err := pm.VisitPlugins(func(id string, raw interface{}) error {
+		starter := raw.(iscenv.Starter)
+		flags, err := starter.Flags()
+		if err != nil {
+			return fmt.Errorf("Could not retrieve plugin flags, plugin: %s, error: %s", id, err)
+		}
+		flags.AddFlagsToFlagSet(id, startCmd.Flags())
+		return nil
+	}); err != nil {
+		app.Fatalf("Failed to retrieve plugin flags, error: %s", err)
+	}
+
 	rootCmd.AddCommand(startCmd)
 
 	startCmd.Flags().BoolVarP(&startFlags.Remove, "rm", "", false, "Remove existing instance before starting.  By default, this switch will preserve port settings when recreating the instance.")
@@ -62,30 +82,38 @@ func init() {
 	addMultiInstanceFlags(startCmd, "start")
 }
 
+// TODO: There is *way* too much logic in this command.  Move it into libraries in app
 func start(_ *cobra.Command, args []string) {
 	if startFlags.Version == "" {
-		startFlags.Version = iscenv.GetVersions().Latest().Version
+		startFlags.Version = app.GetVersions().Latest().Version
 	}
 
 	instances := multiInstanceFlags.getInstances(args)
-	// This loop is somewhat inefficient (with the multiple iscenv.GetInstances())  I doubt there will ever be enough to make it a performance issue.
+	// This loop is somewhat inefficient (with the multiple app.GetInstances())  I doubt there will ever be enough to make it a performance issue.
 	for _, instanceName := range instances {
 		instance := strings.ToLower(instanceName)
-		current := iscenv.GetInstances()
+		current := app.GetInstances()
 
 		var offset int64 = -1
+		var err error
 
+		// TODO: Look through this logic, it seems weird...
 		existing := current.Find(instance)
 		if existing != nil {
 			if !startFlags.Remove {
-				iscenv.Nqf(startFlags.Quiet, "Ensuring instance '%s' is started...\n", instance)
+				app.Nqf(startFlags.Quiet, "Ensuring instance '%s' is started...\n", instance)
 				// NOTE: I wish this wasn't necessary (and maybe it isn't) but it seems that the api uses a blank hostConfig instead of nil which seems to wipe out all of the settings
-				iscenv.DockerClient.StartContainer(existing.ID, existing.Container().HostConfig)
+				existingContainer := app.GetContainerForInstance(existing)
+				app.DockerClient.StartContainer(existing.ID, existingContainer.HostConfig)
 
 				if startFlags.PortOffset >= 0 {
-					epo := int64(existing.PortOffset())
+					epo, err := existing.PortOffset()
+					if err != nil {
+						app.Fatalf("Error determining port offset, instance: %s, error: %s", existing.Name, err)
+					}
+
 					if epo != startFlags.PortOffset {
-						iscenv.Nqf(startFlags.Quiet, "WARNING: The port offset for an existing instance differs from the offset specified, instance: %s, existing: %d, specified: %d\n", instance, epo, startFlags.PortOffset)
+						app.Nqf(startFlags.Quiet, "WARNING: The port offset for an existing instance differs from the offset specified, instance: %s, existing: %d, specified: %d\n", instance, epo, startFlags.PortOffset)
 					}
 
 					// Even if we're just starting a container we need to bump the ascending port counter so the next instance doesn't collide with this one
@@ -96,48 +124,59 @@ func start(_ *cobra.Command, args []string) {
 				continue
 			}
 
-			offset = int64(existing.PortOffset())
+			offset, err = existing.PortOffset()
+			if err != nil {
+				app.Fatalf("Error determining port offset, instance: %s, error: %s", existing.Name, err)
+			}
 			rm(nil, []string{instance})
-			current = iscenv.GetInstances() // Reset this so an instance doesn't collide with itself at the port offset check below
+			current = app.GetInstances() // Reset this so an instance doesn't collide with itself at the port offset check below
 		}
 
-		iscenv.Nqf(startFlags.Quiet, "Creating instance '%s'...\n", instance)
+		app.Nqf(startFlags.Quiet, "Creating instance '%s'...\n", instance)
 
 		if offset == -1 {
 			if startFlags.PortOffset >= 0 {
 				offset = startFlags.PortOffset
 				startFlags.PortOffset++
 			} else {
-				offset = current.CalculatePortOffset()
+				offset, err = current.CalculatePortOffset()
+				if err != nil {
+					app.Fatalf("Error calculating port offset, instance: %s, error: %s", instance, err)
+				}
 			}
-			iscenv.Nqf(startFlags.Quiet, "Calculated port offset as %d...\n", offset)
+			app.Nqf(startFlags.Quiet, "Calculated port offset as %d...\n", offset)
 		} else {
-			iscenv.Nqf(startFlags.Quiet, "Reusing port offset of %d...\n", offset)
+			app.Nqf(startFlags.Quiet, "Reusing port offset of %d...\n", offset)
 		}
 
-		if !current.UsedPortOffset(offset) {
+		upo, err := current.UsedPortOffset(offset)
+		if err != nil {
+			app.Fatalf("Error checking port offset usage, instance: %s, error: %s", instance, err)
+		}
+
+		if !upo {
 			container := createInstance(instance, startFlags.Version, offset, startFlags.VolumesFrom, startFlags.ContainerLinks)
-			existing := iscenv.GetInstances().Find(instance)
+			existing := app.GetInstances().Find(instance)
 			if existing == nil {
-				iscenv.Fatalf("Error loading instance after creation, name: %s", instance)
+				app.Fatalf("Error loading instance after creation, name: %s", instance)
 			}
 			executePrep(existing)
 			fmt.Println(container.ID)
 		} else {
-			iscenv.Nqf(startFlags.Quiet, "ERROR: Could not create instance due to port offset conflict, instance: %s, port offset: %d\n", instance, offset)
+			app.Nqf(startFlags.Quiet, "ERROR: Could not create instance due to port offset conflict, instance: %s, port offset: %d\n", instance, offset)
 		}
 	}
 }
 
 func createInstance(instance string, version string, portOffset int64, volumesFrom []string, containerLinks []string) *docker.Container {
-	container, err := iscenv.DockerClient.CreateContainer(getCreateOpts(instance, version, portOffset, startFlags.VolumesFrom, containerLinks))
+	container, err := app.DockerClient.CreateContainer(getCreateOpts(instance, version, portOffset, startFlags.VolumesFrom, containerLinks))
 	if err != nil {
-		iscenv.Fatalf("Could not create instance, name: %s\n%s", instance, err)
+		app.Fatalf("Could not create instance, name: %s\n%s", instance, err)
 	}
 
-	err = iscenv.DockerClient.StartContainer(container.ID, getStartOpts(portOffset, volumesFrom, containerLinks))
+	err = app.DockerClient.StartContainer(container.ID, getStartOpts(portOffset, volumesFrom, containerLinks))
 	if err != nil {
-		iscenv.Fatalf("Could not start created instance, name: %s\n%s", instance, err)
+		app.Fatalf("Could not start created instance, name: %s\n%s", instance, err)
 	}
 
 	return container
@@ -152,6 +191,7 @@ func getCreateOpts(name string, version string, portOffset int64, volumesFrom []
 		Hostname: name,
 		Env:      []string{"HOST_HOME=" + home},
 		Volumes: map[string]struct{}{
+			// TODO: See if we can drop the data volume
 			"/data":             struct{}{},
 			"/var/log/ensemble": struct{}{},
 			"/iscenv":           struct{}{},
@@ -176,8 +216,8 @@ func getStartOpts(portOffset int64, volumesFrom []string, containerLinks []strin
 		},
 		Links: containerLinks,
 		PortBindings: map[docker.Port][]docker.PortBinding{
-			iscenv.DockerPort(iscenv.PortInternalSS):  iscenv.DockerPortBinding(iscenv.PortExternalSS, portOffset),
-			iscenv.DockerPort(iscenv.PortInternalWeb): iscenv.DockerPortBinding(iscenv.PortExternalWeb, portOffset),
+			app.DockerPort(iscenv.PortInternalSS):  app.DockerPortBinding(iscenv.PortExternalSS, portOffset),
+			app.DockerPort(iscenv.PortInternalWeb): app.DockerPortBinding(iscenv.PortExternalWeb, portOffset),
 		},
 		VolumesFrom: volumesFrom,
 	}
@@ -194,11 +234,11 @@ func executePrep(ensInstance *iscenv.ISCInstance) {
 }
 
 func executePrepWithOpts(ensInstance *iscenv.ISCInstance, opts []string) {
-	hostIP, err := iscenv.GetDocker0InterfaceIP()
+	hostIP, err := app.GetDocker0InterfaceIP()
 	if err == nil {
 		opts = append(opts, "-i", hostIP)
 	} else {
-		iscenv.Nqf(startFlags.Quiet, "WARNING: Could not find docker0's address, 'host' entry will not be added to /etc/hosts, err: %s\n", err)
+		app.Nqf(startFlags.Quiet, "WARNING: Could not find docker0's address, 'host' entry will not be added to /etc/hosts, err: %s\n", err)
 	}
 
 	if startFlags.CacheKeyURL != "" {
@@ -209,13 +249,15 @@ func executePrepWithOpts(ensInstance *iscenv.ISCInstance, opts []string) {
 		iscenv.InternalISCEnvPath, "_prep",
 	}
 
-	iscenv.DockerExec(ensInstance.Name, false, append(baseopts, opts...)...)
+	if err := app.DockerExec(ensInstance.Name, false, append(baseopts, opts...)...); err != nil {
+		app.Fatalf("Could not run prep in newly started container, instance: %s, error: %s\n", ensInstance.Name, err)
+	}
 }
 
 func homeDir() string {
 	usr, err := user.Current()
 	if err != nil {
-		iscenv.Fatalf("Could not determine current user, err: %s\n", err)
+		app.Fatalf("Could not determine current user, err: %s\n", err)
 	}
 
 	return usr.HomeDir
@@ -224,7 +266,7 @@ func homeDir() string {
 func exe() string {
 	exe, err := osext.Executable()
 	if err != nil {
-		iscenv.Fatalf("Could not determine executable path, err: %s\n", err)
+		app.Fatalf("Could not determine executable path, err: %s\n", err)
 	}
 
 	return exe
@@ -233,7 +275,7 @@ func exe() string {
 func hgcachePath() string {
 	out, err := exec.Command("hg", "showconfig", "extensions.hg-cache").CombinedOutput()
 	if err != nil {
-		iscenv.Fatal("hg showconfig extensions.hg-cache failed")
+		app.Fatal("hg showconfig extensions.hg-cache failed")
 	}
 
 	return expandHome(filepath.Join(filepath.Dir(filepath.Dir(strings.TrimSpace(string(out)))), "cache"))

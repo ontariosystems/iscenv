@@ -17,10 +17,11 @@ limitations under the License.
 package iscenv
 
 import (
-	"os"
+	"github.com/hashicorp/go-plugin"
 )
 
-func FileExists(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil
+var PluginHandshake = plugin.HandshakeConfig{
+	ProtocolVersion:  1,
+	MagicCookieKey:   "ISCENV_PLUGIN",
+	MagicCookieValue: "activate",
 }

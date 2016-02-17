@@ -14,17 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package iscenv
+package app
 
 import (
 	"strings"
 	"text/template"
+
+	"github.com/ontariosystems/iscenv/iscenv"
 )
 
 // Just using one struct for simplicity even though it will never have both instance & instances
 type ApacheTemplateData struct {
-	Instance   *ISCInstance
-	Instances  ISCInstances
+	Instance   *iscenv.ISCInstance
+	Instances  iscenv.ISCInstances
 	GatewayDir string
 }
 

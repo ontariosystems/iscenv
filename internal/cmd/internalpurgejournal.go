@@ -22,7 +22,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/ontariosystems/iscenv/internal/iscenv"
+	"github.com/ontariosystems/iscenv/internal/app"
 
 	"github.com/spf13/cobra"
 )
@@ -41,11 +41,11 @@ func init() {
 
 func internalPurgeJournal(_ *cobra.Command, _ []string) {
 	// verify we are running in a container
-	iscenv.EnsureWithinContainer("_purgejournal")
+	app.EnsureWithinContainer("_purgejournal")
 
 	journals, err := filepath.Glob("/data/journal/[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].[0-9][0-9][0-9]")
 	if err != nil {
-		iscenv.Fatalf("Failed to list journal files: %s", err)
+		app.Fatalf("Failed to list journal files: %s", err)
 	}
 
 	if len(journals) < 2 {
@@ -57,16 +57,16 @@ func internalPurgeJournal(_ *cobra.Command, _ []string) {
 	for _, journal := range journals[0 : len(journals)-1] {
 		f, err := os.Open(journal)
 		if err != nil {
-			iscenv.Fatalf("Could not open journal file %s: %s", journal, err)
+			app.Fatalf("Could not open journal file %s: %s", journal, err)
 		}
 
 		fi, err := f.Stat()
 		if err != nil {
-			iscenv.Fatalf("Could not stat journal file %s: %s", journal, err)
+			app.Fatalf("Could not stat journal file %s: %s", journal, err)
 		}
 
 		if err := os.Remove(journal); err != nil {
-			iscenv.Fatalf("Could not delete journal, path: %s, error: %s", journal, err)
+			app.Fatalf("Could not delete journal, path: %s, error: %s", journal, err)
 		} else {
 			fmt.Printf("  - deleted: %s (%v MB)\n", journal, fi.Size()/1024/1024)
 		}

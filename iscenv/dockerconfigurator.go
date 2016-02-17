@@ -16,20 +16,6 @@ limitations under the License.
 
 package iscenv
 
-import (
-	"fmt"
-	"os/user"
-)
-
-func IsUserRoot() error {
-	user, err := user.Current()
-	if err != nil {
-		return err
-	}
-
-	if user.Uid != "0" {
-		return fmt.Errorf("This command must be run as root (or with sudo)")
-	}
-
-	return nil
+// A plugin used to configure the docker container before it is started
+type ContainerConfigurator interface {
 }

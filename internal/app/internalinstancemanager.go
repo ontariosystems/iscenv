@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package iscenv
+package app
 
 import (
 	"fmt"
@@ -24,6 +24,8 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+
+	"github.com/ontariosystems/iscenv/iscenv"
 )
 
 const (
@@ -36,7 +38,7 @@ func NewInternalInstanceManager(instanceName string, ccontrolPath string) (*Inte
 	}
 
 	iim := &InternalInstanceManager{
-		InternalInstanceState: new(InternalInstanceState),
+		InternalInstanceState: new(iscenv.InternalInstanceState),
 		instanceName:          instanceName,
 		ccontrolPath:          ccontrolPath,
 	}
@@ -52,7 +54,7 @@ func NewInternalInstanceManager(instanceName string, ccontrolPath string) (*Inte
 type InternalInstanceManager struct {
 	instanceName string
 	ccontrolPath string
-	*InternalInstanceState
+	*iscenv.InternalInstanceState
 }
 
 func (iim *InternalInstanceManager) qlist() (string, error) {

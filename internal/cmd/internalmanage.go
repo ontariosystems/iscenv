@@ -18,7 +18,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/ontariosystems/iscenv/internal/iscenv"
+	"github.com/ontariosystems/iscenv/internal/app"
 )
 
 var internalManageFlags = struct {
@@ -42,14 +42,14 @@ func init() {
 }
 
 func internalManage(_ *cobra.Command, _ []string) {
-	iscenv.EnsureWithinContainer("_manage")
+	app.EnsureWithinContainer("_manage")
 
-	manager, err := iscenv.NewInternalInstanceManager(internalManageFlags.Instance, internalManageFlags.CControlPath)
+	manager, err := app.NewInternalInstanceManager(internalManageFlags.Instance, internalManageFlags.CControlPath)
 	if err != nil {
-		iscenv.Fatalf("Error creating instance manager, error: %s\n", err)
+		app.Fatalf("Error creating instance manager, error: %s\n", err)
 	}
 
 	if err := manager.Manage(); err != nil {
-		iscenv.Fatalf("Error managing instance, error: %s\n", err)
+		app.Fatalf("Error managing instance, error: %s\n", err)
 	}
 }

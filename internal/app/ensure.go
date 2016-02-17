@@ -14,27 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd
+package app
 
-import (
-	"fmt"
+type EnsurableFn func() error
 
-	"github.com/ontariosystems/iscenv/iscenv"
-
-	"github.com/spf13/cobra"
-)
-
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "ISCEnv version information",
-	Long:  "Show the ISCEnv version information.",
-	Run:   iscenvVersion,
-}
-
-func init() {
-	rootCmd.AddCommand(versionCmd)
-}
-
-func iscenvVersion(_ *cobra.Command, _ []string) {
-	fmt.Printf("ISCEnv version: %s\n", iscenv.Version)
+func Ensure(fn EnsurableFn) {
+	if err := fn(); err != nil {
+		Fatalf("%s\n", err)
+	}
 }

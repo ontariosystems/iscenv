@@ -14,19 +14,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package iscenv
+package app
 
 import (
-	"strconv"
+	"fmt"
+	"os"
 )
 
-type ContainerPort int64
-
-type ContainerPorts struct {
-	SuperServer ContainerPort
-	Web         ContainerPort
+func Nqf(quiet bool, format string, a ...interface{}) {
+	if !quiet {
+		fmt.Printf(format, a...)
+	}
 }
 
-func (p ContainerPort) String() string {
-	return strconv.FormatInt(int64(p), 10)
+func Fatal(a ...interface{}) {
+	fmt.Println(a...)
+	os.Exit(1)
+}
+
+func Fatalf(format string, a ...interface{}) {
+	fmt.Printf(format, a...)
+	os.Exit(1)
 }

@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ontariosystems/iscenv/internal/iscenv"
+	"github.com/ontariosystems/iscenv/internal/app"
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/spf13/cobra"
@@ -43,13 +43,13 @@ func rm(_ *cobra.Command, args []string) {
 	instances := multiInstanceFlags.getInstances(args)
 	for _, instanceName := range instances {
 		instance := strings.ToLower(instanceName)
-		current := iscenv.GetInstances()
+		current := app.GetInstances()
 		existing := current.Find(instance)
 
 		if existing != nil {
-			err := iscenv.DockerClient.RemoveContainer(docker.RemoveContainerOptions{ID: existing.ID, RemoveVolumes: true, Force: true})
+			err := app.DockerClient.RemoveContainer(docker.RemoveContainerOptions{ID: existing.ID, RemoveVolumes: true, Force: true})
 			if err != nil {
-				iscenv.Fatalf("Could not kill instance, name: %s, error: %s\n", existing.Name, err)
+				app.Fatalf("Could not kill instance, name: %s, error: %s\n", existing.Name, err)
 			}
 			fmt.Println(existing.ID)
 		} else {

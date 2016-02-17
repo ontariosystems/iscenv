@@ -14,26 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package iscenv
+package app
 
 import (
 	"regexp"
 	"strings"
 
-	docker "github.com/fsouza/go-dockerclient"
-	version "github.com/mcuadros/go-version"
+	"github.com/ontariosystems/iscenv/iscenv"
+
+	"github.com/fsouza/go-dockerclient"
+	"github.com/mcuadros/go-version"
 )
 
-type ISCVersions []*ISCVersion
-
-func (evs ISCVersions) Latest() *ISCVersion {
-	if len(evs) == 0 {
-		Fatal("No ISC product versions exist run the iscenv pull command")
-	}
-	return evs[len(evs)-1]
-}
-
-func GetVersions() ISCVersions {
+func GetVersions() iscenv.ISCVersions {
 	images, err := DockerClient.ListImages(docker.ListImagesOptions{All: false})
 	if err != nil {
 		Fatalf("Could not list images, error: %s\n", err)
@@ -44,7 +37,7 @@ func GetVersions() ISCVersions {
 	for _, image := range images {
 		for _, repoTag := range image.RepoTags {
 			repo, tag := splitRepoTag(repoTag)
-			if repo == Repository {
+			if repo == iscenv.Repository {
 				if m, _ := regexp.MatchString("^\\d+(\\.\\d+)?", tag); m {
 					vm[tag] = image
 					vs = append(vs, tag)
@@ -55,10 +48,10 @@ func GetVersions() ISCVersions {
 
 	version.Sort(vs)
 
-	versions := make(ISCVersions, len(vs), len(vs))
+	versions := make(iscenv.ISCVersions, len(vs), len(vs))
 	for i, v := range vs {
 		ai := vm[v]
-		versions[i] = &ISCVersion{ID: ai.ID, Version: v, Created: ai.Created}
+		versions[i] = &iscenv.ISCVersion{ID: ai.ID, Version: v, Created: ai.Created}
 	}
 
 	return versions

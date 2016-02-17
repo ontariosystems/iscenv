@@ -14,56 +14,39 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package iscenv
+package app
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/user"
 	"path"
-	"strings"
+
+	"github.com/ontariosystems/iscenv/iscenv"
 )
 
 const NewDefaultDockerConfigName = ".docker/config.json"
 const OldDefaultDockerConfigName = ".dockercfg"
 
-type DockerConfigEntry struct {
-	Auth  string `json:"auth"`
-	Email string `json:"email"`
-}
-
-type DockerConfig map[string]DockerConfigEntry
-
-func (dce DockerConfigEntry) Credentials() (string, string, error) {
-	creds, err := base64.StdEncoding.DecodeString(dce.Auth)
-	if err != nil {
-		return "", "", err
-	}
-
-	s := strings.Split(string(creds), ":")
-	return s[0], s[1], nil
-}
-
 // Will return nil, nil if the file simply doesn't exist
-func LoadDefaultDockerConfig() (DockerConfig, error) {
+func LoadDefaultDockerConfig() (iscenv.DockerConfig, error) {
 	cfgPath, err := FindDefaultDockerConfig()
 	if err != nil {
-		return DockerConfig{}, err
+		return iscenv.DockerConfig{}, err
 	}
 
 	return LoadDockerConfig(cfgPath)
 }
 
-func LoadDockerConfig(path string) (DockerConfig, error) {
+func LoadDockerConfig(path string) (iscenv.DockerConfig, error) {
 	bytes, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	cfg := DockerConfig{}
+	cfg := iscenv.DockerConfig{}
 	err = json.Unmarshal(bytes, &cfg)
 	if err != nil {
 		return nil, err

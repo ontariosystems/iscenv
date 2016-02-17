@@ -20,7 +20,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/ontariosystems/iscenv/internal/iscenv"
+	"github.com/ontariosystems/iscenv/internal/app"
 
 	"github.com/spf13/cobra"
 )
@@ -45,7 +45,7 @@ func init() {
 
 func ssh(_ *cobra.Command, args []string) {
 	if len(args) != 1 {
-		iscenv.Fatal("Must provide exactly 1 instance as the first argument")
+		app.Fatal("Must provide exactly 1 instance as the first argument")
 	}
 
 	var cmdArgs []string
@@ -55,9 +55,9 @@ func ssh(_ *cobra.Command, args []string) {
 		cmdArgs = defaultExecCommand
 	}
 
-	err := iscenv.DockerExec(args[0], true, cmdArgs...)
+	err := app.DockerExec(args[0], true, cmdArgs...)
 	if err != nil {
-		iscenv.Fatalf("Error running docker exec, error: %s", err)
+		app.Fatalf("Error running docker exec, error: %s", err)
 	}
 }
 

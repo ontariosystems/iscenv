@@ -16,10 +16,17 @@ limitations under the License.
 
 package iscenv
 
-type WithInstanceFn func(instance *ISCInstance) error
+import (
+	"github.com/hashicorp/go-plugin"
+)
 
-func WithInstance(instance *ISCInstance, fn WithInstanceFn) EnsurableFn {
-	return func() error {
-		return fn(instance)
+func ServeStartPlugin(impl Starter) {
+	pluginMap := map[string]plugin.Plugin{
+		StarterKey: StarterPlugin{Plugin: impl},
 	}
+
+	plugin.Serve(&plugin.ServeConfig{
+		HandshakeConfig: PluginHandshake,
+		Plugins:         pluginMap,
+	})
 }

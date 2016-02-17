@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package iscenv
+package app
 
 import (
 	"archive/tar"
@@ -26,10 +26,16 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ontariosystems/iscenv/iscenv"
+
 	docker "github.com/fsouza/go-dockerclient"
 )
 
 var DockerClient *docker.Client
+
+const (
+	DockerSocket = "unix:///var/run/docker.sock"
+)
 
 func init() {
 	dc, err := docker.NewClient(DockerSocket)
@@ -143,7 +149,7 @@ func DockerCopy(instanceName, instancePath, localPath string) error {
 	return nil
 }
 
-func DockerPort(port ContainerPort) docker.Port {
+func DockerPort(port iscenv.ContainerPort) docker.Port {
 	return docker.Port(port.String()) + "/tcp"
 }
 
@@ -152,13 +158,13 @@ func DockerPortBinding(port int64, portOffset int64) []docker.PortBinding {
 }
 
 // Assumes a single binding
-func GetDockerBindingPort(bindings []docker.PortBinding) ContainerPort {
+func GetDockerBindingPort(bindings []docker.PortBinding) iscenv.ContainerPort {
 	port, err := strconv.ParseInt(bindings[0].HostPort, 10, 64)
 	if err != nil {
 		Fatalf("Could not parse port, error: %s\n", err)
 	}
 
-	return ContainerPort(port)
+	return iscenv.ContainerPort(port)
 }
 
 func GetDocker0InterfaceIP() (string, error) {

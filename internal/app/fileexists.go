@@ -14,25 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package iscenv
+package app
 
 import (
-	"fmt"
 	"os"
 )
 
-func Nqf(quiet bool, format string, a ...interface{}) {
-	if !quiet {
-		fmt.Printf(format, a...)
-	}
-}
-
-func Fatal(a ...interface{}) {
-	fmt.Println(a...)
-	os.Exit(1)
-}
-
-func Fatalf(format string, a ...interface{}) {
-	fmt.Printf(format, a...)
-	os.Exit(1)
+func FileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
 }
