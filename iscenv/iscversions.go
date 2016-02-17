@@ -16,22 +16,8 @@ limitations under the License.
 
 package iscenv
 
-// Version This version number will be injected by the build system based on the Mercurial tags on the repository
-var Version string
+type ISCVersions []*ISCVersion
 
-const (
-	PortInternalSS = 56772
-	PortExternalSS = 56772
-
-	PortInternalWeb = 57772
-	PortExternalWeb = 57772
-
-	// TODO: These should be defaults and should be configurable with viper
-	DockerSocket    = "unix:///var/run/docker.sock"
-	ContainerPrefix = "iscenv-"
-	Registry        = "quay.io"
-	ImageName       = "ontsys/centos-ensemble"
-	Repository      = Registry + "/" + ImageName
-
-	InternalISCEnvPath = "/bin/iscenv"
-)
+func (evs ISCVersions) Latest() *ISCVersion {
+	return evs[len(evs)-1]
+}

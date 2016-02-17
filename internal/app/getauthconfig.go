@@ -14,24 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package iscenv
+package app
 
 import (
-	"io/ioutil"
-	"strings"
+	docker "github.com/fsouza/go-dockerclient"
 )
 
-func EnsureWithinContainer(commandName string) {
-
-	proc1CGroupContents, err := ioutil.ReadFile("/proc/1/cgroup")
-
-	if err != nil {
-		Fatalf("Could not read /proc/1/cgroup to determine environment")
-	}
-
-	// if we have some control groups owned by docker, then we are within a container
-	contents := string(proc1CGroupContents)
-	if !strings.Contains(contents, ":/docker/") && !strings.Contains(contents, ":/system.slice/docker-") {
-		Fatalf("Cannot run `%s` outside of a container!\n", commandName)
-	}
+func GetAuthConfig() docker.AuthConfiguration {
+	authcfg := docker.AuthConfiguration{}
+	authcfg.Username, authcfg.Password, authcfg.Email = GetRegistryCredentials()
+	return authcfg
 }

@@ -14,27 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd
+package iscenv
 
 import (
-	"fmt"
-
-	"github.com/ontariosystems/iscenv/iscenv"
-
-	"github.com/spf13/cobra"
+	"encoding/base64"
+	"strings"
 )
 
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "ISCEnv version information",
-	Long:  "Show the ISCEnv version information.",
-	Run:   iscenvVersion,
+// The contents of a docker ocnfiguration file
+type DockerConfig map[string]DockerConfigEntry
+
+// A single entry from a docker configuration file
+type DockerConfigEntry struct {
+	Auth  string `json:"auth"`
+	Email string `json:"email"`
 }
 
-func init() {
-	rootCmd.AddCommand(versionCmd)
-}
+// Parse the credentials from this entry
+func (dce DockerConfigEntry) Credentials() (user string, pass string, err error) {
+	creds, err := base64.StdEncoding.DecodeString(dce.Auth)
+	if err != nil {
+		return "", "", err
+	}
 
-func iscenvVersion(_ *cobra.Command, _ []string) {
-	fmt.Printf("ISCEnv version: %s\n", iscenv.Version)
+	s := strings.Split(string(creds), ":")
+	return s[0], s[1], nil
 }

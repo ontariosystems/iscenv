@@ -28,7 +28,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ontariosystems/iscenv/internal/iscenv"
+	"github.com/ontariosystems/iscenv/internal/app"
 
 	"github.com/spf13/cobra"
 )
@@ -71,7 +71,7 @@ func init() {
 
 func prep(_ *cobra.Command, _ []string) {
 	// verify we are running in a container
-	iscenv.EnsureWithinContainer("_prep")
+	app.EnsureWithinContainer("_prep")
 
 	// Make sure ISC product is fully up before taking any further actions (including trying to stop it halfway through startup)
 	waitForEnsembleStatus("running")
@@ -118,11 +118,11 @@ func prep(_ *cobra.Command, _ []string) {
 
 func waitForEnsembleHTTP() {
 	fmt.Println("Waiting for ISC product HTTP...")
-	err := iscenv.WaitForPort("127.0.0.1", "57772", 60*time.Second)
+	err := app.WaitForPort("127.0.0.1", "57772", 60*time.Second)
 	if err == nil {
 		fmt.Println("\tSuccess!")
 	} else {
-		iscenv.Fatalf("Error while waiting for ISC product HTTP, error: %s", err)
+		app.Fatalf("Error while waiting for ISC product HTTP, error: %s", err)
 	}
 }
 
@@ -137,7 +137,7 @@ func waitForEnsembleStatus(status string) {
 		fmt.Println("\tSuccess!")
 		break
 	case <-time.After(waitSeconds * time.Second):
-		iscenv.Fatalf("\tTimed out waiting for ISC product status: %s", status)
+		app.Fatalf("\tTimed out waiting for ISC product status: %s", status)
 	}
 }
 
@@ -154,7 +154,7 @@ func waitForEnsembleStatusForever(status string, c chan bool) {
 func ensembleHasStatus(status string) bool {
 	out, err := exec.Command("ccontrol", "qlist").CombinedOutput()
 	if err != nil {
-		iscenv.Fatalf("\tFailure!\n\terror:%s\n\toutput...\n%s\n\n", err, out)
+		app.Fatalf("\tFailure!\n\terror:%s\n\toutput...\n%s\n\n", err, out)
 	}
 	s := string(out)
 	statusField := strings.Split(s, "^")[3]
@@ -174,7 +174,7 @@ func waitForUserFree(user string) {
 		fmt.Println("\tSuccess!")
 		break
 	case <-time.After(waitSeconds * time.Second):
-		iscenv.Fatalf("\tTimed out waiting for user '%s' to be free", user)
+		app.Fatalf("\tTimed out waiting for user '%s' to be free", user)
 	}
 }
 
@@ -182,7 +182,7 @@ func waitForUserFreeForever(user string, c chan bool) {
 	for {
 		out, err := exec.Command("ps", "aux").CombinedOutput()
 		if err != nil {
-			iscenv.Fatalf("\tFailure!\n\terror:%s\n\toutput...\n%s\n\n", err, out)
+			app.Fatalf("\tFailure!\n\terror:%s\n\toutput...\n%s\n\n", err, out)
 		}
 
 		free := true
@@ -210,12 +210,12 @@ func css(namespace string, command string) {
 	fmt.Printf("\tnamespace: %s, command: %s\n", namespace, command)
 	out, err := exec.Command("csession", "docker", "-U", namespace, command).CombinedOutput()
 	if err != nil {
-		iscenv.Fatalf("\tFailure!\n\terror:%s\n\toutput...\n%s\n\n", err, out)
+		app.Fatalf("\tFailure!\n\terror:%s\n\toutput...\n%s\n\n", err, out)
 	}
 
 	cerr := re.FindString(string(out))
 	if cerr != "" {
-		iscenv.Fatalf("\tFailure!\n\tcache error: %s\n%s\n\n", cerr, out)
+		app.Fatalf("\tFailure!\n\tcache error: %s\n%s\n\n", cerr, out)
 	}
 
 	fmt.Println("\tSuccess!")
@@ -228,7 +228,7 @@ func cmd(name string, args ...string) {
 	if err == nil {
 		fmt.Println("\tSuccess!")
 	} else {
-		iscenv.Fatalf("\tFailure!\n\terror:%s\n\toutput...\n%s\n\n", err, out)
+		app.Fatalf("\tFailure!\n\terror:%s\n\toutput...\n%s\n\n", err, out)
 	}
 }
 
@@ -265,7 +265,7 @@ func fetchCacheKey(url string) error {
 		url = getCacheKeyURL(version)
 	}
 	fmt.Printf("  ISC product Key URL: %s\n", url)
-	response, err := iscenv.UnsafeGet(url)
+	response, err := app.UnsafeGet(url)
 	if err != nil {
 		return err
 	}
@@ -328,7 +328,7 @@ func updateHostsFile(hostIP string) {
 	fmt.Println("Updating /etc/hosts with host machine's IP address...")
 	bytes, err := ioutil.ReadFile("/etc/hosts")
 	if err != nil {
-		iscenv.Fatalf("Could not read hosts file, error: %s\n", err)
+		app.Fatalf("Could not read hosts file, error: %s\n", err)
 	}
 
 	hostLine := hostIP + " host"

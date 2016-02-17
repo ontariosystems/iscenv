@@ -22,7 +22,7 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/ontariosystems/iscenv/internal/iscenv"
+	"github.com/ontariosystems/iscenv/internal/app"
 
 	"github.com/spf13/cobra"
 )
@@ -47,7 +47,7 @@ func init() {
 }
 
 func list(_ *cobra.Command, _ []string) {
-	instances := iscenv.GetInstances()
+	instances := app.GetInstances()
 	w := tabwriter.NewWriter(os.Stdout, 20, 1, 3, ' ', 0)
 	if !listFlags.Quiet {
 		fmt.Fprintln(w, "CONTAINER ID\tVERSION\tCREATED\tSTATUS\tSUPERSERVER\tWEB\tNAME")

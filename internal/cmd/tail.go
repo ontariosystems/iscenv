@@ -18,7 +18,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/ontariosystems/iscenv/internal/iscenv"
+	"github.com/ontariosystems/iscenv/internal/app"
 )
 
 var tailFlags = struct {
@@ -68,8 +68,8 @@ func tail(_ *cobra.Command, args []string) {
 			tailArgs = append(tailArgs, tailFlags.Filename)
 		}
 
-		iscenv.DockerExec(args[0], false, tailArgs...)
+		app.DockerExec(args[0], false, tailArgs...)
 	} else {
-		iscenv.Fatal("Must provide an instance")
+		app.Fatal("Must provide an instance")
 	}
 }

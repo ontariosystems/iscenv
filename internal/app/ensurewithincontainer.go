@@ -14,27 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd
+package app
 
 import (
-	"fmt"
-
-	"github.com/ontariosystems/iscenv/iscenv"
-
-	"github.com/spf13/cobra"
+	"io/ioutil"
+	"strings"
 )
 
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "ISCEnv version information",
-	Long:  "Show the ISCEnv version information.",
-	Run:   iscenvVersion,
-}
+func EnsureWithinContainer(commandName string) {
 
-func init() {
-	rootCmd.AddCommand(versionCmd)
-}
+	proc1CGroupContents, err := ioutil.ReadFile("/proc/1/cgroup")
 
-func iscenvVersion(_ *cobra.Command, _ []string) {
-	fmt.Printf("ISCEnv version: %s\n", iscenv.Version)
+	if err != nil {
+		Fatalf("Could not read /proc/1/cgroup to determine environment")
+	}
+
+	// if we have some control groups owned by docker, then we are within a container
+	contents := string(proc1CGroupContents)
+	if !strings.Contains(contents, ":/docker/") && !strings.Contains(contents, ":/system.slice/docker-") {
+		Fatalf("Cannot run `%s` outside of a container!\n", commandName)
+	}
 }

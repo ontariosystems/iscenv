@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ontariosystems/iscenv/internal/iscenv"
+	"github.com/ontariosystems/iscenv/internal/app"
 
 	"github.com/spf13/cobra"
 )
@@ -47,13 +47,13 @@ func stop(_ *cobra.Command, args []string) {
 	instances := multiInstanceFlags.getInstances(args)
 	for _, instanceName := range instances {
 		instance := strings.ToLower(instanceName)
-		current := iscenv.GetInstances()
+		current := app.GetInstances()
 		existing := current.Find(instance)
 
 		if existing != nil {
-			err := iscenv.DockerClient.StopContainer(existing.ID, stopFlags.Timeout)
+			err := app.DockerClient.StopContainer(existing.ID, stopFlags.Timeout)
 			if err != nil {
-				iscenv.Fatalf("Could not stop instance, name: %s, error: %s\n", existing.Name, err)
+				app.Fatalf("Could not stop instance, name: %s, error: %s\n", existing.Name, err)
 			}
 
 			fmt.Println(existing.ID)

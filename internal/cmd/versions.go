@@ -22,7 +22,7 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/ontariosystems/iscenv/internal/iscenv"
+	"github.com/ontariosystems/iscenv/internal/app"
 
 	"github.com/spf13/cobra"
 )
@@ -47,7 +47,7 @@ func init() {
 }
 
 func versions(_ *cobra.Command, _ []string) {
-	versions := iscenv.GetVersions()
+	versions := app.GetVersions()
 	w := tabwriter.NewWriter(os.Stdout, 20, 1, 3, ' ', 0)
 	if !versionsFlags.Quiet {
 		fmt.Fprintln(w, "IMAGE ID\tVERSION\tCREATED")

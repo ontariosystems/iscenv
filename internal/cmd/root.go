@@ -19,7 +19,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/ontariosystems/iscenv/internal/iscenv"
+	"github.com/ontariosystems/iscenv/internal/app"
 )
 
 var globalFlags = struct {
@@ -35,7 +35,7 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		iscenv.Fatalf("%s", err)
+		app.Fatalf("%s", err)
 	}
 }
 
@@ -43,7 +43,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().BoolVarP(&globalFlags.Verbose, "verbose", "", false, "Verbose output")
-	rootCmd.PersistentFlags().StringVar(&globalFlags.ConfigFile, "config", "", "config file (default is $HOME/.cobratest.yaml)")
+	rootCmd.PersistentFlags().StringVar(&globalFlags.ConfigFile, "config", "", "config file (default is ~/.config/iscenv/iscenv.yaml")
 }
 
 func initConfig() {
@@ -51,8 +51,10 @@ func initConfig() {
 		viper.SetConfigFile(globalFlags.ConfigFile)
 	}
 
-	viper.SetConfigName(".iscenv")
-	viper.AddConfigPath("$HOME")
+	viper.SetConfigName("iscenv.yaml")
+	viper.AddConfigPath("$HOME/.config/iscenv/")
+	viper.AddConfigPath("./")
+
 	viper.AutomaticEnv()
 
 	// TODO: Error handling here

@@ -17,9 +17,8 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/ontariosystems/iscenv/internal/iscenv"
-
 	"github.com/spf13/cobra"
+	"github.com/ontariosystems/iscenv/internal/app"
 )
 
 type execExecFn func(string, []string) error
@@ -41,7 +40,7 @@ func init() {
 
 func dockerExec(_ *cobra.Command, args []string) {
 	if len(args) < 1 {
-		iscenv.Fatal("Must provide an instance as the first argument")
+		app.Fatal("Must provide an instance as the first argument")
 	}
 
 	var cmdArgs []string
@@ -51,8 +50,8 @@ func dockerExec(_ *cobra.Command, args []string) {
 		cmdArgs = defaultExecCommand
 	}
 
-	err := iscenv.DockerExec(args[0], true, cmdArgs...)
+	err := app.DockerExec(args[0], true, cmdArgs...)
 	if err != nil {
-		iscenv.Fatalf("Error running docker exec, error: %s", err)
+		app.Fatalf("Error running docker exec, error: %s", err)
 	}
 }

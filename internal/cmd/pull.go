@@ -19,7 +19,8 @@ package cmd
 import (
 	"os"
 
-	"github.com/ontariosystems/iscenv/internal/iscenv"
+	"github.com/ontariosystems/iscenv/iscenv"
+	"github.com/ontariosystems/iscenv/internal/app"
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/spf13/cobra"
@@ -40,9 +41,9 @@ func init() {
 
 func pull(_ *cobra.Command, _ []string) {
 	imgopts := docker.PullImageOptions{Registry: iscenv.Registry, Repository: iscenv.Repository, OutputStream: os.Stdout}
-	authcfg := iscenv.GetAuthConfig()
-	err := iscenv.DockerClient.PullImage(imgopts, authcfg)
+	authcfg := app.GetAuthConfig()
+	err := app.DockerClient.PullImage(imgopts, authcfg)
 	if err != nil {
-		iscenv.Fatalf("Could not pull latest ISC product version images, error: %s\n", err)
+		app.Fatalf("Could not pull latest ISC product version images, error: %s\n", err)
 	}
 }

@@ -14,72 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package iscenv
+package app
 
 import (
 	"strings"
 
-	docker "github.com/fsouza/go-dockerclient"
+	"github.com/ontariosystems/iscenv/iscenv"
+
+	"github.com/fsouza/go-dockerclient"
 )
 
-type ISCInstances []*ISCInstance
-
-func (is ISCInstances) ByPortOffsets() map[ContainerPort]*ISCInstance {
-	offsets := make(map[ContainerPort]*ISCInstance)
-	for _, i := range is {
-		offsets[i.PortOffset()] = i
-	}
-
-	return offsets
-}
-
-func (is ISCInstances) CalculatePortOffset() int64 {
-	offsets := is.ByPortOffsets()
-
-	var i ContainerPort
-	for i = 0; i < 65535; i++ {
-		if _, in := offsets[i]; !in {
-			return int64(i)
-		}
-	}
-
-	Fatal("Could not determine next port offset")
-	return -1
-}
-
-func (is ISCInstances) UsedPortOffset(offset int64) bool {
-	offsets := is.ByPortOffsets()
-	_, used := offsets[ContainerPort(offset)]
-	return used
-}
-
-func (is ISCInstances) Find(name string) *ISCInstance {
-	for _, i := range is {
-		if i.Name == name {
-			return i
-		}
-	}
-
-	return nil
-}
-
-func (is ISCInstances) Exists(name string) bool {
-	return is.Find(name) != nil
-}
-
-func GetInstances() ISCInstances {
+func GetInstances() iscenv.ISCInstances {
 	containers, err := DockerClient.ListContainers(docker.ListContainersOptions{All: true})
 	if err != nil {
 		Fatalf("Could not list containers, error: %s\n", err)
 	}
 
-	instances := make([]*ISCInstance, 0)
+	instances := make(iscenv.ISCInstances, 0)
 	for _, apiContainer := range containers {
 		name := ""
 
 		for _, cn := range apiContainer.Names {
 			// Skip over link/name container names.  Root names will be "/{CONTAINER_PREFIX}-{name}".
-			if strings.Count(cn, "/") == 1 && strings.HasPrefix(cn, "/"+ContainerPrefix) {
+			if strings.Count(cn, "/") == 1 && strings.HasPrefix(cn, "/"+iscenv.ContainerPrefix) {
 				name = cn
 				break
 			}
@@ -98,18 +55,18 @@ func GetInstances() ISCInstances {
 				version = "Unknown"
 			}
 
-			instance := &ISCInstance{
+			instance := &iscenv.ISCInstance{
 				ID:      container.ID,
-				Name:    strings.TrimPrefix(name, "/"+ContainerPrefix),
+				Name:    strings.TrimPrefix(name, "/"+iscenv.ContainerPrefix),
 				Version: version,
 				Status:  apiContainer.Status,
 				Created: apiContainer.Created}
 
 			for intPort, bindings := range container.HostConfig.PortBindings {
 				switch intPort {
-				case DockerPort(PortInternalSS):
+				case DockerPort(iscenv.PortInternalSS):
 					instance.Ports.SuperServer = GetDockerBindingPort(bindings)
-				case DockerPort(PortInternalWeb):
+				case DockerPort(iscenv.PortInternalWeb):
 					instance.Ports.Web = GetDockerBindingPort(bindings)
 				}
 			}

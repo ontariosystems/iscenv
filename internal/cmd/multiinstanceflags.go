@@ -19,7 +19,7 @@ package cmd
 import (
 	"strings"
 
-	"github.com/ontariosystems/iscenv/internal/iscenv"
+	"github.com/ontariosystems/iscenv/internal/app"
 
 	"github.com/spf13/cobra"
 )
@@ -51,7 +51,7 @@ func (this multiInstanceOps) validate(args []string) {
 	}
 
 	if len(used) > 1 {
-		iscenv.Fatalf("Conflicting arguments provided: %s", strings.Join(used, ", "))
+		app.Fatalf("Conflicting arguments provided: %s", strings.Join(used, ", "))
 	}
 }
 
@@ -63,7 +63,7 @@ func (this multiInstanceOps) getInstances(args []string) []string {
 	}
 
 	names := []string{}
-	instances := iscenv.GetInstances()
+	instances := app.GetInstances()
 	for _, instance := range instances {
 		if this.all || (this.up && strings.HasPrefix(instance.Status, "Up")) || (this.exited && strings.HasPrefix(instance.Status, "Exited")) {
 			names = append(names, instance.Name)

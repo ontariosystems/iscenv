@@ -20,7 +20,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ontariosystems/iscenv/internal/iscenv"
+	"github.com/ontariosystems/iscenv/iscenv"
+	"github.com/ontariosystems/iscenv/internal/app"
 
 	"github.com/spf13/cobra"
 )
@@ -43,6 +44,6 @@ func purgeJournal(_ *cobra.Command, args []string) {
 	for _, instanceName := range instances {
 		fmt.Printf(" Purging journals for %s\n", instanceName)
 		instance := strings.ToLower(instanceName)
-		iscenv.DockerExec(instance, false, iscenv.InternalISCEnvPath, "_purgejournal")
+		app.DockerExec(instance, false, iscenv.InternalISCEnvPath, "_purgejournal")
 	}
 }

@@ -24,7 +24,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/ontariosystems/iscenv/internal/iscenv"
+	"github.com/ontariosystems/iscenv/iscenv"
+	"github.com/ontariosystems/iscenv/internal/app"
 
 	"github.com/spf13/cobra"
 )
@@ -50,13 +51,13 @@ func init() {
 }
 
 func configureApacheSite(_ *cobra.Command, args []string) {
-	iscenv.Ensure(iscenv.IsUserRoot)
+	app.Ensure(app.IsUserRoot)
 
 	instances := multiInstanceFlags.getInstances(args)
 	var validInstances iscenv.ISCInstances
 	for _, instanceName := range instances {
 		instance := strings.ToLower(instanceName)
-		current := iscenv.GetInstances()
+		current := app.GetInstances()
 		existing := current.Find(instance)
 
 		if existing != nil {
@@ -67,18 +68,18 @@ func configureApacheSite(_ *cobra.Command, args []string) {
 	}
 
 	if len(validInstances) == 0 {
-		iscenv.Fatalf("No valid instances provided")
+		app.Fatalf("No valid instances provided")
 	}
 
-	iscenv.Ensure(iscenv.WithInstance(validInstances[0], copyCSPGateway))
-	iscenv.Ensure(configureModCSP)
+	app.Ensure(app.WithInstance(validInstances[0], copyCSPGateway))
+	app.Ensure(configureModCSP)
 
 	for _, instance := range validInstances {
-		iscenv.Ensure(iscenv.WithInstance(instance, createApacheSite))
+		app.Ensure(app.WithInstance(instance, createApacheSite))
 	}
 
-	iscenv.Ensure(func() error { return configureCSPGateway(validInstances) })
-	iscenv.Ensure(restartApache)
+	app.Ensure(func() error { return configureCSPGateway(validInstances) })
+	app.Ensure(restartApache)
 }
 
 func copyCSPGateway(instance *iscenv.ISCInstance) error {
@@ -96,7 +97,7 @@ func copyCSPGateway(instance *iscenv.ISCInstance) error {
 		return err
 	}
 
-	if err := iscenv.DockerCopy(instance.Name, srcGatewayDir, gatewayDir); err != nil {
+	if err := app.DockerCopy(instance.Name, srcGatewayDir, gatewayDir); err != nil {
 		return err
 	}
 
@@ -110,11 +111,11 @@ func copyCSPGateway(instance *iscenv.ISCInstance) error {
 
 func configureModCSP() error {
 	fmt.Println("Configuring Apache CSP module")
-	if err := writeTemplate(filepath.Join(apacheDir, "mods-available", "csp.conf"), iscenv.CSPConf, iscenv.ApacheTemplateData{GatewayDir: gatewayDir}, true); err != nil {
+	if err := writeTemplate(filepath.Join(apacheDir, "mods-available", "csp.conf"), app.CSPConf, app.ApacheTemplateData{GatewayDir: gatewayDir}, true); err != nil {
 		return err
 	}
 
-	if err := writeTemplate(filepath.Join(apacheDir, "mods-available", "csp.load"), iscenv.CSPLoad, iscenv.ApacheTemplateData{GatewayDir: gatewayDir}, true); err != nil {
+	if err := writeTemplate(filepath.Join(apacheDir, "mods-available", "csp.load"), app.CSPLoad, app.ApacheTemplateData{GatewayDir: gatewayDir}, true); err != nil {
 		return err
 	}
 
@@ -131,7 +132,7 @@ func createApacheSite(instance *iscenv.ISCInstance) error {
 	siteName := strings.ToLower(instance.Name) + "-iscenv"
 	fmt.Printf("Creating Apache site, name: %s\n", siteName)
 
-	if err := writeTemplate(filepath.Join(apacheDir, "sites-available", siteName+".conf"), iscenv.SiteConf, iscenv.ApacheTemplateData{Instance: instance}, false); err != nil {
+	if err := writeTemplate(filepath.Join(apacheDir, "sites-available", siteName+".conf"), app.SiteConf, app.ApacheTemplateData{Instance: instance}, false); err != nil {
 		return err
 	}
 
@@ -146,7 +147,7 @@ func createApacheSite(instance *iscenv.ISCInstance) error {
 
 func configureCSPGateway(instances iscenv.ISCInstances) error {
 	fmt.Println("Configuring CSP Gateway")
-	return writeTemplate(cspIniPath, iscenv.CSPIni, iscenv.ApacheTemplateData{Instances: instances}, false)
+	return writeTemplate(cspIniPath, app.CSPIni, app.ApacheTemplateData{Instances: instances}, false)
 }
 
 func restartApache() error {

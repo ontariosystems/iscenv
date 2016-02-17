@@ -14,28 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package iscenv
+package app
 
-import docker "github.com/fsouza/go-dockerclient"
+import (
+	"github.com/fsouza/go-dockerclient"
+	"github.com/ontariosystems/iscenv/iscenv"
+)
 
-type ISCInstance struct {
-	ID      string
-	Name    string
-	Version string
-	Created int64
-	Status  string
-	Ports   ContainerPorts
-}
-
-func (i ISCInstance) PortOffset() ContainerPort {
-	if i.Ports.SuperServer < PortExternalSS {
-		Fatalf("SuperServer Port is outside of range, instance: %s, port: %s\n", i.Name, i.Ports.SuperServer)
-	}
-
-	return i.Ports.SuperServer - PortExternalSS
-}
-
-func (i ISCInstance) Container() *docker.Container {
+func GetContainerForInstance(i *iscenv.ISCInstance) *docker.Container {
 	container, err := DockerClient.InspectContainer(i.ID)
 	if err != nil {
 		Fatalf("Could not inspect container, instance: %s, id: %s\n", i.Name, i.ID)

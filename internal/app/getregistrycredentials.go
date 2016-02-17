@@ -14,7 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package iscenv
+package app
+
+import "github.com/ontariosystems/iscenv/iscenv"
 
 // Get the registry credentials from the default docker config
 func GetRegistryCredentials() (username string, password string, email string) {
@@ -27,9 +29,9 @@ func GetRegistryCredentials() (username string, password string, email string) {
 		Fatalf("No ~/.dockercfg exists")
 	}
 
-	auth, ok := cfg[Registry]
+	auth, ok := cfg[iscenv.Registry]
 	if !ok {
-		Fatalf("No entry for %s in ~/.dockercfg", Registry)
+		Fatalf("No entry for %s in ~/.dockercfg", iscenv.Registry)
 	}
 
 	username, password, err = auth.Credentials()

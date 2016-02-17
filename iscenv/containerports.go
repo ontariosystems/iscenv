@@ -16,10 +16,17 @@ limitations under the License.
 
 package iscenv
 
-type EnsurableFn func() error
+import (
+	"strconv"
+)
 
-func Ensure(fn EnsurableFn) {
-	if err := fn(); err != nil {
-		Fatalf("%s\n", err)
-	}
+type ContainerPorts struct {
+	SuperServer ContainerPort
+	Web         ContainerPort
+}
+
+type ContainerPort int64
+
+func (p ContainerPort) String() string {
+	return strconv.FormatInt(int64(p), 10)
 }

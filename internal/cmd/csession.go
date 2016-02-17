@@ -18,7 +18,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/ontariosystems/iscenv/internal/iscenv"
+	"github.com/ontariosystems/iscenv/internal/app"
 )
 
 var csessionFlags = struct {
@@ -45,11 +45,11 @@ func csession(_ *cobra.Command, args []string) {
 			cmdArgs = append(cmdArgs, "-U")
 			cmdArgs = append(cmdArgs, csessionFlags.Namespace)
 		}
-		err := iscenv.DockerExec(args[0], true, cmdArgs...)
+		err := app.DockerExec(args[0], true, cmdArgs...)
 		if err != nil {
-			iscenv.Fatalf("Error running docker exec, error: %s", err)
+			app.Fatalf("Error running docker exec, error: %s", err)
 		}
 	} else {
-		iscenv.Fatal("Must provide an instance")
+		app.Fatal("Must provide an instance")
 	}
 }
