@@ -35,14 +35,13 @@ func (is ISCInstances) ByPortOffsets() (map[int64]*ISCInstance, error) {
 	return offsets, nil
 }
 
-func (is ISCInstances) CalculatePortOffset() (int64, error) {
+func (is ISCInstances) CalculatePortOffset(start int64) (int64, error) {
 	offsets, err := is.ByPortOffsets()
 	if err != nil {
 		return -1, err
 	}
 
-	var i int64
-	for i = 0; i < 65535; i++ {
+	for i := start; i < 65535; i++ {
 		if _, in := offsets[i]; !in {
 			return i, nil
 		}

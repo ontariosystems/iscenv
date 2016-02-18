@@ -42,7 +42,7 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().BoolVarP(&globalFlags.Verbose, "verbose", "", false, "Verbose output")
+	rootCmd.PersistentFlags().BoolVarP(&globalFlags.Verbose, "verbose", "", false, "verbose output")
 	rootCmd.PersistentFlags().StringVar(&globalFlags.ConfigFile, "config", "", "config file (default is ~/.config/iscenv/iscenv.yaml")
 }
 

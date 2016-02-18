@@ -17,7 +17,6 @@ limitations under the License.
 package iscenv
 
 import (
-	"log"
 	"net/rpc"
 
 	"github.com/hashicorp/go-plugin"
@@ -35,14 +34,13 @@ type Starter interface {
 	Flags() (PluginFlags, error)
 
 	// Returns an array of docker API formatted environment variables (ENV_VAR=value) which will be added to the instance
-	//	Environment(flags PluginFlags) ([]string, error)
+	Environment(flags PluginFlags) ([]string, error)
 
-	// Returns an array of volumes to add where the string is a standard docker volume format "src:dest:
-	//Volumes(flags PluginFlags) ([]string, error)
+	// Returns an array of volumes to add where the string is a standard docker volume format "src:dest:flag"
+	Volumes(flags PluginFlags) ([]string, error)
 
-	//
-	//	// Additional ports to map
-	//	Ports() (map[int]int, error)
+	// Additional ports to map
+	//Ports() (, error)
 	//
 	//	// Will run within the container before the instance starts
 	//	BeforeInstance() error
@@ -50,7 +48,7 @@ type Starter interface {
 	//	// Will run within the container after the instance starts
 	//	WithInstance() error
 
-	// TODO: Implement these one at a time, This belongs in a different type of plugin
+	// TODO: This belongs in a different type of plugin
 	//	// Finds a list of versions and returns a map of version to full image name
 	//	FindVersions() (map[string]string, error)
 }
@@ -61,7 +59,18 @@ type StarterRPC struct{ client *rpc.Client }
 func (s StarterRPC) Flags() (PluginFlags, error) {
 	var resp PluginFlags
 	err := s.client.Call("Plugin.Flags", new(interface{}), &resp)
-	log.Println(resp)
+	return resp, err
+}
+
+func (s StarterRPC) Environment(flags PluginFlags) ([]string, error) {
+	var resp []string
+	err := s.client.Call("Plugin.Environment", flags, &resp)
+	return resp, err
+}
+
+func (s StarterRPC) Volumes(flags PluginFlags) ([]string, error) {
+	var resp []string
+	err := s.client.Call("Plugin.Volumes", flags, &resp)
 	return resp, err
 }
 
@@ -72,6 +81,16 @@ type StarterRPCServer struct{ Plugin Starter }
 
 func (s *StarterRPCServer) Flags(args interface{}, resp *PluginFlags) (err error) {
 	*resp, err = s.Plugin.Flags()
+	return err
+}
+
+func (s *StarterRPCServer) Environment(flags PluginFlags, resp *[]string) (err error) {
+	*resp, err = s.Plugin.Environment(flags)
+	return err
+}
+
+func (s *StarterRPCServer) Volumes(flags PluginFlags, resp *[]string) (err error) {
+	*resp, err = s.Plugin.Volumes(flags)
 	return err
 }
 

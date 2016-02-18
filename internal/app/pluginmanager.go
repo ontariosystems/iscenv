@@ -29,7 +29,7 @@ import (
 
 // TODO: It's likely that this could be written more cleanly
 
-type pluginVisitorFn func(id string, raw interface{}) error
+type activatePluginFn func(id string, raw interface{}) error
 
 func NewPluginManager(applicationName, pluginType string, iscenvPlugin plugin.Plugin) (*PluginManager, error) {
 	exeDir, err := osext.ExecutableFolder()
@@ -65,9 +65,27 @@ type PluginManager struct {
 	clients    map[string]*plugin.Client
 }
 
+func (pm *PluginManager) AvailablePlugins() []string {
+	plugins := make([]string, len(pm.clients))
+	i := 0
+	for plugin := range pm.clients {
+		plugins[i] = plugin
+		i++
+	}
+
+	return plugins
+}
+
 // This will traverse all of the plugins dispensing them to the rpc client and then returning the raw interface{} returns, the caller will want to type cast it to the appropriate interface
-func (pm *PluginManager) VisitPlugins(fn pluginVisitorFn) error {
-	for key, client := range pm.clients {
+func (pm *PluginManager) ActivatePlugins(pluginsToActivate []string, fn activatePluginFn) error {
+	for _, key := range pluginsToActivate {
+		key = strings.ToLower(key)
+
+		client, ok := pm.clients[key]
+		if !ok {
+			return fmt.Errorf("No such plugin, name: %s", key)
+		}
+
 		rpcClient, err := client.Client()
 		if err != nil {
 			return err

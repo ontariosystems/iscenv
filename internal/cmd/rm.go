@@ -18,11 +18,9 @@ package cmd
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/ontariosystems/iscenv/internal/app"
 
-	docker "github.com/fsouza/go-dockerclient"
 	"github.com/spf13/cobra"
 )
 
@@ -42,18 +40,10 @@ func init() {
 func rm(_ *cobra.Command, args []string) {
 	instances := multiInstanceFlags.getInstances(args)
 	for _, instanceName := range instances {
-		instance := strings.ToLower(instanceName)
-		current := app.GetInstances()
-		existing := current.Find(instance)
-
-		if existing != nil {
-			err := app.DockerClient.RemoveContainer(docker.RemoveContainerOptions{ID: existing.ID, RemoveVolumes: true, Force: true})
-			if err != nil {
-				app.Fatalf("Could not kill instance, name: %s, error: %s\n", existing.Name, err)
-			}
-			fmt.Println(existing.ID)
-		} else {
-			fmt.Printf("No such instance, name: %s\n", instanceName)
+		id, err := app.DockerRemove(instanceName)
+		if err != nil {
+			app.Fatalf("Error removing instance, error: %s", err)
 		}
+		fmt.Println(id)
 	}
 }

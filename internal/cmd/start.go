@@ -18,29 +18,27 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
-	"os/user"
-	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/iscenv/internal/app"
 
-	docker "github.com/fsouza/go-dockerclient"
-	"github.com/kardianos/osext"
 	"github.com/spf13/cobra"
 )
 
+type activateStarterFn func(id string, starter iscenv.Starter) error
+
 var startFlags = struct {
+	Plugins        string
 	Remove         bool
 	Version        string
 	PortOffset     int64
+	SearchForPort  bool
 	Quiet          bool
 	VolumesFrom    []string
 	ContainerLinks []string
 	CacheKeyURL    string
+	PluginFlags    iscenv.PluginFlags
 }{}
 
 var startCmd = &cobra.Command{
@@ -52,26 +50,23 @@ var startCmd = &cobra.Command{
 
 func init() {
 	// Since, we're adding flags and this has to happen in init, we're unfortunately going to have to load up and close the plugins here and in the start function, we could persist the manager globally but it's not as safe as a failure in init could concievably leave rpc servers running
-	pm, err := app.NewPluginManager(iscenv.ApplicationName, iscenv.StarterKey, iscenv.StarterPlugin{})
-	if err != nil {
-		app.Fatalf("Could not load raw interfaces, error: %S", err)
-	}
-	defer pm.Close()
-
-	if err := pm.VisitPlugins(func(id string, raw interface{}) error {
-		starter := raw.(iscenv.Starter)
-		flags, err := starter.Flags()
+	available := make([]string, 0)
+	if err := activateStarters(nil, func(id string, starter iscenv.Starter) error {
+		var err error
+		available = append(available, id)
+		startFlags.PluginFlags, err = starter.Flags()
 		if err != nil {
 			return fmt.Errorf("Could not retrieve plugin flags, plugin: %s, error: %s", id, err)
 		}
-		flags.AddFlagsToFlagSet(id, startCmd.Flags())
+		startFlags.PluginFlags.AddFlagsToFlagSet(id, startCmd.Flags())
 		return nil
 	}); err != nil {
-		app.Fatalf("Failed to retrieve plugin flags, error: %s", err)
+		app.Fatalf("%s\n", err)
 	}
 
 	rootCmd.AddCommand(startCmd)
 
+	startCmd.Flags().StringVar(&startFlags.Plugins, "plugins", "", "An ordered comma-separated list of plugins you wish to activate. available plugins: "+strings.Join(available, ","))
 	startCmd.Flags().BoolVarP(&startFlags.Remove, "rm", "", false, "Remove existing instance before starting.  By default, this switch will preserve port settings when recreating the instance.")
 	startCmd.Flags().StringVarP(&startFlags.Version, "version", "v", "", "The version of ISC product to start.  By default this will find the latest version on your system.")
 	startCmd.Flags().StringSliceVar(&startFlags.ContainerLinks, "link", nil, "Add link to another container.  They should be in the format 'iscenv-{iscenvname}', 'iscenv-{iscenvname}:{alias}' or '{containername}:{alias}'")
@@ -82,213 +77,83 @@ func init() {
 	addMultiInstanceFlags(startCmd, "start")
 }
 
-// TODO: There is *way* too much logic in this command.  Move it into libraries in app
 func start(_ *cobra.Command, args []string) {
+	pluginEnvironment, pluginVolumes, err := getPluginConfig(startFlags.PluginFlags, strings.Split(startFlags.Plugins, ","))
+	if err != nil {
+		app.Fatalf("Error loading environment and volumes from plugins, error: %s\n", err)
+	}
+
+	// TODO: latest should only get the latest local version when the version plugins exist
 	if startFlags.Version == "" {
 		startFlags.Version = app.GetVersions().Latest().Version
 	}
 
 	instances := multiInstanceFlags.getInstances(args)
-	// This loop is somewhat inefficient (with the multiple app.GetInstances())  I doubt there will ever be enough to make it a performance issue.
+
+	po := startFlags.PortOffset
+	pos := po < 0 || len(instances) > 1
+	if po < 0 {
+		po = 0
+	}
+
+	// TODO: Add the start command
 	for _, instanceName := range instances {
 		instance := strings.ToLower(instanceName)
-		current := app.GetInstances()
-
-		var offset int64 = -1
-		var err error
-
-		// TODO: Look through this logic, it seems weird...
-		existing := current.Find(instance)
-		if existing != nil {
-			if !startFlags.Remove {
-				app.Nqf(startFlags.Quiet, "Ensuring instance '%s' is started...\n", instance)
-				// NOTE: I wish this wasn't necessary (and maybe it isn't) but it seems that the api uses a blank hostConfig instead of nil which seems to wipe out all of the settings
-				existingContainer := app.GetContainerForInstance(existing)
-				app.DockerClient.StartContainer(existing.ID, existingContainer.HostConfig)
-
-				if startFlags.PortOffset >= 0 {
-					epo, err := existing.PortOffset()
-					if err != nil {
-						app.Fatalf("Error determining port offset, instance: %s, error: %s", existing.Name, err)
-					}
-
-					if epo != startFlags.PortOffset {
-						app.Nqf(startFlags.Quiet, "WARNING: The port offset for an existing instance differs from the offset specified, instance: %s, existing: %d, specified: %d\n", instance, epo, startFlags.PortOffset)
-					}
-
-					// Even if we're just starting a container we need to bump the ascending port counter so the next instance doesn't collide with this one
-					startFlags.PortOffset++
-				}
-				executePrepWithOpts(existing, []string{})
-				fmt.Println(existing.ID)
-				continue
-			}
-
-			offset, err = existing.PortOffset()
-			if err != nil {
-				app.Fatalf("Error determining port offset, instance: %s, error: %s", existing.Name, err)
-			}
-			rm(nil, []string{instance})
-			current = app.GetInstances() // Reset this so an instance doesn't collide with itself at the port offset check below
-		}
-
-		app.Nqf(startFlags.Quiet, "Creating instance '%s'...\n", instance)
-
-		if offset == -1 {
-			if startFlags.PortOffset >= 0 {
-				offset = startFlags.PortOffset
-				startFlags.PortOffset++
-			} else {
-				offset, err = current.CalculatePortOffset()
-				if err != nil {
-					app.Fatalf("Error calculating port offset, instance: %s, error: %s", instance, err)
-				}
-			}
-			app.Nqf(startFlags.Quiet, "Calculated port offset as %d...\n", offset)
-		} else {
-			app.Nqf(startFlags.Quiet, "Reusing port offset of %d...\n", offset)
-		}
-
-		upo, err := current.UsedPortOffset(offset)
+		id, err := app.DockerStart(app.DockerStartOptions{
+			Name:             instance,
+			Repository:       iscenv.Repository,
+			Version:          startFlags.Version,
+			PortOffset:       po,
+			PortOffsetSearch: pos,
+			Environment:      pluginEnvironment,
+			Volumes:          pluginVolumes,
+			VolumesFrom:      startFlags.VolumesFrom,
+			ContainerLinks:   startFlags.ContainerLinks,
+			Recreate:         startFlags.Remove,
+		})
 		if err != nil {
-			app.Fatalf("Error checking port offset usage, instance: %s, error: %s", instance, err)
+			app.Fatalf("Could not create instance, name: %s, error: %s", instance, err)
+		}
+		fmt.Println(id)
+	}
+}
+
+// if pluginsToActivate is nil (rather than an empty slice, it means all)
+func activateStarters(pluginsToActivate []string, fn activateStarterFn) error {
+	pm, err := app.NewPluginManager(iscenv.ApplicationName, iscenv.StarterKey, iscenv.StarterPlugin{})
+	if err != nil {
+		return err
+	}
+	defer pm.Close()
+
+	if pluginsToActivate == nil {
+		pluginsToActivate = pm.AvailablePlugins()
+	}
+
+	return pm.ActivatePlugins(pluginsToActivate, func(id string, raw interface{}) error {
+		starter := raw.(iscenv.Starter)
+		return fn(id, starter)
+	})
+}
+
+func getPluginConfig(flags iscenv.PluginFlags, pluginsToActivate []string) (environment []string, volumes []string, err error) {
+	environment = make([]string, 0)
+	volumes = make([]string, 0)
+
+	activateStarters(pluginsToActivate, func(id string, starter iscenv.Starter) error {
+		if env, err := starter.Environment(startFlags.PluginFlags); err != nil {
+			return err
+		} else if env != nil {
+			environment = append(environment, env...)
 		}
 
-		if !upo {
-			container := createInstance(instance, startFlags.Version, offset, startFlags.VolumesFrom, startFlags.ContainerLinks)
-			existing := app.GetInstances().Find(instance)
-			if existing == nil {
-				app.Fatalf("Error loading instance after creation, name: %s", instance)
-			}
-			executePrep(existing)
-			fmt.Println(container.ID)
-		} else {
-			app.Nqf(startFlags.Quiet, "ERROR: Could not create instance due to port offset conflict, instance: %s, port offset: %d\n", instance, offset)
+		if vols, err := starter.Volumes(startFlags.PluginFlags); err != nil {
+			return err
+		} else if vols != nil {
+			volumes = append(volumes, vols...)
 		}
-	}
-}
+		return nil
+	})
 
-func createInstance(instance string, version string, portOffset int64, volumesFrom []string, containerLinks []string) *docker.Container {
-	container, err := app.DockerClient.CreateContainer(getCreateOpts(instance, version, portOffset, startFlags.VolumesFrom, containerLinks))
-	if err != nil {
-		app.Fatalf("Could not create instance, name: %s\n%s", instance, err)
-	}
-
-	err = app.DockerClient.StartContainer(container.ID, getStartOpts(portOffset, volumesFrom, containerLinks))
-	if err != nil {
-		app.Fatalf("Could not start created instance, name: %s\n%s", instance, err)
-	}
-
-	return container
-}
-
-func getCreateOpts(name string, version string, portOffset int64, volumesFrom []string, containerLinks []string) docker.CreateContainerOptions {
-	image := iscenv.Repository + ":" + version
-
-	home := homeDir()
-	config := docker.Config{
-		Image:    image,
-		Hostname: name,
-		Env:      []string{"HOST_HOME=" + home},
-		Volumes: map[string]struct{}{
-			// TODO: See if we can drop the data volume
-			"/data":             struct{}{},
-			"/var/log/ensemble": struct{}{},
-			"/iscenv":           struct{}{},
-			home:                struct{}{},
-		}}
-
-	opts := docker.CreateContainerOptions{
-		Name:       containerName(name),
-		Config:     &config,
-		HostConfig: getStartOpts(portOffset, volumesFrom, containerLinks),
-	}
-
-	return opts
-}
-
-func getStartOpts(portOffset int64, volumesFrom []string, containerLinks []string) *docker.HostConfig {
-	return &docker.HostConfig{
-		Privileged: true,
-		Binds: []string{
-			fmt.Sprintf("%s:%s:ro", exe(), iscenv.InternalISCEnvPath),
-			fmt.Sprintf("%s:%s", homeDir(), homeDir()),
-		},
-		Links: containerLinks,
-		PortBindings: map[docker.Port][]docker.PortBinding{
-			app.DockerPort(iscenv.PortInternalSS):  app.DockerPortBinding(iscenv.PortExternalSS, portOffset),
-			app.DockerPort(iscenv.PortInternalWeb): app.DockerPortBinding(iscenv.PortExternalWeb, portOffset),
-		},
-		VolumesFrom: volumesFrom,
-	}
-}
-
-func executePrep(ensInstance *iscenv.ISCInstance) {
-	opts := []string{
-		"-u", strconv.Itoa(os.Getuid()),
-		"-g", strconv.Itoa(os.Getgid()),
-		"-c", hgcachePath(),
-	}
-
-	executePrepWithOpts(ensInstance, opts)
-}
-
-func executePrepWithOpts(ensInstance *iscenv.ISCInstance, opts []string) {
-	hostIP, err := app.GetDocker0InterfaceIP()
-	if err == nil {
-		opts = append(opts, "-i", hostIP)
-	} else {
-		app.Nqf(startFlags.Quiet, "WARNING: Could not find docker0's address, 'host' entry will not be added to /etc/hosts, err: %s\n", err)
-	}
-
-	if startFlags.CacheKeyURL != "" {
-		opts = append(opts, "-k", startFlags.CacheKeyURL)
-	}
-
-	baseopts := []string{
-		iscenv.InternalISCEnvPath, "_prep",
-	}
-
-	if err := app.DockerExec(ensInstance.Name, false, append(baseopts, opts...)...); err != nil {
-		app.Fatalf("Could not run prep in newly started container, instance: %s, error: %s\n", ensInstance.Name, err)
-	}
-}
-
-func homeDir() string {
-	usr, err := user.Current()
-	if err != nil {
-		app.Fatalf("Could not determine current user, err: %s\n", err)
-	}
-
-	return usr.HomeDir
-}
-
-func exe() string {
-	exe, err := osext.Executable()
-	if err != nil {
-		app.Fatalf("Could not determine executable path, err: %s\n", err)
-	}
-
-	return exe
-}
-
-func hgcachePath() string {
-	out, err := exec.Command("hg", "showconfig", "extensions.hg-cache").CombinedOutput()
-	if err != nil {
-		app.Fatal("hg showconfig extensions.hg-cache failed")
-	}
-
-	return expandHome(filepath.Join(filepath.Dir(filepath.Dir(strings.TrimSpace(string(out)))), "cache"))
-}
-
-func expandHome(path string) string {
-	if path[:1] == "~" {
-		return strings.Replace(path, "~", homeDir(), 1)
-	}
-
-	return path
-}
-
-func containerName(instance string) string {
-	return iscenv.ContainerPrefix + instance
+	return environment, volumes, nil
 }
