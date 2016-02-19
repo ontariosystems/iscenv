@@ -60,9 +60,6 @@ func DockerStart(opts DockerStartOptions) (id string, err error) {
 		}
 	}
 
-	x := opts.ToCreateContainerOptions()
-	fmt.Printf("LEH: %s\n", x.Config.Image)
-
 	container, err := DockerClient.CreateContainer(*opts.ToCreateContainerOptions())
 	if err != nil {
 		return "", err
