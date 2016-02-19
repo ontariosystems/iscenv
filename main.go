@@ -16,9 +16,7 @@ limitations under the License.
 
 package main
 
-import (
-	"github.com/ontariosystems/iscenv/internal/cmd"
-)
+import "github.com/ontariosystems/iscenv/internal/cmd"
 
 func main() {
 	cmd.Execute()

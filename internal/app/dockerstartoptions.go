@@ -17,9 +17,10 @@ limitations under the License.
 package app
 
 import (
+	"strconv"
 	"strings"
 
-	"github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 	"github.com/ontariosystems/iscenv/iscenv"
 )
 
@@ -29,10 +30,13 @@ type DockerStartOptions struct {
 	Version          string
 	PortOffset       int64
 	PortOffsetSearch bool
+	Entrypoint       []string
+	Command          []string
 	Environment      []string
 	Volumes          []string
 	VolumesFrom      []string
 	ContainerLinks   []string
+	Ports            []string
 
 	Recreate bool
 }
@@ -41,10 +45,12 @@ func (opts *DockerStartOptions) ToCreateContainerOptions() *docker.CreateContain
 	return &docker.CreateContainerOptions{
 		Name: opts.ContainerName(),
 		Config: &docker.Config{
-			Image:    opts.Repository + ":" + opts.Version,
-			Hostname: opts.Name,
-			Env:      opts.Environment,
-			Volumes:  opts.InternalVolumes(),
+			Image:      opts.Repository + ":" + opts.Version,
+			Hostname:   opts.Name,
+			Env:        opts.Environment,
+			Volumes:    opts.InternalVolumes(),
+			Entrypoint: opts.Entrypoint,
+			Cmd:        opts.Command,
 		},
 		HostConfig: opts.ToHostConfig(),
 	}
@@ -80,4 +86,46 @@ func (opts *DockerStartOptions) InternalVolumes() map[string]struct{} {
 
 func (opts *DockerStartOptions) ContainerName() string {
 	return iscenv.ContainerPrefix + opts.Name
+}
+
+func (opts *DockerStartOptions) ToDockerPortBindings() map[docker.Port][]docker.PortBinding {
+	bindings := make(map[docker.Port][]docker.PortBinding)
+
+	if opts.Ports != nil {
+		for _, bindString := range opts.Ports {
+			s := strings.Split(bindString, ":")
+			var hostIP, hostPort, containerPort string
+			switch len(s) {
+			case 2:
+				hostIP = ""
+				hostPort = s[0]
+				containerPort = s[1]
+			case 3:
+				hostIP = s[0]
+				hostPort = s[1]
+				containerPort = s[2]
+			default:
+				// TODO: log a warning?
+			}
+
+			if strings.HasPrefix(hostPort, "+") {
+				strings.TrimPrefix(hostPort, "+")
+				// TODO: Log a warning if search is still enabled
+				i, err := strconv.ParseInt(hostPort, 10, 64)
+				if err != nil {
+					// TODO: log a warning
+					continue
+				}
+				hostPort = strconv.FormatInt(i+opts.PortOffset, 10)
+			}
+
+			cp := docker.Port(containerPort + "/tcp")
+			if _, ok := bindings[cp]; !ok {
+				bindings[cp] = make([]docker.PortBinding, 0)
+			}
+
+			bindings[cp] = append(bindings[cp], docker.PortBinding{HostIP: hostIP, HostPort: hostPort})
+		}
+	}
+	return bindings
 }

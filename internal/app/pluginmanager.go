@@ -27,9 +27,7 @@ import (
 	"github.com/ontariosystems/iscenv/iscenv"
 )
 
-// TODO: It's likely that this could be written more cleanly
-
-type activatePluginFn func(id string, raw interface{}) error
+type activatePluginFn func(id, pluginPath string, raw interface{}) error
 
 func NewPluginManager(applicationName, pluginType string, iscenvPlugin plugin.Plugin) (*PluginManager, error) {
 	exeDir, err := osext.ExecutableFolder()
@@ -42,14 +40,17 @@ func NewPluginManager(applicationName, pluginType string, iscenvPlugin plugin.Pl
 		return nil, err
 	}
 
-	clients := make(map[string]*plugin.Client)
+	clients := make(map[string]*PluginClient)
 	for _, exe := range exes {
 		id := strings.SplitN(filepath.Base(exe), "-", 3)[2]
-		client := plugin.NewClient(&plugin.ClientConfig{
-			HandshakeConfig: iscenv.PluginHandshake,
-			Plugins:         map[string]plugin.Plugin{pluginType: iscenvPlugin},
-			Cmd:             exec.Command(exe),
-		})
+		client := &PluginClient{
+			ExecutablePath: exe,
+			Client: plugin.NewClient(&plugin.ClientConfig{
+				HandshakeConfig: iscenv.PluginHandshake,
+				Plugins:         map[string]plugin.Plugin{pluginType: iscenvPlugin},
+				Cmd:             exec.Command(exe),
+			}),
+		}
 
 		clients[id] = client
 	}
@@ -62,7 +63,17 @@ func NewPluginManager(applicationName, pluginType string, iscenvPlugin plugin.Pl
 
 type PluginManager struct {
 	pluginType string
-	clients    map[string]*plugin.Client
+	clients    map[string]*PluginClient
+}
+
+type PluginClient struct {
+	ExecutablePath string
+	*plugin.Client
+}
+
+// Needed because the embedded struct is Client and it has a function called Client so it's client.Client() is ambiguous
+func (pc *PluginClient) RPCClient() (*plugin.RPCClient, error) {
+	return pc.Client.Client()
 }
 
 func (pm *PluginManager) AvailablePlugins() []string {
@@ -86,7 +97,7 @@ func (pm *PluginManager) ActivatePlugins(pluginsToActivate []string, fn activate
 			return fmt.Errorf("No such plugin, name: %s", key)
 		}
 
-		rpcClient, err := client.Client()
+		rpcClient, err := client.RPCClient()
 		if err != nil {
 			return err
 		}
@@ -96,7 +107,7 @@ func (pm *PluginManager) ActivatePlugins(pluginsToActivate []string, fn activate
 			return err
 		}
 
-		err = fn(key, raw)
+		err = fn(key, client.ExecutablePath, raw)
 		if err != nil {
 			return err
 		}

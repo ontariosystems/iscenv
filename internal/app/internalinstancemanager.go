@@ -32,6 +32,8 @@ const (
 	IIMDefaultCControlPath = "ccontrol"
 )
 
+type InstanceStateFn func(state *iscenv.InternalInstanceState)
+
 func NewInternalInstanceManager(instanceName string, ccontrolPath string) (*InternalInstanceManager, error) {
 	if ccontrolPath == "" {
 		ccontrolPath = IIMDefaultCControlPath
@@ -55,6 +57,8 @@ type InternalInstanceManager struct {
 	instanceName string
 	ccontrolPath string
 	*iscenv.InternalInstanceState
+
+	InstanceRunningHandler InstanceStateFn
 }
 
 func (iim *InternalInstanceManager) qlist() (string, error) {
@@ -72,6 +76,9 @@ func (iim *InternalInstanceManager) Manage() error {
 	}
 
 	log.Printf("Started instance, name: %s, status: %s", iim.instanceName, iim.Status)
+	if iim.InstanceRunningHandler != nil {
+		iim.InstanceRunningHandler(iim.InternalInstanceState)
+	}
 
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGABRT, syscall.SIGHUP)

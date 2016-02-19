@@ -39,18 +39,17 @@ type Starter interface {
 	// Returns an array of volumes to add where the string is a standard docker volume format "src:dest:flag"
 	Volumes(flags PluginFlags) ([]string, error)
 
-	// Additional ports to map
-	//Ports() (, error)
-	//
-	//	// Will run within the container before the instance starts
-	//	BeforeInstance() error
-	//
-	//	// Will run within the container after the instance starts
-	//	WithInstance() error
+	// Additional ports to map in the format <optional hostIP>:hostPort:containerPort.  You may also prefix the host port with a + to indicate it should be shifted by the port offset
+	Ports(flags PluginFlags) ([]string, error)
 
-	// TODO: This belongs in a different type of plugin
-	//	// Finds a list of versions and returns a map of version to full image name
-	//	FindVersions() (map[string]string, error)
+	// Will run within the container before the instance starts
+	BeforeInstance(state InternalInstanceState) error
+
+	// Will run within the container after the instance starts
+	WithInstance(state InternalInstanceState) error
+
+	// Will run within the container after the instance stops
+	AfterInstance(state InternalInstanceState) error
 }
 
 // The client (primary executable) RPC-based implementation of the interface
@@ -74,7 +73,29 @@ func (s StarterRPC) Volumes(flags PluginFlags) ([]string, error) {
 	return resp, err
 }
 
-//func (s StarterRPC) Environment(flags PluginFlags) (map[string]string, error)
+func (s StarterRPC) Ports(flags PluginFlags) ([]string, error) {
+	var resp []string
+	err := s.client.Call("Plugin.Ports", flags, &resp)
+	return resp, err
+}
+
+func (s StarterRPC) BeforeInstance(state InternalInstanceState) error {
+	var resp struct{}
+	err := s.client.Call("Plugin.BeforeInstance", state, &resp)
+	return err
+}
+
+func (s StarterRPC) WithInstance(state InternalInstanceState) error {
+	var resp struct{}
+	err := s.client.Call("Plugin.WithInstance", state, &resp)
+	return err
+}
+
+func (s StarterRPC) AfterInstance(state InternalInstanceState) error {
+	var resp struct{}
+	err := s.client.Call("Plugin.AfterInstance", state, &resp)
+	return err
+}
 
 // The server (plugin side) RPC wrapper around the concrete plugin implementation
 type StarterRPCServer struct{ Plugin Starter }
@@ -92,6 +113,23 @@ func (s *StarterRPCServer) Environment(flags PluginFlags, resp *[]string) (err e
 func (s *StarterRPCServer) Volumes(flags PluginFlags, resp *[]string) (err error) {
 	*resp, err = s.Plugin.Volumes(flags)
 	return err
+}
+
+func (s *StarterRPCServer) Ports(flags PluginFlags, resp *[]string) (err error) {
+	*resp, err = s.Plugin.Ports(flags)
+	return err
+}
+
+func (s *StarterRPCServer) BeforeInstance(state InternalInstanceState, resp *struct{}) (err error) {
+	return s.Plugin.BeforeInstance(state)
+}
+
+func (s *StarterRPCServer) WithInstance(state InternalInstanceState, resp *struct{}) (err error) {
+	return s.Plugin.WithInstance(state)
+}
+
+func (s *StarterRPCServer) AfterInstance(state InternalInstanceState, resp *struct{}) (err error) {
+	return s.Plugin.AfterInstance(state)
 }
 
 // The actual plugin interface needed by go-plugin.  It's a little strange in that it has both the client and server sides in the same interface.
