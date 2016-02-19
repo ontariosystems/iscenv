@@ -24,16 +24,16 @@ import (
 )
 
 func main() {
-	iscenv.ServeStartPlugin(new(BindHomeDirPlugin))
+	iscenv.ServeStartPlugin(new(Plugin))
 }
 
-type BindHomeDirPlugin struct{}
+type Plugin struct{}
 
-func (*BindHomeDirPlugin) Flags() (iscenv.PluginFlags, error) {
+func (*Plugin) Flags() (iscenv.PluginFlags, error) {
 	return iscenv.PluginFlags{}, nil
 }
 
-func (*BindHomeDirPlugin) Environment(iscenv.PluginFlags) ([]string, error) {
+func (*Plugin) Environment(iscenv.PluginFlags) ([]string, error) {
 	home, err := getUserHome()
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func (*BindHomeDirPlugin) Environment(iscenv.PluginFlags) ([]string, error) {
 	}, nil
 }
 
-func (*BindHomeDirPlugin) Volumes(iscenv.PluginFlags) ([]string, error) {
+func (*Plugin) Volumes(iscenv.PluginFlags) ([]string, error) {
 	home, err := getUserHome()
 	if err != nil {
 		return nil, err
@@ -53,6 +53,22 @@ func (*BindHomeDirPlugin) Volumes(iscenv.PluginFlags) ([]string, error) {
 	return []string{
 		fmt.Sprintf("%[1]s:%[1]s:rw", home),
 	}, nil
+}
+
+func (*Plugin) Ports(iscenv.PluginFlags) ([]string, error) {
+	return []string{}, nil
+}
+
+func (*Plugin) BeforeInstance(state iscenv.InternalInstanceState) error {
+	return nil
+}
+
+func (*Plugin) WithInstance(state iscenv.InternalInstanceState) error {
+	return nil
+}
+
+func (*Plugin) AfterInstance(state iscenv.InternalInstanceState) error {
+	return nil
 }
 
 func getUserHome() (string, error) {
