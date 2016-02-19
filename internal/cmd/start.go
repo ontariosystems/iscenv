@@ -18,18 +18,19 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
+	"log"
+	"path/filepath"
 	"strings"
 
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/iscenv/internal/app"
 
+	"github.com/kardianos/osext"
 	"github.com/spf13/cobra"
 )
 
-type activateStarterFn func(id string, starter iscenv.Starter) error
-
 var startFlags = struct {
-	Plugins        string
 	Remove         bool
 	Version        string
 	PortOffset     int64
@@ -38,6 +39,7 @@ var startFlags = struct {
 	VolumesFrom    []string
 	ContainerLinks []string
 	CacheKeyURL    string
+	Plugins        string
 	PluginFlags    iscenv.PluginFlags
 }{}
 
@@ -49,24 +51,14 @@ var startCmd = &cobra.Command{
 }
 
 func init() {
+	log.SetOutput(ioutil.Discard) // This is to silence the logging from go-plugin
+
 	// Since, we're adding flags and this has to happen in init, we're unfortunately going to have to load up and close the plugins here and in the start function, we could persist the manager globally but it's not as safe as a failure in init could concievably leave rpc servers running
-	available := make([]string, 0)
-	if err := activateStarters(nil, func(id string, starter iscenv.Starter) error {
-		var err error
-		available = append(available, id)
-		startFlags.PluginFlags, err = starter.Flags()
-		if err != nil {
-			return fmt.Errorf("Could not retrieve plugin flags, plugin: %s, error: %s", id, err)
-		}
-		startFlags.PluginFlags.AddFlagsToFlagSet(id, startCmd.Flags())
-		return nil
-	}); err != nil {
+	if err := addStarterFlags(startCmd, &startFlags.Plugins, &startFlags.PluginFlags); err != nil {
 		app.Fatalf("%s\n", err)
 	}
 
-	rootCmd.AddCommand(startCmd)
-
-	startCmd.Flags().StringVar(&startFlags.Plugins, "plugins", "", "An ordered comma-separated list of plugins you wish to activate. available plugins: "+strings.Join(available, ","))
+	addMultiInstanceFlags(startCmd, "start")
 	startCmd.Flags().BoolVarP(&startFlags.Remove, "rm", "", false, "Remove existing instance before starting.  By default, this switch will preserve port settings when recreating the instance.")
 	startCmd.Flags().StringVarP(&startFlags.Version, "version", "v", "", "The version of ISC product to start.  By default this will find the latest version on your system.")
 	startCmd.Flags().StringSliceVar(&startFlags.ContainerLinks, "link", nil, "Add link to another container.  They should be in the format 'iscenv-{iscenvname}', 'iscenv-{iscenvname}:{alias}' or '{containername}:{alias}'")
@@ -74,14 +66,27 @@ func init() {
 	startCmd.Flags().BoolVarP(&startFlags.Quiet, "quiet", "q", false, "Only display numeric IDs")
 	startCmd.Flags().StringSliceVar(&startFlags.VolumesFrom, "volumes-from", nil, "Mount volumes from the specified container(s)")
 	startCmd.Flags().StringVarP(&startFlags.CacheKeyURL, "license-key-url", "k", "", "Download the cache.key file from the provided location rather than the default Statler URL")
-	addMultiInstanceFlags(startCmd, "start")
+
+	rootCmd.AddCommand(startCmd)
 }
 
 func start(_ *cobra.Command, args []string) {
-	pluginEnvironment, pluginVolumes, err := getPluginConfig(startFlags.PluginFlags, strings.Split(startFlags.Plugins, ","))
+	environment, volumes, ports, err := getPluginConfig(startFlags.PluginFlags, strings.Split(startFlags.Plugins, ","))
 	if err != nil {
 		app.Fatalf("Error loading environment and volumes from plugins, error: %s\n", err)
 	}
+
+	exe, err := osext.Executable()
+	if err != nil {
+		app.Fatalf("Could not determine iscenv executable path for bind mount")
+	}
+
+	// Add the iscenv executable itself as a volume
+	volumes = append(volumes, fmt.Sprintf("%s:%s:ro", exe, iscenv.InternalISCEnvPath))
+
+	// Add the standard ports
+	ports = append(ports, fmt.Sprintf("+%d:%d", iscenv.PortExternalSS, iscenv.PortInternalSS))
+	ports = append(ports, fmt.Sprintf("+%d:%d", iscenv.PortExternalWeb, iscenv.PortInternalWeb))
 
 	// TODO: latest should only get the latest local version when the version plugins exist
 	if startFlags.Version == "" {
@@ -96,7 +101,6 @@ func start(_ *cobra.Command, args []string) {
 		po = 0
 	}
 
-	// TODO: Add the start command
 	for _, instanceName := range instances {
 		instance := strings.ToLower(instanceName)
 		id, err := app.DockerStart(app.DockerStartOptions{
@@ -105,8 +109,11 @@ func start(_ *cobra.Command, args []string) {
 			Version:          startFlags.Version,
 			PortOffset:       po,
 			PortOffsetSearch: pos,
-			Environment:      pluginEnvironment,
-			Volumes:          pluginVolumes,
+			Environment:      environment,
+			Volumes:          volumes,
+			Ports:            ports,
+			Entrypoint:       []string{"/bin/iscenv", "_start"},
+			Command:          []string{fmt.Sprintf("--plugins=%s", startFlags.Plugins)}, // TODO: Plugin parameters and parameters passed from start itself
 			VolumesFrom:      startFlags.VolumesFrom,
 			ContainerLinks:   startFlags.ContainerLinks,
 			Recreate:         startFlags.Remove,
@@ -118,29 +125,15 @@ func start(_ *cobra.Command, args []string) {
 	}
 }
 
-// if pluginsToActivate is nil (rather than an empty slice, it means all)
-func activateStarters(pluginsToActivate []string, fn activateStarterFn) error {
-	pm, err := app.NewPluginManager(iscenv.ApplicationName, iscenv.StarterKey, iscenv.StarterPlugin{})
-	if err != nil {
-		return err
-	}
-	defer pm.Close()
+func getPluginConfig(flags iscenv.PluginFlags, pluginsToActivate []string) (environment []string, volumes []string, ports []string, err error) {
 
-	if pluginsToActivate == nil {
-		pluginsToActivate = pm.AvailablePlugins()
-	}
-
-	return pm.ActivatePlugins(pluginsToActivate, func(id string, raw interface{}) error {
-		starter := raw.(iscenv.Starter)
-		return fn(id, starter)
-	})
-}
-
-func getPluginConfig(flags iscenv.PluginFlags, pluginsToActivate []string) (environment []string, volumes []string, err error) {
 	environment = make([]string, 0)
 	volumes = make([]string, 0)
+	ports = make([]string, 0)
 
-	activateStarters(pluginsToActivate, func(id string, starter iscenv.Starter) error {
+	if err := activateStartersAndClose(pluginsToActivate, func(id, pluginPath string, starter iscenv.Starter) error {
+		// Mount the plugin itself into the /bin directory
+		volumes = append(volumes, fmt.Sprintf("%s:%s/%s:ro", pluginPath, iscenv.InternalISCEnvBinaryDir, filepath.Base(pluginPath)))
 		if env, err := starter.Environment(startFlags.PluginFlags); err != nil {
 			return err
 		} else if env != nil {
@@ -152,8 +145,16 @@ func getPluginConfig(flags iscenv.PluginFlags, pluginsToActivate []string) (envi
 		} else if vols != nil {
 			volumes = append(volumes, vols...)
 		}
-		return nil
-	})
 
-	return environment, volumes, nil
+		if pts, err := starter.Ports(startFlags.PluginFlags); err != nil {
+			return err
+		} else if pts != nil {
+			ports = append(ports, pts...)
+		}
+		return nil
+	}); err != nil {
+		return nil, nil, nil, err
+	}
+
+	return environment, volumes, ports, nil
 }

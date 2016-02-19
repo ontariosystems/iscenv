@@ -34,5 +34,6 @@ const (
 	ImageName       = "ontsys/centos-ensemble"
 	Repository      = Registry + "/" + ImageName
 
-	InternalISCEnvPath = "/bin/iscenv"
+	InternalISCEnvBinaryDir = "/bin"
+	InternalISCEnvPath      = InternalISCEnvBinaryDir + "/iscenv"
 )
