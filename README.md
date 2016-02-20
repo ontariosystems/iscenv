@@ -15,6 +15,16 @@ only if they will not complicate the intentionally simple design of this project
 - Add the ability to run a command with `iscenv csession`
 - Add an inspect command
 - Remove all outputhelper calls outside of the internal/cmd package
+- Versions plugins
+  - Should have required config
+	  - product
+		- image
+		- plugins
+      - Local - default, always used
+			- AWS
+			- Quay
+		- non-default plugins run in order until the *first* successful image discovery, then it's compared to local to decide if it needs to be downloaded
+
 
 ## Maybe
 - Add Service wrappers for the containers which will restart them on reboot
