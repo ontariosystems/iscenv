@@ -31,7 +31,6 @@ func init() {
 	rootCmd.AddCommand(restartCmd)
 
 	restartCmd.Flags().UintVarP(&stopFlags.Timeout, "time", "t", 60, "The amount of time to wait for the instance to stop cleanly before killing it.")
-	restartCmd.Flags().StringVarP(&startFlags.CacheKeyURL, "license-key-url", "k", "", "Download the cache.key file from the provided location rather than the default Statler URL")
 	addMultiInstanceFlags(restartCmd, "restart")
 }
 

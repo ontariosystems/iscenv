@@ -18,7 +18,6 @@ package iscenv
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"reflect"
 	"time"
@@ -26,8 +25,8 @@ import (
 	"github.com/spf13/pflag"
 )
 
-func NewPluginFlag(flag string, defaultValue interface{}, usage string) PluginFlag {
-	return PluginFlag{
+func NewPluginFlag(flag string, defaultValue interface{}, usage string) *PluginFlag {
+	return &PluginFlag{
 		Flag:         flag,
 		Usage:        usage,
 		DefaultValue: defaultValue,

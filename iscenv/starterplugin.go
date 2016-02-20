@@ -34,13 +34,13 @@ type Starter interface {
 	Flags() (PluginFlags, error)
 
 	// Returns an array of docker API formatted environment variables (ENV_VAR=value) which will be added to the instance
-	Environment(flags PluginFlags) ([]string, error)
+	Environment(version string, flags PluginFlags) ([]string, error)
 
 	// Returns an array of volumes to add where the string is a standard docker volume format "src:dest:flag"
-	Volumes(flags PluginFlags) ([]string, error)
+	Volumes(version string, flags PluginFlags) ([]string, error)
 
 	// Additional ports to map in the format <optional hostIP>:hostPort:containerPort.  You may also prefix the host port with a + to indicate it should be shifted by the port offset
-	Ports(flags PluginFlags) ([]string, error)
+	Ports(version string, flags PluginFlags) ([]string, error)
 
 	// Will run within the container before the instance starts
 	BeforeInstance(state InternalInstanceState) error
@@ -61,21 +61,26 @@ func (s StarterRPC) Flags() (PluginFlags, error) {
 	return resp, err
 }
 
-func (s StarterRPC) Environment(flags PluginFlags) ([]string, error) {
+type HostOpts struct {
+	Version string
+	Flags   PluginFlags
+}
+
+func (s StarterRPC) Environment(version string, flags PluginFlags) ([]string, error) {
 	var resp []string
-	err := s.client.Call("Plugin.Environment", flags, &resp)
+	err := s.client.Call("Plugin.Environment", HostOpts{Version: version, Flags: flags}, &resp)
 	return resp, err
 }
 
-func (s StarterRPC) Volumes(flags PluginFlags) ([]string, error) {
+func (s StarterRPC) Volumes(version string, flags PluginFlags) ([]string, error) {
 	var resp []string
-	err := s.client.Call("Plugin.Volumes", flags, &resp)
+	err := s.client.Call("Plugin.Volumes", HostOpts{Version: version, Flags: flags}, &resp)
 	return resp, err
 }
 
-func (s StarterRPC) Ports(flags PluginFlags) ([]string, error) {
+func (s StarterRPC) Ports(version string, flags PluginFlags) ([]string, error) {
 	var resp []string
-	err := s.client.Call("Plugin.Ports", flags, &resp)
+	err := s.client.Call("Plugin.Ports", HostOpts{Version: version, Flags: flags}, &resp)
 	return resp, err
 }
 
@@ -105,18 +110,18 @@ func (s *StarterRPCServer) Flags(args interface{}, resp *PluginFlags) (err error
 	return err
 }
 
-func (s *StarterRPCServer) Environment(flags PluginFlags, resp *[]string) (err error) {
-	*resp, err = s.Plugin.Environment(flags)
+func (s *StarterRPCServer) Environment(opts HostOpts, resp *[]string) (err error) {
+	*resp, err = s.Plugin.Environment(opts.Version, opts.Flags)
 	return err
 }
 
-func (s *StarterRPCServer) Volumes(flags PluginFlags, resp *[]string) (err error) {
-	*resp, err = s.Plugin.Volumes(flags)
+func (s *StarterRPCServer) Volumes(opts HostOpts, resp *[]string) (err error) {
+	*resp, err = s.Plugin.Volumes(opts.Version, opts.Flags)
 	return err
 }
 
-func (s *StarterRPCServer) Ports(flags PluginFlags, resp *[]string) (err error) {
-	*resp, err = s.Plugin.Ports(flags)
+func (s *StarterRPCServer) Ports(opts HostOpts, resp *[]string) (err error) {
+	*resp, err = s.Plugin.Ports(opts.Version, opts.Flags)
 	return err
 }
 
