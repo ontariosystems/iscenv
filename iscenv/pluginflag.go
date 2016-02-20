@@ -98,7 +98,5 @@ func fullFlag(prefix, flag string) string {
 }
 
 func getEmptyValuePointer(value interface{}) interface{} {
-	x := reflect.New(reflect.TypeOf(value)).Interface()
-	log.Printf("LEH: %T", x)
-	return x
+	return reflect.New(reflect.TypeOf(value)).Interface()
 }
