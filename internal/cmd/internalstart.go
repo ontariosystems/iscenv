@@ -31,7 +31,7 @@ var internalStartFlags = struct {
 	Instance     string
 	CControlPath string
 	Plugins      string
-	PluginFlags  iscenv.PluginFlags
+	PluginFlags  map[string]*iscenv.PluginFlags
 }{}
 
 var internalStartCmd = &cobra.Command{
@@ -44,7 +44,8 @@ var internalStartCmd = &cobra.Command{
 
 func init() {
 	log.SetOutput(ioutil.Discard) // This is to silence the logging from go-plugin
-	if err := addStarterFlags(internalStartCmd, &internalStartFlags.Plugins, &internalStartFlags.PluginFlags); err != nil {
+	internalStartFlags.PluginFlags = make(map[string]*iscenv.PluginFlags)
+	if err := addStarterFlags(internalStartCmd, &internalStartFlags.Plugins, internalStartFlags.PluginFlags); err != nil {
 		app.Fatalf("%s\n", err)
 	}
 

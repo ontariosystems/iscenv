@@ -25,12 +25,12 @@ import (
 
 func NewPluginFlags() PluginFlags {
 	return PluginFlags{
-		Flags: make(map[string]PluginFlag),
+		Flags: make(map[string]*PluginFlag),
 	}
 }
 
 type PluginFlags struct {
-	Flags map[string]PluginFlag
+	Flags map[string]*PluginFlag
 }
 
 // Add a Plugin Flag to the list of available flags.

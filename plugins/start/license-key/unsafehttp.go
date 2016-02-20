@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 // This exists to ignore our various insane internal certificates
-package app
+package main
 
 import (
 	"crypto/tls"

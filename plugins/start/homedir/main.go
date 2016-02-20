@@ -33,7 +33,7 @@ func (*Plugin) Flags() (iscenv.PluginFlags, error) {
 	return iscenv.PluginFlags{}, nil
 }
 
-func (*Plugin) Environment(iscenv.PluginFlags) ([]string, error) {
+func (*Plugin) Environment(_ string, _ iscenv.PluginFlags) ([]string, error) {
 	home, err := getUserHome()
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func (*Plugin) Environment(iscenv.PluginFlags) ([]string, error) {
 	}, nil
 }
 
-func (*Plugin) Volumes(iscenv.PluginFlags) ([]string, error) {
+func (*Plugin) Volumes(_ string, _ iscenv.PluginFlags) ([]string, error) {
 	home, err := getUserHome()
 	if err != nil {
 		return nil, err
@@ -55,7 +55,7 @@ func (*Plugin) Volumes(iscenv.PluginFlags) ([]string, error) {
 	}, nil
 }
 
-func (*Plugin) Ports(iscenv.PluginFlags) ([]string, error) {
+func (*Plugin) Ports(_ string, _ iscenv.PluginFlags) ([]string, error) {
 	return []string{}, nil
 }
 

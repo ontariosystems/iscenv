@@ -34,13 +34,10 @@ var startFlags = struct {
 	Remove         bool
 	Version        string
 	PortOffset     int64
-	SearchForPort  bool
-	Quiet          bool
 	VolumesFrom    []string
 	ContainerLinks []string
-	CacheKeyURL    string
 	Plugins        string
-	PluginFlags    iscenv.PluginFlags
+	PluginFlags    map[string]*iscenv.PluginFlags
 }{}
 
 var startCmd = &cobra.Command{
@@ -54,7 +51,8 @@ func init() {
 	log.SetOutput(ioutil.Discard) // This is to silence the logging from go-plugin
 
 	// Since, we're adding flags and this has to happen in init, we're unfortunately going to have to load up and close the plugins here and in the start function, we could persist the manager globally but it's not as safe as a failure in init could concievably leave rpc servers running
-	if err := addStarterFlags(startCmd, &startFlags.Plugins, &startFlags.PluginFlags); err != nil {
+	startFlags.PluginFlags = make(map[string]*iscenv.PluginFlags)
+	if err := addStarterFlags(startCmd, &startFlags.Plugins, startFlags.PluginFlags); err != nil {
 		app.Fatalf("%s\n", err)
 	}
 
@@ -63,15 +61,13 @@ func init() {
 	startCmd.Flags().StringVarP(&startFlags.Version, "version", "v", "", "The version of ISC product to start.  By default this will find the latest version on your system.")
 	startCmd.Flags().StringSliceVar(&startFlags.ContainerLinks, "link", nil, "Add link to another container.  They should be in the format 'iscenv-{iscenvname}', 'iscenv-{iscenvname}:{alias}' or '{containername}:{alias}'")
 	startCmd.Flags().Int64VarP(&startFlags.PortOffset, "port-offset", "p", -1, "The port offset for this instance's ports.  -1 means autodetect.  Will increment by 1 if more than 1 instance is specified.")
-	startCmd.Flags().BoolVarP(&startFlags.Quiet, "quiet", "q", false, "Only display numeric IDs")
 	startCmd.Flags().StringSliceVar(&startFlags.VolumesFrom, "volumes-from", nil, "Mount volumes from the specified container(s)")
-	startCmd.Flags().StringVarP(&startFlags.CacheKeyURL, "license-key-url", "k", "", "Download the cache.key file from the provided location rather than the default Statler URL")
 
 	rootCmd.AddCommand(startCmd)
 }
 
 func start(_ *cobra.Command, args []string) {
-	environment, volumes, ports, err := getPluginConfig(startFlags.PluginFlags, strings.Split(startFlags.Plugins, ","))
+	environment, volumes, ports, err := getPluginConfig(startFlags.Version, startFlags.PluginFlags, strings.Split(startFlags.Plugins, ","))
 	if err != nil {
 		app.Fatalf("Error loading environment and volumes from plugins, error: %s\n", err)
 	}
@@ -125,7 +121,7 @@ func start(_ *cobra.Command, args []string) {
 	}
 }
 
-func getPluginConfig(flags iscenv.PluginFlags, pluginsToActivate []string) (environment []string, volumes []string, ports []string, err error) {
+func getPluginConfig(version string, pluginFlags map[string]*iscenv.PluginFlags, pluginsToActivate []string) (environment []string, volumes []string, ports []string, err error) {
 
 	environment = make([]string, 0)
 	volumes = make([]string, 0)
@@ -134,19 +130,20 @@ func getPluginConfig(flags iscenv.PluginFlags, pluginsToActivate []string) (envi
 	if err := activateStartersAndClose(pluginsToActivate, func(id, pluginPath string, starter iscenv.Starter) error {
 		// Mount the plugin itself into the /bin directory
 		volumes = append(volumes, fmt.Sprintf("%s:%s/%s:ro", pluginPath, iscenv.InternalISCEnvBinaryDir, filepath.Base(pluginPath)))
-		if env, err := starter.Environment(startFlags.PluginFlags); err != nil {
+		fmt.Printf("%s: %#v\n", id, pluginFlags[id])
+		if env, err := starter.Environment(version, *pluginFlags[id]); err != nil {
 			return err
 		} else if env != nil {
 			environment = append(environment, env...)
 		}
 
-		if vols, err := starter.Volumes(startFlags.PluginFlags); err != nil {
+		if vols, err := starter.Volumes(version, *pluginFlags[id]); err != nil {
 			return err
 		} else if vols != nil {
 			volumes = append(volumes, vols...)
 		}
 
-		if pts, err := starter.Ports(startFlags.PluginFlags); err != nil {
+		if pts, err := starter.Ports(version, *pluginFlags[id]); err != nil {
 			return err
 		} else if pts != nil {
 			ports = append(ports, pts...)

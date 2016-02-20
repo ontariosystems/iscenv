@@ -25,16 +25,16 @@ import (
 )
 
 // Add the flags from the available starter plugins to the provided command
-func addStarterFlags(cmd *cobra.Command, pluginsFlag *string, pluginFlags *iscenv.PluginFlags) error {
+func addStarterFlags(cmd *cobra.Command, pluginsFlag *string, pluginFlags map[string]*iscenv.PluginFlags) error {
 	available := make([]string, 0)
 	if err := activateStartersAndClose(nil, func(id, _ string, starter iscenv.Starter) error {
-		var err error
 		available = append(available, id)
-		startFlags.PluginFlags, err = starter.Flags()
+		flags, err := starter.Flags()
 		if err != nil {
 			return fmt.Errorf("Could not retrieve plugin flags, plugin: %s, error: %s", id, err)
 		}
-		pluginFlags.AddFlagsToFlagSet(id, cmd.Flags())
+		pluginFlags[id] = &flags
+		pluginFlags[id].AddFlagsToFlagSet(id, cmd.Flags())
 		return nil
 	}); err != nil {
 		return err
