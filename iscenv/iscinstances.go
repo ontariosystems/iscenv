@@ -41,7 +41,8 @@ func (is ISCInstances) CalculatePortOffset(start int64) (int64, error) {
 		return -1, err
 	}
 
-	for i := start; i < 65535; i++ {
+	// The ports are spaced out by 1000 (56772, 57772) if there are more than 1k instances we'll collide.  1000 isc product instances on a single machine would be an exceptional number anyway.
+	for i := start; i < 1000; i++ {
 		if _, in := offsets[i]; !in {
 			return i, nil
 		}

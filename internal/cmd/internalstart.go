@@ -17,9 +17,11 @@ limitations under the License.
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -42,6 +44,8 @@ var internalStartCmd = &cobra.Command{
 	Run:    internalStart,
 }
 
+var startStatus = app.NewStartStatus()
+
 func init() {
 	log.SetOutput(ioutil.Discard) // This is to silence the logging from go-plugin
 	internalStartFlags.PluginFlags = make(map[string]*iscenv.PluginFlags)
@@ -58,16 +62,16 @@ func init() {
 func internalStart(_ *cobra.Command, _ []string) {
 	app.EnsureWithinContainer("_start")
 
-	manager, err := app.NewInternalInstanceManager(internalStartFlags.Instance, internalStartFlags.CControlPath)
-	if err != nil {
-		app.Fatalf("Error creating instance manager, error: %s\n", err)
-	}
+	go startHealthCheck()
 
 	// We can't use the closing activator because we need the plugins to keep running the whole time that _start runs
 	pluginsToActivate := strings.Split(internalStartFlags.Plugins, ",")
+	startStatus.ActivePlugins = pluginsToActivate
+	startStatus.Update(app.StartPhaseInitPlugins, nil, "")
 	starters := make([]iscenv.Starter, len(pluginsToActivate))
 	i := 0
-	pm, err := activateStarters(pluginsToActivate, func(_, _ string, starter iscenv.Starter) error {
+	pm, err := activateStarters(pluginsToActivate, func(id, _ string, starter iscenv.Starter) error {
+		startStatus.Update(app.StartPhaseInitPlugins, nil, id)
 		starters[i] = starter
 		i++
 		return nil
@@ -81,8 +85,17 @@ func internalStart(_ *cobra.Command, _ []string) {
 		app.Fatalf("Failed to activate plugins, error: %s", err)
 	}
 
+	startStatus.Update(app.StartPhaseInitManager, nil, "")
+	manager, err := app.NewInternalInstanceManager(internalStartFlags.Instance, internalStartFlags.CControlPath)
+	if err != nil {
+		app.Fatalf("Error creating instance manager, error: %s\n", err)
+	}
+
+	startStatus.Update(app.StartPhaseEventBeforeInstance, manager.InternalInstanceState, "")
 	for i, starter := range starters {
 		plugin := pluginsToActivate[i]
+
+		startStatus.Update(app.StartPhaseEventBeforeInstance, nil, plugin)
 		fmt.Printf("Performing BeforeInstance step for %s\n", plugin)
 		if err := starter.BeforeInstance(*manager.InternalInstanceState); err != nil {
 			app.Fatalf("Failed to execute before instance hook, plugin: %s, error: %s\n", plugin, err)
@@ -90,16 +103,22 @@ func internalStart(_ *cobra.Command, _ []string) {
 	}
 
 	manager.InstanceRunningHandler = func(*iscenv.InternalInstanceState) {
+		startStatus.Update(app.StartPhaseEventWithInstance, manager.InternalInstanceState, "")
 		for i, starter := range starters {
 			plugin := pluginsToActivate[i]
+			startStatus.Update(app.StartPhaseEventWithInstance, nil, plugin)
 			fmt.Printf("Performing WithInstance step for %s\n", plugin)
 			if err := starter.WithInstance(*manager.InternalInstanceState); err != nil {
 				app.Fatalf("Failed to execute with instance hook, plugin: %s, error: %s\n", plugin, err)
 			}
 		}
+
+		startStatus.Update(app.StartPhaseInstanceRunning, manager.InternalInstanceState, "")
 	}
+
 	err = manager.Manage()
 
+	startStatus.Update(app.StartPhaseEventAfterInstance, manager.InternalInstanceState, "")
 	for i, starter := range starters {
 		plugin := pluginsToActivate[i]
 		fmt.Printf("Performing AfterInstance step for %s\n", plugin)
@@ -108,7 +127,19 @@ func internalStart(_ *cobra.Command, _ []string) {
 		}
 	}
 
+	startStatus.Update(app.StartPhaseShutdown, nil, "")
+
 	if err != nil {
 		app.Fatalf("Error managing instance, error: %s\n", err)
 	}
+}
+
+func startHealthCheck() {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewEncoder(w).Encode(startStatus); err != nil {
+			panic(err)
+		}
+	})
+
+	http.ListenAndServe(fmt.Sprintf(":%d", iscenv.PortInternalHC), nil)
 }

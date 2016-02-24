@@ -28,6 +28,9 @@ const (
 	PortInternalWeb = 57772
 	PortExternalWeb = 57772
 
+	PortInternalHC = 58772
+	PortExternalHC = 58772
+
 	// TODO: These should be defaults and should be configurable with viper
 	ContainerPrefix = ApplicationName + "-"
 	Registry        = "quay.io"

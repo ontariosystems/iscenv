@@ -23,16 +23,16 @@ import (
 )
 
 type InternalInstanceState struct {
-	Name            string
-	Directory       string
-	Version         string
-	Status          InternalInstanceStatus
-	Activity        string
-	CPFFileName     string
-	SuperServerPort int
-	WebServerPort   int
-	JDBCPort        int
-	State           string
+	Name            string                 `json:"name"`
+	Directory       string                 `json:"directory"`
+	Version         string                 `json:"version"`
+	Status          InternalInstanceStatus `json:"status"`
+	Activity        string                 `json:"activity"`
+	CPFFileName     string                 `json:"cpfFileName"`
+	SuperServerPort int                    `json:"superServerPort"`
+	WebServerPort   int                    `json:"webServerPort"`
+	JDBCPort        int                    `json:"jdbcPort"`
+	State           string                 `json:"state"`
 	// There appears to be an additional property after state but I don't know what it is!
 }
 

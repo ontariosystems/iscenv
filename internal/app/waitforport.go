@@ -40,12 +40,12 @@ func WaitForPortForever(ip string, port string, c chan error) {
 		if conn, err := net.Dial("tcp", ip+":"+port); err == nil {
 			conn.Close()
 			c <- nil
-		} else {
-			if strings.HasSuffix(err.Error(), "connection refused") {
-				time.Sleep(500 * time.Millisecond)
-			} else {
-				c <- err
-			}
+			return
+		} else if !strings.HasSuffix(err.Error(), "connection refused") {
+			c <- err
+			return
 		}
+
+		time.Sleep(500 * time.Millisecond)
 	}
 }
