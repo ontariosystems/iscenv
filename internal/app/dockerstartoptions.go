@@ -45,29 +45,28 @@ func (opts *DockerStartOptions) ToCreateContainerOptions() *docker.CreateContain
 	return &docker.CreateContainerOptions{
 		Name: opts.ContainerName(),
 		Config: &docker.Config{
-			Image:      opts.Repository + ":" + opts.Version,
-			Hostname:   opts.Name,
-			Env:        opts.Environment,
-			Volumes:    opts.InternalVolumes(),
-			Entrypoint: opts.Entrypoint,
-			Cmd:        opts.Command,
+			Image:        opts.Repository + ":" + opts.Version,
+			Hostname:     opts.Name,
+			Env:          opts.Environment,
+			Volumes:      opts.InternalVolumes(),
+			ExposedPorts: opts.ToExposedPorts(),
+			Entrypoint:   opts.Entrypoint,
+			Cmd:          opts.Command,
 		},
 		HostConfig: opts.ToHostConfig(),
 	}
 }
 
 func (opts *DockerStartOptions) ToHostConfig() *docker.HostConfig {
+
 	return &docker.HostConfig{
 		// TODO: Try turning this off or better still allow it to be activated with a plugin or better even again allow the appropriate capabilities to be set with a plugin
 		Privileged: true,
 		Binds:      opts.Volumes,
 		Links:      opts.ContainerLinks,
 		// Plugin
-		PortBindings: map[docker.Port][]docker.PortBinding{
-			DockerPort(iscenv.PortInternalSS):  DockerPortBinding(iscenv.PortExternalSS, opts.PortOffset),
-			DockerPort(iscenv.PortInternalWeb): DockerPortBinding(iscenv.PortExternalWeb, opts.PortOffset),
-		},
-		VolumesFrom: opts.VolumesFrom,
+		PortBindings: opts.ToDockerPortBindings(),
+		VolumesFrom:  opts.VolumesFrom,
 	}
 }
 
@@ -86,6 +85,15 @@ func (opts *DockerStartOptions) InternalVolumes() map[string]struct{} {
 
 func (opts *DockerStartOptions) ContainerName() string {
 	return iscenv.ContainerPrefix + opts.Name
+}
+
+func (opts *DockerStartOptions) ToExposedPorts() map[docker.Port]struct{} {
+	ports := make(map[docker.Port]struct{})
+	for port := range opts.ToDockerPortBindings() {
+		ports[port] = struct{}{}
+	}
+
+	return ports
 }
 
 func (opts *DockerStartOptions) ToDockerPortBindings() map[docker.Port][]docker.PortBinding {

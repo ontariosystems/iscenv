@@ -22,6 +22,7 @@ import (
 	"log"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/iscenv/internal/app"
@@ -36,6 +37,7 @@ var startFlags = struct {
 	PortOffset     int64
 	VolumesFrom    []string
 	ContainerLinks []string
+	StartTimeout   int64
 	Plugins        string
 	PluginFlags    map[string]*iscenv.PluginFlags
 }{}
@@ -61,6 +63,7 @@ func init() {
 	startCmd.Flags().StringVarP(&startFlags.Version, "version", "v", "", "The version of ISC product to start.  By default this will find the latest version on your system.")
 	startCmd.Flags().StringSliceVar(&startFlags.ContainerLinks, "link", nil, "Add link to another container.  They should be in the format 'iscenv-{iscenvname}', 'iscenv-{iscenvname}:{alias}' or '{containername}:{alias}'")
 	startCmd.Flags().Int64VarP(&startFlags.PortOffset, "port-offset", "p", -1, "The port offset for this instance's ports.  -1 means autodetect.  Will increment by 1 if more than 1 instance is specified.")
+	startCmd.Flags().Int64Var(&startFlags.StartTimeout, "start-timeout", 300, "The number of seconds to wait on an instance to start before timing out.")
 	startCmd.Flags().StringSliceVar(&startFlags.VolumesFrom, "volumes-from", nil, "Mount volumes from the specified container(s)")
 
 	rootCmd.AddCommand(startCmd)
@@ -83,6 +86,7 @@ func start(_ *cobra.Command, args []string) {
 	// Add the standard ports
 	ports = append(ports, fmt.Sprintf("+%d:%d", iscenv.PortExternalSS, iscenv.PortInternalSS))
 	ports = append(ports, fmt.Sprintf("+%d:%d", iscenv.PortExternalWeb, iscenv.PortInternalWeb))
+	ports = append(ports, fmt.Sprintf("+%d:%d", iscenv.PortExternalHC, iscenv.PortInternalHC))
 
 	// TODO: latest should only get the latest local version when the version plugins exist
 	if startFlags.Version == "" {
@@ -98,9 +102,9 @@ func start(_ *cobra.Command, args []string) {
 	}
 
 	for _, instanceName := range instances {
-		instance := strings.ToLower(instanceName)
+		instanceName := strings.ToLower(instanceName)
 		id, err := app.DockerStart(app.DockerStartOptions{
-			Name:             instance,
+			Name:             instanceName,
 			Repository:       iscenv.Repository,
 			Version:          startFlags.Version,
 			PortOffset:       po,
@@ -115,8 +119,18 @@ func start(_ *cobra.Command, args []string) {
 			Recreate:         startFlags.Remove,
 		})
 		if err != nil {
-			app.Fatalf("Could not create instance, name: %s, error: %s", instance, err)
+			app.Fatalf("Could not create instance, name: %s, error: %s", instanceName, err)
 		}
+
+		// Wait for the instance to fully start and all appropriate plugins to complete
+		instance := app.GetInstances().Find(instanceName)
+		if instance == nil {
+			app.Fatalf("Could not find newly created instance, name: %s, error: %s", instanceName, err)
+		}
+		if err := app.WaitForInstance(instance, time.Duration(startFlags.StartTimeout)*time.Second); err != nil {
+			app.Fatalf("Error waiting for instance to start, name: %s, error: %s", instanceName, err)
+		}
+
 		fmt.Println(id)
 	}
 }
@@ -130,7 +144,6 @@ func getPluginConfig(version string, pluginFlags map[string]*iscenv.PluginFlags,
 	if err := activateStartersAndClose(pluginsToActivate, func(id, pluginPath string, starter iscenv.Starter) error {
 		// Mount the plugin itself into the /bin directory
 		volumes = append(volumes, fmt.Sprintf("%s:%s/%s:ro", pluginPath, iscenv.InternalISCEnvBinaryDir, filepath.Base(pluginPath)))
-		fmt.Printf("%s: %#v\n", id, pluginFlags[id])
 		if env, err := starter.Environment(version, *pluginFlags[id]); err != nil {
 			return err
 		} else if env != nil {

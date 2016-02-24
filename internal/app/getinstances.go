@@ -68,6 +68,8 @@ func GetInstances() iscenv.ISCInstances {
 					instance.Ports.SuperServer = GetDockerBindingPort(bindings)
 				case DockerPort(iscenv.PortInternalWeb):
 					instance.Ports.Web = GetDockerBindingPort(bindings)
+				case DockerPort(iscenv.PortInternalHC):
+					instance.Ports.HealthCheck = GetDockerBindingPort(bindings)
 				}
 			}
 

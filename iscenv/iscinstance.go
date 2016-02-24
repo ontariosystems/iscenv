@@ -30,7 +30,7 @@ type ISCInstance struct {
 }
 
 func (i ISCInstance) PortOffset() (offset int64, err error) {
-	var ss, web int64
+	var ss, web, hc int64
 	if ss, err = getOffset(i.Name, "SuperServer", i.Ports.SuperServer, PortExternalSS); err != nil {
 		return -1, err
 	}
@@ -39,8 +39,12 @@ func (i ISCInstance) PortOffset() (offset int64, err error) {
 		return -1, err
 	}
 
-	if web != ss {
-		return -1, fmt.Errorf("Port offset for SuperServer and Web do not match, instance: %s, super server: %d, Web: %d", i.Name, ss, web)
+	if hc, err = getOffset(i.Name, "HealthCheck", i.Ports.Web, PortExternalWeb); err != nil {
+		return -1, err
+	}
+
+	if web != ss || web != hc {
+		return -1, fmt.Errorf("Port offsets do not match, instance: %s, SuperServer: %d, Web: %d, HealthCheck: %d", i.Name, ss, web, hc)
 	}
 
 	return ss, nil

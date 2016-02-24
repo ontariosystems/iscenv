@@ -23,6 +23,7 @@ import (
 type ContainerPorts struct {
 	SuperServer ContainerPort
 	Web         ContainerPort
+	HealthCheck ContainerPort
 }
 
 type ContainerPort int64
