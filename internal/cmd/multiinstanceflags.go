@@ -21,6 +21,7 @@ import (
 
 	"github.com/ontariosystems/iscenv/internal/app"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -51,7 +52,7 @@ func (this multiInstanceOps) validate(args []string) {
 	}
 
 	if len(used) > 1 {
-		app.Fatalf("Conflicting arguments provided: %s", strings.Join(used, ", "))
+		log.WithField("flags", strings.Join(used, ",")).Fatal("Conflicting arguments provided")
 	}
 }
 
@@ -59,7 +60,12 @@ func (this multiInstanceOps) getInstances(args []string) []string {
 	this.validate(args)
 
 	if len(args) > 0 {
-		return args
+		// Instance names are case-insensitive on the command line but are always actually lower case
+		lowerArgs := make([]string, len(args))
+		for i, arg := range args {
+			lowerArgs[i] = strings.ToLower(arg)
+		}
+		return lowerArgs
 	}
 
 	names := []string{}

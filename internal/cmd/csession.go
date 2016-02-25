@@ -17,6 +17,8 @@ limitations under the License.
 package cmd
 
 import (
+	"log"
+
 	"github.com/spf13/cobra"
 	"github.com/ontariosystems/iscenv/internal/app"
 )
@@ -39,17 +41,22 @@ func init() {
 }
 
 func csession(_ *cobra.Command, args []string) {
-	if len(args) > 0 {
-		cmdArgs := []string{"csession", "docker"}
-		if csessionFlags.Namespace != "" {
-			cmdArgs = append(cmdArgs, "-U")
-			cmdArgs = append(cmdArgs, csessionFlags.Namespace)
-		}
-		err := app.DockerExec(args[0], true, cmdArgs...)
-		if err != nil {
-			app.Fatalf("Error running docker exec, error: %s", err)
-		}
-	} else {
-		app.Fatal("Must provide an instance")
+	if len(args) != 1 {
+		log.Fatal(app.ErrSingleInstanceArg)
+	}
+
+	cmdArgs := []string{"csession", "docker"}
+	if csessionFlags.Namespace != "" {
+		cmdArgs = append(cmdArgs, "-U")
+		cmdArgs = append(cmdArgs, csessionFlags.Namespace)
+	}
+
+	instance, ilog := app.FindInstanceAndLogger(args[0])
+	if instance == nil {
+		ilog.Fatal(app.ErrNoSuchInstance)
+	}
+
+	if err := app.DockerExec(instance, true, cmdArgs...); err != nil {
+		app.ErrorLogger(ilog, err).Fatal("Failed to run docker exec")
 	}
 }

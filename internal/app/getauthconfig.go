@@ -20,8 +20,9 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 )
 
-func GetAuthConfig() docker.AuthConfiguration {
+func GetAuthConfig(registry string) (docker.AuthConfiguration, error) {
+	var err error
 	authcfg := docker.AuthConfiguration{}
-	authcfg.Username, authcfg.Password, authcfg.Email = GetRegistryCredentials()
-	return authcfg
+	authcfg.Username, authcfg.Password, authcfg.Email, err = GetRegistryCredentials(registry)
+	return authcfg, err
 }

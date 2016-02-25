@@ -16,34 +16,34 @@ limitations under the License.
 
 package cmd
 
-import (
-	"os"
-
-	"github.com/ontariosystems/iscenv/iscenv"
-	"github.com/ontariosystems/iscenv/internal/app"
-
-	docker "github.com/fsouza/go-dockerclient"
-	"github.com/spf13/cobra"
-)
-
-// TODO: This command must go.
-var pullCmd = &cobra.Command{
-	Use:   "pull",
-	Short: "Pull the latest ISC product versions",
-	Long:  "Pull the latest versions of the ISC product images.",
-	Run:   pull,
-}
-
-func init() {
-	rootCmd.AddCommand(pullCmd)
-
-}
-
-func pull(_ *cobra.Command, _ []string) {
-	imgopts := docker.PullImageOptions{Registry: iscenv.Registry, Repository: iscenv.Repository, OutputStream: os.Stdout}
-	authcfg := app.GetAuthConfig()
-	err := app.DockerClient.PullImage(imgopts, authcfg)
-	if err != nil {
-		app.Fatalf("Could not pull latest ISC product version images, error: %s\n", err)
-	}
-}
+//import (
+//	"os"
+//
+//	"github.com/ontariosystems/iscenv/iscenv"
+//	"github.com/ontariosystems/iscenv/internal/app"
+//
+//	docker "github.com/fsouza/go-dockerclient"
+//	"github.com/spf13/cobra"
+//)
+//
+//// TODO: This command must go.
+//var pullCmd = &cobra.Command{
+//	Use:   "pull",
+//	Short: "Pull the latest ISC product versions",
+//	Long:  "Pull the latest versions of the ISC product images.",
+//	Run:   pull,
+//}
+//
+//func init() {
+//	rootCmd.AddCommand(pullCmd)
+//
+//}
+//
+//func pull(_ *cobra.Command, _ []string) {
+//	imgopts := docker.PullImageOptions{Registry: iscenv.Registry, Repository: iscenv.Repository, OutputStream: os.Stdout}
+//	authcfg := app.GetAuthConfig()
+//	err := app.DockerClient.PullImage(imgopts, authcfg)
+//	if err != nil {
+//		app.Fatalf("Could not pull latest ISC product version images, error: %s\n", err)
+//	}
+//}

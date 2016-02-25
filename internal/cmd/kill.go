@@ -17,9 +17,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/ontariosystems/iscenv/internal/app"
 
 	docker "github.com/fsouza/go-dockerclient"
@@ -42,19 +39,16 @@ func init() {
 func kill(_ *cobra.Command, args []string) {
 	instances := multiInstanceFlags.getInstances(args)
 	for _, instanceName := range instances {
-		instance := strings.ToLower(instanceName)
-		current := app.GetInstances()
-		existing := current.Find(instance)
-
-		if existing != nil {
-			err := app.DockerClient.KillContainer(docker.KillContainerOptions{ID: existing.ID})
-			if err != nil {
-				app.Fatalf("Could not kill instance, name: %s, error: %s\n", existing.Name, err)
-			}
-
-			fmt.Println(existing.ID)
-		} else {
-			fmt.Printf("No such instance, name: %s\n", instanceName)
+		instance, ilog := app.FindInstanceAndLogger(instanceName)
+		if instance == nil {
+			ilog.Error(app.ErrNoSuchInstance)
+			continue
 		}
+
+		if err := app.DockerClient.KillContainer(docker.KillContainerOptions{ID: instance.ID}); err != nil {
+			app.ErrorLogger(ilog, err).Fatal("Failed to kill instance")
+		}
+
+		ilog.Info("Killed instance")
 	}
 }

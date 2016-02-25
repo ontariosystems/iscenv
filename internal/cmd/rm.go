@@ -17,8 +17,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/ontariosystems/iscenv/internal/app"
 
 	"github.com/spf13/cobra"
@@ -40,10 +38,16 @@ func init() {
 func rm(_ *cobra.Command, args []string) {
 	instances := multiInstanceFlags.getInstances(args)
 	for _, instanceName := range instances {
-		id, err := app.DockerRemove(instanceName)
-		if err != nil {
-			app.Fatalf("Error removing instance, error: %s", err)
+		instance, ilog := app.FindInstanceAndLogger(instanceName)
+		if instance == nil {
+			ilog.Error(app.ErrNoSuchInstance)
+			continue
 		}
-		fmt.Println(id)
+
+		if err := app.DockerRemove(instance); err != nil {
+			app.ErrorLogger(ilog, err).Fatal("Failed to remove instance")
+		}
+
+		ilog.Info("Removed instance")
 	}
 }

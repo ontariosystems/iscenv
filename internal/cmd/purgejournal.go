@@ -17,9 +17,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/iscenv/internal/app"
 
@@ -42,8 +39,14 @@ func init() {
 func purgeJournal(_ *cobra.Command, args []string) {
 	instances := multiInstanceFlags.getInstances(args)
 	for _, instanceName := range instances {
-		fmt.Printf(" Purging journals for %s\n", instanceName)
-		instance := strings.ToLower(instanceName)
-		app.DockerExec(instance, false, iscenv.InternalISCEnvPath, "_purgejournal")
+		instance, ilog := app.FindInstanceAndLogger(instanceName)
+		if instance == nil {
+			ilog.Error(app.ErrNoSuchInstance)
+			continue
+		}
+
+		if err := app.DockerExec(instance, false, iscenv.InternalISCEnvPath, "_purgejournal"); err != nil {
+			app.ErrorLogger(ilog, err).Fatal("Failed to purge journals")
+		}
 	}
 }

@@ -16,12 +16,26 @@ limitations under the License.
 
 package app
 
-import "github.com/ontariosystems/iscenv/iscenv"
+import (
+	"fmt"
+)
 
-type WithInstanceFn func(instance *iscenv.ISCInstance) error
-
-func WithInstance(instance *iscenv.ISCInstance, fn WithInstanceFn) EnsurableFn {
-	return func() error {
-		return fn(instance)
+func NewPluginError(plugin, method, path string, err error) *PluginError {
+	return &PluginError{
+		Plugin:       plugin,
+		PluginMethod: method,
+		PluginPath:   path,
+		Err:          err,
 	}
+}
+
+type PluginError struct {
+	Plugin       string
+	PluginMethod string
+	PluginPath   string
+	Err          error
+}
+
+func (pe *PluginError) Error() string {
+	return fmt.Sprintf("Plugin %s: %s", pe.Plugin, pe.Err)
 }

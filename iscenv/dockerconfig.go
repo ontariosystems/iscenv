@@ -22,7 +22,10 @@ import (
 )
 
 // The contents of a docker ocnfiguration file
-type DockerConfig map[string]DockerConfigEntry
+type DockerConfig struct {
+	Path    string
+	Entries map[string]DockerConfigEntry
+}
 
 // A single entry from a docker configuration file
 type DockerConfigEntry struct {

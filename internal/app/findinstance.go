@@ -17,24 +17,24 @@ limitations under the License.
 package app
 
 import (
+	"strings"
+
 	log "github.com/Sirupsen/logrus"
-	docker "github.com/fsouza/go-dockerclient"
+
+	"github.com/ontariosystems/iscenv/iscenv"
 )
 
-var DockerClient *docker.Client
+func FindInstance(instanceName string) *iscenv.ISCInstance {
+	instanceName = strings.ToLower(instanceName)
+	return GetInstances().Find(instanceName)
+}
 
-const (
-	DockerSocket = "unix:///var/run/docker.sock"
-)
-
-func init() {
-	var err error
-
-	slog := log.WithField("dockerSocket", DockerSocket)
-	// Normally, I would not pre-emptively exit outside of the commands themselves but since this is an init there's not much choice
-	if DockerClient, err = docker.NewClient(DockerSocket); err != nil {
-		ErrorLogger(slog, err).Fatal(slog, err, "Failed to create docker client")
+func FindInstanceAndLogger(instanceName string) (*iscenv.ISCInstance, *log.Entry) {
+	var id string
+	instance := FindInstance(instanceName)
+	if instance != nil {
+		id = instance.ID
 	}
 
-	slog.Debug("Created docker client")
+	return instance, InstanceLoggerArgs(instanceName, id)
 }

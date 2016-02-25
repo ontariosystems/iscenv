@@ -24,10 +24,13 @@ import (
 	"github.com/fsouza/go-dockerclient"
 )
 
+// GetInstances will return a list of available ISC product Instances.
+// This function will perform an os.Exit in the case that it cannot list the containers from Docker.  Normally, these kinds of abrupt exits should be avoided outside of the actual executable command portions of the code.  However, in this case the extreme nature of the failure, the rarity of occurrence, and the large amount of error handling that would need to be added throughout the code without the exit seems to justify its existence.
 func GetInstances() iscenv.ISCInstances {
 	containers, err := DockerClient.ListContainers(docker.ListContainersOptions{All: true})
 	if err != nil {
-		Fatalf("Could not list containers, error: %s\n", err)
+		// NOTE: Fatal early exit
+		ErrorLogger(nil, err).Fatal("Failed to list containers")
 	}
 
 	instances := make(iscenv.ISCInstances, 0)
@@ -45,7 +48,8 @@ func GetInstances() iscenv.ISCInstances {
 		if name != "" {
 			container, err := DockerClient.InspectContainer(apiContainer.ID)
 			if err != nil {
-				Fatalf("Could not inspect container, id: %s, error: %s\n", apiContainer.ID, err)
+				ErrorLogger(nil, err).WithField("containerID", apiContainer.ID).Warning("Failed to inspect container")
+				continue
 			}
 
 			var version string
@@ -60,16 +64,26 @@ func GetInstances() iscenv.ISCInstances {
 				Name:    strings.TrimPrefix(name, "/"+iscenv.ContainerPrefix),
 				Version: version,
 				Status:  apiContainer.Status,
-				Created: apiContainer.Created}
+				Created: apiContainer.Created,
+			}
+
+			ilog := InstanceLogger(instance)
 
 			for intPort, bindings := range container.HostConfig.PortBindings {
+				bp, err := GetDockerBindingPort(bindings)
+				// This should *never* happen but we should still handle it
+				if err != nil {
+					ErrorLogger(ilog, err).WithField("internalPort", intPort).Error("Failed to parse port binding")
+					continue
+				}
+
 				switch intPort {
 				case DockerPort(iscenv.PortInternalSS):
-					instance.Ports.SuperServer = GetDockerBindingPort(bindings)
+					instance.Ports.SuperServer = bp
 				case DockerPort(iscenv.PortInternalWeb):
-					instance.Ports.Web = GetDockerBindingPort(bindings)
+					instance.Ports.Web = bp
 				case DockerPort(iscenv.PortInternalHC):
-					instance.Ports.HealthCheck = GetDockerBindingPort(bindings)
+					instance.Ports.HealthCheck = bp
 				}
 			}
 

@@ -17,20 +17,10 @@ limitations under the License.
 package app
 
 import (
-	"fmt"
-	"strings"
-
 	docker "github.com/fsouza/go-dockerclient"
+	"github.com/ontariosystems/iscenv/iscenv"
 )
 
-func DockerRemove(instanceName string) (string, error) {
-	instanceName = strings.ToLower(instanceName)
-	instance := GetInstances().Find(instanceName)
-
-	if instance != nil {
-		err := DockerClient.RemoveContainer(docker.RemoveContainerOptions{ID: instance.ID, RemoveVolumes: true, Force: true})
-		return instance.ID, err
-	} else {
-		return "", fmt.Errorf("No such instance, name: %s\n", instanceName)
-	}
+func DockerRemove(instance *iscenv.ISCInstance) error {
+	return DockerClient.RemoveContainer(docker.RemoveContainerOptions{ID: instance.ID, RemoveVolumes: true, Force: true})
 }

@@ -22,9 +22,9 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/ontariosystems/iscenv/internal/app"
-
+	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/ontariosystems/iscenv/internal/app"
 )
 
 var versionsFlags = &struct {
@@ -47,7 +47,10 @@ func init() {
 }
 
 func versions(_ *cobra.Command, _ []string) {
-	versions := app.GetVersions()
+	versions, err := app.GetVersions()
+	if err != nil {
+		log.WithError(err).Fatal("Failed to retrieve versions")
+	}
 	w := tabwriter.NewWriter(os.Stdout, 20, 1, 3, ' ', 0)
 	if !versionsFlags.Quiet {
 		fmt.Fprintln(w, "IMAGE ID\tVERSION\tCREATED")

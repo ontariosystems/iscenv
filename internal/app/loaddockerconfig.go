@@ -31,25 +31,28 @@ const NewDefaultDockerConfigName = ".docker/config.json"
 const OldDefaultDockerConfigName = ".dockercfg"
 
 // Will return nil, nil if the file simply doesn't exist
-func LoadDefaultDockerConfig() (iscenv.DockerConfig, error) {
+func LoadDefaultDockerConfig() (*iscenv.DockerConfig, error) {
 	cfgPath, err := FindDefaultDockerConfig()
 	if err != nil {
-		return iscenv.DockerConfig{}, err
+		return nil, NewDockerConfigError(cfgPath, "", err)
 	}
 
 	return LoadDockerConfig(cfgPath)
 }
 
-func LoadDockerConfig(path string) (iscenv.DockerConfig, error) {
+func LoadDockerConfig(path string) (*iscenv.DockerConfig, error) {
 	bytes, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return nil, NewDockerConfigError(path, "", err)
 	}
 
-	cfg := iscenv.DockerConfig{}
-	err = json.Unmarshal(bytes, &cfg)
-	if err != nil {
-		return nil, err
+	cfg := &iscenv.DockerConfig{
+		Path:    path,
+		Entries: make(map[string]iscenv.DockerConfigEntry),
+	}
+
+	if err := json.Unmarshal(bytes, &cfg.Entries); err != nil {
+		return nil, NewDockerConfigError(path, "", err)
 	}
 
 	return cfg, nil

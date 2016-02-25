@@ -26,10 +26,11 @@ import (
 	"github.com/mcuadros/go-version"
 )
 
-func GetVersions() iscenv.ISCVersions {
+// TODO: This needs to be a plugin with a default implementation that looks for images locally
+func GetVersions() (iscenv.ISCVersions, error) {
 	images, err := DockerClient.ListImages(docker.ListImagesOptions{All: false})
 	if err != nil {
-		Fatalf("Could not list images, error: %s\n", err)
+		return nil, err
 	}
 
 	vs := []string{}                        // for sorting
@@ -54,7 +55,7 @@ func GetVersions() iscenv.ISCVersions {
 		versions[i] = &iscenv.ISCVersion{ID: ai.ID, Version: v, Created: ai.Created}
 	}
 
-	return versions
+	return versions, nil
 }
 
 func splitRepoTag(repoTag string) (string, string) {

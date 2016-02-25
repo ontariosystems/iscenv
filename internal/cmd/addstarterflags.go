@@ -17,21 +17,21 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/ontariosystems/iscenv/iscenv"
+	"github.com/ontariosystems/iscenv/internal/app"
 )
 
 // Add the flags from the available starter plugins to the provided command
 func addStarterFlags(cmd *cobra.Command, pluginsFlag *string, pluginFlags map[string]*iscenv.PluginFlags) error {
 	available := make([]string, 0)
-	if err := activateStartersAndClose(nil, func(id, _ string, starter iscenv.Starter) error {
+	if err := activateStartersAndClose(nil, func(id, path string, starter iscenv.Starter) error {
 		available = append(available, id)
 		flags, err := starter.Flags()
 		if err != nil {
-			return fmt.Errorf("Could not retrieve plugin flags, plugin: %s, error: %s", id, err)
+			return app.NewPluginError(id, "Flags", path, err)
 		}
 		pluginFlags[id] = &flags
 		pluginFlags[id].AddFlagsToFlagSet(id, cmd.Flags())

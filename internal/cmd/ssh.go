@@ -20,6 +20,8 @@ import (
 	"strings"
 	"unicode"
 
+	log "github.com/Sirupsen/logrus"
+
 	"github.com/ontariosystems/iscenv/internal/app"
 
 	"github.com/spf13/cobra"
@@ -45,7 +47,12 @@ func init() {
 
 func ssh(_ *cobra.Command, args []string) {
 	if len(args) != 1 {
-		app.Fatal("Must provide exactly 1 instance as the first argument")
+		log.Fatal(app.ErrSingleInstanceArg)
+	}
+
+	instance, ilog := app.FindInstanceAndLogger(args[0])
+	if instance != nil {
+		ilog.Fatal(app.ErrNoSuchInstance)
 	}
 
 	var cmdArgs []string
@@ -55,9 +62,8 @@ func ssh(_ *cobra.Command, args []string) {
 		cmdArgs = defaultExecCommand
 	}
 
-	err := app.DockerExec(args[0], true, cmdArgs...)
-	if err != nil {
-		app.Fatalf("Error running docker exec, error: %s", err)
+	if err := app.DockerExec(instance, true, cmdArgs...); err != nil {
+		app.ErrorLogger(ilog, err).Fatal("Failed to run docker exec")
 	}
 }
 
