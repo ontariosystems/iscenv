@@ -17,9 +17,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/ontariosystems/iscenv/internal/app"
 
 	"github.com/spf13/cobra"
@@ -39,26 +36,23 @@ var stopCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(stopCmd)
 
-	stopCmd.Flags().UintVarP(&stopFlags.Timeout, "time", "t", 60, "The amount of time to wait for the instance to stop cleanly before killing it.")
+	stopCmd.Flags().UintVarP(&stopFlags.Timeout, "time", "t", 60, "The number of seconds to wait for the instance to stop cleanly before killing it.")
 	addMultiInstanceFlags(stopCmd, "stop")
 }
 
 func stop(_ *cobra.Command, args []string) {
 	instances := multiInstanceFlags.getInstances(args)
 	for _, instanceName := range instances {
-		instance := strings.ToLower(instanceName)
-		current := app.GetInstances()
-		existing := current.Find(instance)
-
-		if existing != nil {
-			err := app.DockerClient.StopContainer(existing.ID, stopFlags.Timeout)
-			if err != nil {
-				app.Fatalf("Could not stop instance, name: %s, error: %s\n", existing.Name, err)
-			}
-
-			fmt.Println(existing.ID)
-		} else {
-			fmt.Printf("No such instance, name: %s\n", instanceName)
+		instance, ilog := app.FindInstanceAndLogger(instanceName)
+		if instance == nil {
+			ilog.Error(app.ErrNoSuchInstance)
+			continue
 		}
+
+		if err := app.DockerClient.StopContainer(instance.ID, stopFlags.Timeout); err != nil {
+			app.ErrorLogger(ilog, err).Fatal("Failed to stop instance")
+		}
+
+		ilog.Info("Stopped instance")
 	}
 }

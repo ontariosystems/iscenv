@@ -19,6 +19,8 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 	"github.com/ontariosystems/iscenv/internal/app"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 type execExecFn func(string, []string) error
@@ -40,7 +42,7 @@ func init() {
 
 func dockerExec(_ *cobra.Command, args []string) {
 	if len(args) < 1 {
-		app.Fatal("Must provide an instance as the first argument")
+		log.Fatal(app.ErrSingleInstanceArg)
 	}
 
 	var cmdArgs []string
@@ -50,8 +52,12 @@ func dockerExec(_ *cobra.Command, args []string) {
 		cmdArgs = defaultExecCommand
 	}
 
-	err := app.DockerExec(args[0], true, cmdArgs...)
-	if err != nil {
-		app.Fatalf("Error running docker exec, error: %s", err)
+	instance, ilog := app.FindInstanceAndLogger(args[0])
+	if instance == nil {
+		ilog.Fatal(app.ErrNoSuchInstance)
+	}
+
+	if err := app.DockerExec(instance, true, cmdArgs...); err != nil {
+		app.ErrorLogger(ilog, err).Fatal("Failed to run docker exec")
 	}
 }

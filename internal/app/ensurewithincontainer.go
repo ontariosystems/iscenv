@@ -17,21 +17,26 @@ limitations under the License.
 package app
 
 import (
+	"fmt"
 	"io/ioutil"
 	"strings"
+
+	log "github.com/Sirupsen/logrus"
 )
 
-func EnsureWithinContainer(commandName string) {
-
+func EnsureWithinContainer(commandName string) error {
 	proc1CGroupContents, err := ioutil.ReadFile("/proc/1/cgroup")
-
 	if err != nil {
-		Fatalf("Could not read /proc/1/cgroup to determine environment")
+		e := fmt.Errorf("Failed to determine environment")
+		log.WithField("path", "/proc/1/cgroup").WithError(err).Error(e)
+		return e
 	}
 
 	// if we have some control groups owned by docker, then we are within a container
 	contents := string(proc1CGroupContents)
 	if !strings.Contains(contents, ":/docker/") && !strings.Contains(contents, ":/system.slice/docker-") {
-		Fatalf("Cannot run `%s` outside of a container!\n", commandName)
+		return ErrNotInContainer
 	}
+
+	return nil
 }

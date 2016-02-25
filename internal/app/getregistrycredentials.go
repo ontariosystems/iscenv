@@ -16,28 +16,30 @@ limitations under the License.
 
 package app
 
-import "github.com/ontariosystems/iscenv/iscenv"
+import (
+	"errors"
+)
 
 // Get the registry credentials from the default docker config
-func GetRegistryCredentials() (username string, password string, email string) {
+func GetRegistryCredentials(registry string) (username string, password string, email string, err error) {
 	cfg, err := LoadDefaultDockerConfig()
 	if err != nil {
-		Fatalf("Error loading ~/.dockercfg, error: %s\n", err)
+		return "", "", "", NewDockerConfigError(cfg.Path, registry, err)
 	}
 
 	if cfg == nil {
-		Fatalf("No ~/.dockercfg exists")
+		return "", "", "", NewDockerConfigError(cfg.Path, registry, errors.New("No docker configuration found"))
 	}
 
-	auth, ok := cfg[iscenv.Registry]
+	auth, ok := cfg.Entries[registry]
 	if !ok {
-		Fatalf("No entry for %s in ~/.dockercfg", iscenv.Registry)
+		return "", "", "", NewDockerConfigError(cfg.Path, registry, errors.New("Registry not found in docker configuration"))
 	}
 
 	username, password, err = auth.Credentials()
 	if err != nil {
-		Fatalf("Could not parse credentials from ~/.dockercfg, error: %s\n", err)
+		return "", "", "", NewDockerConfigError(cfg.Path, registry, errors.New("Could not retrieve credentials from docker configuration"))
 	}
 
-	return username, password, auth.Email
+	return username, password, auth.Email, nil
 }

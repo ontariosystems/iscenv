@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/ontariosystems/iscenv/internal/app"
 )
@@ -47,29 +48,40 @@ func init() {
 }
 
 func tail(_ *cobra.Command, args []string) {
-	if len(args) > 0 {
-		tailArgs := []string{"tail"}
-		if tailFlags.Follow {
-			tailArgs = append(tailArgs, "-f")
-		}
-		if tailFlags.Lines != "" {
-			if tailFlags.Lines == "all" {
-				tailFlags.Lines = "+0"
-			}
-			tailArgs = append(tailArgs, "-n", tailFlags.Lines)
-		}
-
-		if magicFilename, ok := tailFilenames[tailFlags.Filename]; ok {
-			tailFlags.Filename = magicFilename
-		}
-		if tailFlags.Filename == "" {
-			tailArgs = append(tailArgs, tailFilenames["cconsole"])
-		} else {
-			tailArgs = append(tailArgs, tailFlags.Filename)
-		}
-
-		app.DockerExec(args[0], false, tailArgs...)
-	} else {
-		app.Fatal("Must provide an instance")
+	if len(args) != 1 {
+		log.Fatal(app.ErrSingleInstanceArg)
 	}
+
+	instance, ilog := app.FindInstanceAndLogger(args[0])
+	if instance == nil {
+		ilog.Fatal(app.ErrNoSuchInstance)
+	}
+
+	if err := app.DockerExec(instance, false, buildTailArgs(args)...); err != nil {
+		app.ErrorLogger(ilog.WithField("tailFile", tailFlags.Filename), err).Fatal("Failed to tail file")
+	}
+}
+
+func buildTailArgs(args []string) []string {
+	tailArgs := []string{"tail"}
+	if tailFlags.Follow {
+		tailArgs = append(tailArgs, "-f")
+	}
+	if tailFlags.Lines != "" {
+		if tailFlags.Lines == "all" {
+			tailFlags.Lines = "+0"
+		}
+		tailArgs = append(tailArgs, "-n", tailFlags.Lines)
+	}
+
+	if magicFilename, ok := tailFilenames[tailFlags.Filename]; ok {
+		tailFlags.Filename = magicFilename
+	}
+	if tailFlags.Filename == "" {
+		tailArgs = append(tailArgs, tailFilenames["cconsole"])
+	} else {
+		tailArgs = append(tailArgs, tailFlags.Filename)
+	}
+
+	return tailArgs
 }

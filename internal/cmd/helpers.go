@@ -14,25 +14,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package app
+package cmd
 
 import (
-	"fmt"
-	"os"
+	"github.com/ontariosystems/iscenv/iscenv"
+
+	log "github.com/Sirupsen/logrus"
 )
 
-func Nqf(quiet bool, format string, a ...interface{}) {
-	if !quiet {
-		fmt.Printf(format, a...)
+// This file exists to hold helper functions which should only *ever* be used by commands (and never by other packages within the project)
+
+type ensurableFn func() error
+type withInstanceFn func(instance *iscenv.ISCInstance) error
+
+func ensure(fn ensurableFn) {
+	if err := fn(); err != nil {
+		log.Fatal(err)
 	}
 }
 
-func Fatal(a ...interface{}) {
-	fmt.Println(a...)
-	os.Exit(1)
-}
-
-func Fatalf(format string, a ...interface{}) {
-	fmt.Printf(format, a...)
-	os.Exit(1)
+func withInstance(instance *iscenv.ISCInstance, fn withInstanceFn) ensurableFn {
+	return func() error {
+		return fn(instance)
+	}
 }

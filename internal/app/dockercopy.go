@@ -18,21 +18,16 @@ package app
 
 import (
 	"archive/tar"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
+
+	"github.com/ontariosystems/iscenv/iscenv"
 
 	"github.com/fsouza/go-dockerclient"
 )
 
-func DockerCopy(instanceName, instancePath, localPath string) error {
-	instance := GetInstances().Find(strings.ToLower(instanceName))
-	if instance == nil {
-		return fmt.Errorf("Could not find instance, name: %s", instanceName)
-	}
-
+func DockerCopy(instance *iscenv.ISCInstance, instancePath, localPath string) error {
 	r, w := io.Pipe()
 
 	go func() {
@@ -53,7 +48,6 @@ func DockerCopy(instanceName, instancePath, localPath string) error {
 
 		path := filepath.Join(localPath, header.Name)
 		info := header.FileInfo()
-		fmt.Println(path, info.Name())
 		if info.IsDir() {
 			if err = os.MkdirAll(path, info.Mode()); err != nil {
 				return err
@@ -66,8 +60,8 @@ func DockerCopy(instanceName, instancePath, localPath string) error {
 			return err
 		}
 		defer file.Close()
-		_, err = io.Copy(file, t)
-		if err != nil {
+
+		if _, err = io.Copy(file, t); err != nil {
 			return err
 		}
 	}

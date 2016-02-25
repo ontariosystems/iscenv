@@ -32,11 +32,11 @@ func DockerPortBinding(port int64, portOffset int64) []docker.PortBinding {
 }
 
 // Assumes a single binding
-func GetDockerBindingPort(bindings []docker.PortBinding) iscenv.ContainerPort {
+func GetDockerBindingPort(bindings []docker.PortBinding) (iscenv.ContainerPort, error) {
 	port, err := strconv.ParseInt(bindings[0].HostPort, 10, 64)
 	if err != nil {
-		Fatalf("Could not parse port, error: %s\n", err)
+		return 0, err
 	}
 
-	return iscenv.ContainerPort(port)
+	return iscenv.ContainerPort(port), nil
 }

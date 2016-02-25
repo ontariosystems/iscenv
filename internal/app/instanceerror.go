@@ -16,25 +16,20 @@ limitations under the License.
 
 package app
 
-import (
-	log "github.com/Sirupsen/logrus"
-	docker "github.com/fsouza/go-dockerclient"
-)
-
-var DockerClient *docker.Client
-
-const (
-	DockerSocket = "unix:///var/run/docker.sock"
-)
-
-func init() {
-	var err error
-
-	slog := log.WithField("dockerSocket", DockerSocket)
-	// Normally, I would not pre-emptively exit outside of the commands themselves but since this is an init there's not much choice
-	if DockerClient, err = docker.NewClient(DockerSocket); err != nil {
-		ErrorLogger(slog, err).Fatal(slog, err, "Failed to create docker client")
+func NewInstanceError(name, id string, err error) *InstanceError {
+	return &InstanceError{
+		InstanceName: name,
+		InstanceID:   id,
+		Err:          err,
 	}
+}
 
-	slog.Debug("Created docker client")
+type InstanceError struct {
+	InstanceName string
+	InstanceID   string
+	Err          error
+}
+
+func (ie *InstanceError) Error() string {
+	return ie.Err.Error()
 }

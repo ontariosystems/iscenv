@@ -17,19 +17,14 @@ limitations under the License.
 package app
 
 import (
-	"fmt"
 	"os"
-	"strings"
+
+	"github.com/ontariosystems/iscenv/iscenv"
 
 	"github.com/fsouza/go-dockerclient"
 )
 
-func DockerExec(instanceName string, interactive bool, commandAndArgs ...string) error {
-	instance := GetInstances().Find(strings.ToLower(instanceName))
-	if instance == nil {
-		return fmt.Errorf("Could not find instance, name: %s", instanceName)
-	}
-
+func DockerExec(instance *iscenv.ISCInstance, interactive bool, commandAndArgs ...string) error {
 	createOpts := docker.CreateExecOptions{
 		Container:    instance.ID,
 		AttachStdin:  true,

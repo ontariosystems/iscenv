@@ -29,8 +29,11 @@ func DockerStart(opts DockerStartOptions) (id string, err error) {
 	if existing != nil {
 		// Just ensure it's up and return
 		if !opts.Recreate {
-			err := DockerClient.StartContainer(existing.ID, GetContainerForInstance(existing).HostConfig)
-			return existing.ID, err
+			container, err := GetContainerForInstance(existing)
+			if err != nil {
+				return existing.ID, err
+			}
+			return existing.ID, DockerClient.StartContainer(existing.ID, container.HostConfig)
 		}
 
 		epo, err := existing.PortOffset()
@@ -41,11 +44,14 @@ func DockerStart(opts DockerStartOptions) (id string, err error) {
 		opts.PortOffset = epo
 		opts.PortOffsetSearch = false
 
-		if _, err := DockerRemove(existing.Name); err != nil {
+		if err := DockerRemove(existing); err != nil {
 			return "", err
 		}
 		// Reload the instances as the deletion has made the previous list invalid
 		instances = GetInstances()
+		if err != nil {
+			return "", err
+		}
 	}
 
 	if opts.PortOffsetSearch {

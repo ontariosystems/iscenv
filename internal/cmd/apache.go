@@ -27,6 +27,7 @@ import (
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/iscenv/internal/app"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -51,7 +52,7 @@ func init() {
 }
 
 func configureApacheSite(_ *cobra.Command, args []string) {
-	app.Ensure(app.IsUserRoot)
+	ensure(app.IsUserRoot)
 
 	instances := multiInstanceFlags.getInstances(args)
 	var validInstances iscenv.ISCInstances
@@ -63,23 +64,23 @@ func configureApacheSite(_ *cobra.Command, args []string) {
 		if existing != nil {
 			validInstances = append(validInstances, existing)
 		} else {
-			fmt.Printf("No such instance, name: %s\n", instanceName)
+			app.InstanceLoggerArgs(instance, "").Error("No such instance")
 		}
 	}
 
 	if len(validInstances) == 0 {
-		app.Fatalf("No valid instances provided")
+		log.Fatal("No valid instances provided")
 	}
 
-	app.Ensure(app.WithInstance(validInstances[0], copyCSPGateway))
-	app.Ensure(configureModCSP)
+	ensure(withInstance(validInstances[0], copyCSPGateway))
+	ensure(configureModCSP)
 
 	for _, instance := range validInstances {
-		app.Ensure(app.WithInstance(instance, createApacheSite))
+		ensure(withInstance(instance, createApacheSite))
 	}
 
-	app.Ensure(func() error { return configureCSPGateway(validInstances) })
-	app.Ensure(restartApache)
+	ensure(func() error { return configureCSPGateway(validInstances) })
+	ensure(restartApache)
 }
 
 func copyCSPGateway(instance *iscenv.ISCInstance) error {
@@ -97,7 +98,7 @@ func copyCSPGateway(instance *iscenv.ISCInstance) error {
 		return err
 	}
 
-	if err := app.DockerCopy(instance.Name, srcGatewayDir, gatewayDir); err != nil {
+	if err := app.DockerCopy(instance, srcGatewayDir, gatewayDir); err != nil {
 		return err
 	}
 

@@ -19,15 +19,20 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/iscenv/internal/app"
 )
+
+type starterInfo struct {
+	ID      string
+	Path    string
+	Starter iscenv.Starter
+}
 
 var internalStartFlags = struct {
 	Instance     string
@@ -47,10 +52,9 @@ var internalStartCmd = &cobra.Command{
 var startStatus = app.NewStartStatus()
 
 func init() {
-	log.SetOutput(ioutil.Discard) // This is to silence the logging from go-plugin
 	internalStartFlags.PluginFlags = make(map[string]*iscenv.PluginFlags)
 	if err := addStarterFlags(internalStartCmd, &internalStartFlags.Plugins, internalStartFlags.PluginFlags); err != nil {
-		app.Fatalf("%s\n", err)
+		app.ErrorLogger(nil, err).Fatal(app.ErrFailedToAddPluginFlags)
 	}
 
 	internalStartCmd.Flags().StringVarP(&internalStartFlags.Instance, "instance", "i", "docker", "The instance to manage")
@@ -68,11 +72,16 @@ func internalStart(_ *cobra.Command, _ []string) {
 	pluginsToActivate := strings.Split(internalStartFlags.Plugins, ",")
 	startStatus.ActivePlugins = pluginsToActivate
 	startStatus.Update(app.StartPhaseInitPlugins, nil, "")
-	starters := make([]iscenv.Starter, len(pluginsToActivate))
+	starters := make([]*starterInfo, len(pluginsToActivate))
+
 	i := 0
-	pm, err := activateStarters(pluginsToActivate, func(id, _ string, starter iscenv.Starter) error {
+	pm, err := activateStarters(pluginsToActivate, func(id, pluginPath string, starter iscenv.Starter) error {
 		startStatus.Update(app.StartPhaseInitPlugins, nil, id)
-		starters[i] = starter
+		starters[i] = &starterInfo{
+			ID:      id,
+			Path:    pluginPath,
+			Starter: starter,
+		}
 		i++
 		return nil
 	})
@@ -82,64 +91,67 @@ func internalStart(_ *cobra.Command, _ []string) {
 	}
 
 	if err != nil {
-		app.Fatalf("Failed to activate plugins, error: %s", err)
+		app.ErrorLogger(nil, err).Fatal("Failed to activate plugins")
 	}
 
 	startStatus.Update(app.StartPhaseInitManager, nil, "")
 	manager, err := app.NewInternalInstanceManager(internalStartFlags.Instance, internalStartFlags.CControlPath)
 	if err != nil {
-		app.Fatalf("Error creating instance manager, error: %s\n", err)
+		app.ErrorLogger(nil, err).Fatal("Failed to create instance manager")
 	}
 
 	startStatus.Update(app.StartPhaseEventBeforeInstance, manager.InternalInstanceState, "")
-	for i, starter := range starters {
-		plugin := pluginsToActivate[i]
-
-		startStatus.Update(app.StartPhaseEventBeforeInstance, nil, plugin)
-		fmt.Printf("Performing BeforeInstance step for %s\n", plugin)
-		if err := starter.BeforeInstance(*manager.InternalInstanceState); err != nil {
-			app.Fatalf("Failed to execute before instance hook, plugin: %s, error: %s\n", plugin, err)
+	for _, starter := range starters {
+		plog := starterLogger(starter, "BeforeInstance")
+		plog.Info("Executing plugin")
+		startStatus.Update(app.StartPhaseEventBeforeInstance, nil, starter.ID)
+		if err := starter.Starter.BeforeInstance(*manager.InternalInstanceState); err != nil {
+			app.ErrorLogger(plog, err).Fatal(app.ErrFailedEventPlugin)
 		}
 	}
 
 	manager.InstanceRunningHandler = func(*iscenv.InternalInstanceState) {
 		startStatus.Update(app.StartPhaseEventWithInstance, manager.InternalInstanceState, "")
-		for i, starter := range starters {
-			plugin := pluginsToActivate[i]
-			startStatus.Update(app.StartPhaseEventWithInstance, nil, plugin)
-			fmt.Printf("Performing WithInstance step for %s\n", plugin)
-			if err := starter.WithInstance(*manager.InternalInstanceState); err != nil {
-				app.Fatalf("Failed to execute with instance hook, plugin: %s, error: %s\n", plugin, err)
+		for _, starter := range starters {
+			plog := starterLogger(starter, "WithInstance")
+			plog.Info("Executing plugin")
+			startStatus.Update(app.StartPhaseEventWithInstance, nil, starter.ID)
+			if err := starter.Starter.WithInstance(*manager.InternalInstanceState); err != nil {
+				app.ErrorLogger(plog, err).Fatal(app.ErrFailedEventPlugin)
 			}
 		}
 
 		startStatus.Update(app.StartPhaseInstanceRunning, manager.InternalInstanceState, "")
 	}
 
-	err = manager.Manage()
+	if err := manager.Manage(); err != nil {
+		app.ErrorLogger(nil, err).Fatal("Failed to manage instance")
+	}
 
 	startStatus.Update(app.StartPhaseEventAfterInstance, manager.InternalInstanceState, "")
-	for i, starter := range starters {
-		plugin := pluginsToActivate[i]
-		fmt.Printf("Performing AfterInstance step for %s\n", plugin)
-		if err := starter.AfterInstance(*manager.InternalInstanceState); err != nil {
-			app.Fatalf("Failed to execute after instance hook, plugin: %s, error: %s\n", plugin, err)
+	for _, starter := range starters {
+		plog := starterLogger(starter, "AfterInstance")
+		plog.Info("Executing plugin")
+		startStatus.Update(app.StartPhaseEventAfterInstance, nil, starter.ID)
+		if err := starter.Starter.AfterInstance(*manager.InternalInstanceState); err != nil {
+			app.ErrorLogger(plog, err).Fatal(app.ErrFailedEventPlugin)
 		}
 	}
 
 	startStatus.Update(app.StartPhaseShutdown, nil, "")
-
-	if err != nil {
-		app.Fatalf("Error managing instance, error: %s\n", err)
-	}
 }
 
 func startHealthCheck() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(startStatus); err != nil {
-			panic(err)
+			app.ErrorLogger(nil, err).Fatal("Failed to encode JSON")
 		}
 	})
 
 	http.ListenAndServe(fmt.Sprintf(":%d", iscenv.PortInternalHC), nil)
+}
+
+func starterLogger(si *starterInfo, method string) *log.Entry {
+	return app.PluginLogger(si.ID, method, si.Path)
 }

@@ -18,8 +18,6 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
-	"log"
 	"path/filepath"
 	"strings"
 	"time"
@@ -50,12 +48,10 @@ var startCmd = &cobra.Command{
 }
 
 func init() {
-	log.SetOutput(ioutil.Discard) // This is to silence the logging from go-plugin
-
 	// Since, we're adding flags and this has to happen in init, we're unfortunately going to have to load up and close the plugins here and in the start function, we could persist the manager globally but it's not as safe as a failure in init could concievably leave rpc servers running
 	startFlags.PluginFlags = make(map[string]*iscenv.PluginFlags)
 	if err := addStarterFlags(startCmd, &startFlags.Plugins, startFlags.PluginFlags); err != nil {
-		app.Fatalf("%s\n", err)
+		app.ErrorLogger(nil, err).Fatal(app.ErrFailedToAddPluginFlags)
 	}
 
 	addMultiInstanceFlags(startCmd, "start")
@@ -72,12 +68,12 @@ func init() {
 func start(_ *cobra.Command, args []string) {
 	environment, volumes, ports, err := getPluginConfig(startFlags.Version, startFlags.PluginFlags, strings.Split(startFlags.Plugins, ","))
 	if err != nil {
-		app.Fatalf("Error loading environment and volumes from plugins, error: %s\n", err)
+		app.ErrorLogger(nil, err).Fatal("Failed to load container settings from plugin")
 	}
 
 	exe, err := osext.Executable()
 	if err != nil {
-		app.Fatalf("Could not determine iscenv executable path for bind mount")
+		app.ErrorLogger(nil, err).Fatal("Failed to determine iscenv executable path for bind mount")
 	}
 
 	// Add the iscenv executable itself as a volume
@@ -90,7 +86,12 @@ func start(_ *cobra.Command, args []string) {
 
 	// TODO: latest should only get the latest local version when the version plugins exist
 	if startFlags.Version == "" {
-		startFlags.Version = app.GetVersions().Latest().Version
+		versions, err := app.GetVersions()
+		if err != nil {
+			app.ErrorLogger(nil, err).Fatal("Failed to determine latest version")
+		}
+
+		startFlags.Version = versions.Latest().Version
 	}
 
 	instances := multiInstanceFlags.getInstances(args)
@@ -102,8 +103,9 @@ func start(_ *cobra.Command, args []string) {
 	}
 
 	for _, instanceName := range instances {
-		instanceName := strings.ToLower(instanceName)
-		id, err := app.DockerStart(app.DockerStartOptions{
+		ilog := app.InstanceLoggerArgs(instanceName, "")
+		ilog.Info("Starting instance")
+		_, err := app.DockerStart(app.DockerStartOptions{
 			Name:             instanceName,
 			Repository:       iscenv.Repository,
 			Version:          startFlags.Version,
@@ -118,20 +120,21 @@ func start(_ *cobra.Command, args []string) {
 			ContainerLinks:   startFlags.ContainerLinks,
 			Recreate:         startFlags.Remove,
 		})
+
 		if err != nil {
-			app.Fatalf("Could not create instance, name: %s, error: %s", instanceName, err)
+			app.ErrorLogger(ilog, err).Fatal("Failed to create instance")
 		}
 
-		// Wait for the instance to fully start and all appropriate plugins to complete
-		instance := app.GetInstances().Find(instanceName)
+		instance, ilog := app.FindInstanceAndLogger(instanceName)
 		if instance == nil {
-			app.Fatalf("Could not find newly created instance, name: %s, error: %s", instanceName, err)
-		}
-		if err := app.WaitForInstance(instance, time.Duration(startFlags.StartTimeout)*time.Second); err != nil {
-			app.Fatalf("Error waiting for instance to start, name: %s, error: %s", instanceName, err)
+			ilog.Fatal("Failed to find newly created instance")
 		}
 
-		fmt.Println(id)
+		if err := app.WaitForInstance(instance, time.Duration(startFlags.StartTimeout)*time.Second); err != nil {
+			app.ErrorLogger(ilog, err).Fatal("Failed to start instance")
+		}
+
+		ilog.Info("Started instance")
 	}
 }
 
@@ -145,19 +148,19 @@ func getPluginConfig(version string, pluginFlags map[string]*iscenv.PluginFlags,
 		// Mount the plugin itself into the /bin directory
 		volumes = append(volumes, fmt.Sprintf("%s:%s/%s:ro", pluginPath, iscenv.InternalISCEnvBinaryDir, filepath.Base(pluginPath)))
 		if env, err := starter.Environment(version, *pluginFlags[id]); err != nil {
-			return err
+			return app.NewPluginError(id, "Environment", pluginPath, err)
 		} else if env != nil {
 			environment = append(environment, env...)
 		}
 
 		if vols, err := starter.Volumes(version, *pluginFlags[id]); err != nil {
-			return err
+			return app.NewPluginError(id, "Volumes", pluginPath, err)
 		} else if vols != nil {
 			volumes = append(volumes, vols...)
 		}
 
 		if pts, err := starter.Ports(version, *pluginFlags[id]); err != nil {
-			return err
+			return app.NewPluginError(id, "Ports", pluginPath, err)
 		} else if pts != nil {
 			ports = append(ports, pts...)
 		}

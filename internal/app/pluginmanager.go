@@ -18,6 +18,8 @@ package app
 
 import (
 	"fmt"
+	"io/ioutil"
+	golog "log"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -28,6 +30,11 @@ import (
 )
 
 type activatePluginFn func(id, pluginPath string, raw interface{}) error
+
+func init() {
+	// Throw away the logs from go-plugin
+	golog.SetOutput(ioutil.Discard)
+}
 
 func NewPluginManager(applicationName, pluginType string, iscenvPlugin plugin.Plugin) (*PluginManager, error) {
 	exeDir, err := osext.ExecutableFolder()

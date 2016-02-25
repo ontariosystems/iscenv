@@ -17,9 +17,9 @@ limitations under the License.
 package cmd
 
 import (
+	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/ontariosystems/iscenv/internal/app"
 )
 
 var globalFlags = struct {
@@ -35,13 +35,15 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		app.Fatalf("%s", err)
+		log.Fatal(err)
 	}
 }
 
 func init() {
 	cobra.OnInitialize(initConfig)
 
+	// FIXME: Replace with log level
+	// FIXME: Add switch to flip logs to JSON
 	rootCmd.PersistentFlags().BoolVarP(&globalFlags.Verbose, "verbose", "", false, "verbose output")
 	rootCmd.PersistentFlags().StringVar(&globalFlags.ConfigFile, "config", "", "config file (default is ~/.config/iscenv/iscenv.yaml")
 }

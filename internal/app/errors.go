@@ -17,24 +17,13 @@ limitations under the License.
 package app
 
 import (
-	log "github.com/Sirupsen/logrus"
-	docker "github.com/fsouza/go-dockerclient"
+	"errors"
 )
 
-var DockerClient *docker.Client
-
-const (
-	DockerSocket = "unix:///var/run/docker.sock"
+var (
+	ErrNoSuchInstance         = errors.New("No such instance")
+	ErrSingleInstanceArg      = errors.New("Must provide a single instance as the first argument")
+	ErrFailedToAddPluginFlags = errors.New("Failed to add flags from plugin")
+	ErrNotInContainer         = errors.New("Not in Docker container")
+	ErrFailedEventPlugin      = errors.New("Failed to execute event plugin")
 )
-
-func init() {
-	var err error
-
-	slog := log.WithField("dockerSocket", DockerSocket)
-	// Normally, I would not pre-emptively exit outside of the commands themselves but since this is an init there's not much choice
-	if DockerClient, err = docker.NewClient(DockerSocket); err != nil {
-		ErrorLogger(slog, err).Fatal(slog, err, "Failed to create docker client")
-	}
-
-	slog.Debug("Created docker client")
-}

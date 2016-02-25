@@ -16,10 +16,20 @@ limitations under the License.
 
 package app
 
-type EnsurableFn func() error
-
-func Ensure(fn EnsurableFn) {
-	if err := fn(); err != nil {
-		Fatalf("%s\n", err)
+func NewDockerConfigError(path, registry string, err error) *DockerConfigError {
+	return &DockerConfigError{
+		ConfigPath: path,
+		Registry:   registry,
+		Err:        err,
 	}
+}
+
+type DockerConfigError struct {
+	ConfigPath string
+	Registry   string
+	Err        error
+}
+
+func (dce *DockerConfigError) Error() string {
+	return dce.Err.Error()
 }

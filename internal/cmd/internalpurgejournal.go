@@ -17,13 +17,13 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 
 	"github.com/ontariosystems/iscenv/internal/app"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -45,30 +45,32 @@ func internalPurgeJournal(_ *cobra.Command, _ []string) {
 
 	journals, err := filepath.Glob("/data/journal/[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].[0-9][0-9][0-9]")
 	if err != nil {
-		app.Fatalf("Failed to list journal files: %s", err)
+		app.ErrorLogger(nil, err).Fatal("Failed to list journal files")
 	}
 
 	if len(journals) < 2 {
-		fmt.Printf("  - no old journal files found\n")
+		log.Info("No old journal files found")
 		return
 	}
 
 	sort.Strings(journals)
 	for _, journal := range journals[0 : len(journals)-1] {
+		jlog := log.WithField("journalFile", journal)
+
 		f, err := os.Open(journal)
 		if err != nil {
-			app.Fatalf("Could not open journal file %s: %s", journal, err)
+			app.ErrorLogger(jlog, err).Fatal("Failed to open journal file")
 		}
 
 		fi, err := f.Stat()
 		if err != nil {
-			app.Fatalf("Could not stat journal file %s: %s", journal, err)
+			app.ErrorLogger(jlog, err).Fatal("Failed to stat journal file")
 		}
 
 		if err := os.Remove(journal); err != nil {
-			app.Fatalf("Could not delete journal, path: %s, error: %s", journal, err)
-		} else {
-			fmt.Printf("  - deleted: %s (%v MB)\n", journal, fi.Size()/1024/1024)
+			app.ErrorLogger(jlog, err).Fatal("Failed to remove journal file")
 		}
+
+		jlog.WithField("journalSize", fi.Size()/1024/1024).Info("Deleted journal file")
 	}
 }

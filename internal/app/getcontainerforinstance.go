@@ -21,11 +21,6 @@ import (
 	"github.com/ontariosystems/iscenv/iscenv"
 )
 
-func GetContainerForInstance(i *iscenv.ISCInstance) *docker.Container {
-	container, err := DockerClient.InspectContainer(i.ID)
-	if err != nil {
-		Fatalf("Could not inspect container, instance: %s, id: %s\n", i.Name, i.ID)
-	}
-
-	return container
+func GetContainerForInstance(instance *iscenv.ISCInstance) (*docker.Container, error) {
+	return DockerClient.InspectContainer(instance.ID)
 }
