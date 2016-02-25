@@ -30,3 +30,14 @@ func ServeStartPlugin(impl Starter) {
 		Plugins:         pluginMap,
 	})
 }
+
+func ServeVersionsPlugin(impl Versioner) {
+	pluginMap := map[string]plugin.Plugin{
+		VersionerKey: VersionerPlugin{Plugin: impl},
+	}
+
+	plugin.Serve(&plugin.ServeConfig{
+		HandshakeConfig: PluginHandshake,
+		Plugins:         pluginMap,
+	})
+}

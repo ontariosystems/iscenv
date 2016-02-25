@@ -84,9 +84,10 @@ func start(_ *cobra.Command, args []string) {
 	ports = append(ports, fmt.Sprintf("+%d:%d", iscenv.PortExternalWeb, iscenv.PortInternalWeb))
 	ports = append(ports, fmt.Sprintf("+%d:%d", iscenv.PortExternalHC, iscenv.PortInternalHC))
 
-	// TODO: latest should only get the latest local version when the version plugins exist
+	// If no version was passed we will use the latest already downloaded image.  This gives some level of predictability to this feature.  You won't suddenly end up with a brand new field test version when you recreate an instance.
 	if startFlags.Version == "" {
-		versions, err := app.GetVersions()
+		// Get the local versions (passing an empty plugins list means *only* local)
+		versions, err := getVersions(iscenv.Repository, []string{})
 		if err != nil {
 			app.ErrorLogger(nil, err).Fatal("Failed to determine latest version")
 		}
