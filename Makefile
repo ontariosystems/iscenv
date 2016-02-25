@@ -18,7 +18,13 @@ version:
 build: version
 	mkdir -p $(PKGDIR)
 	echo PRODUCT_VERSION=$(VERSION) > pkg/versions.properties
+	# Primary executable
 	$(call compile,linux,amd64)
+
+	# Versioner Plugins
+	$(call compile_plugin,linux,amd64,versions,local)
+
+	# Starter Plugins
 	$(call compile_plugin,linux,amd64,start,homedir)
 	$(call compile_plugin,linux,amd64,start,license-key)
 

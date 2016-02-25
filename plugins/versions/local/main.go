@@ -14,20 +14,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package app
+package main
 
 import (
 	"regexp"
 	"strings"
 
-	"github.com/ontariosystems/iscenv/iscenv"
-
-	"github.com/fsouza/go-dockerclient"
+	log "github.com/Sirupsen/logrus"
+	docker "github.com/fsouza/go-dockerclient"
 	"github.com/mcuadros/go-version"
+	"github.com/ontariosystems/iscenv/iscenv"
 )
 
-// TODO: This needs to be a plugin with a default implementation that looks for images locally
-func GetVersions() (iscenv.ISCVersions, error) {
+var DockerClient *docker.Client
+
+func main() {
+	var err error
+	if DockerClient, err = docker.NewClient(iscenv.DockerSocket); err != nil {
+		log.WithError(err).Fatal("Failed to create docker client")
+	}
+	iscenv.ServeVersionsPlugin(new(Plugin))
+}
+
+type Plugin struct{}
+
+func (*Plugin) Versions(image string) (iscenv.ISCVersions, error) {
 	images, err := DockerClient.ListImages(docker.ListImagesOptions{All: false})
 	if err != nil {
 		return nil, err

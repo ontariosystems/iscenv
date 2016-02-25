@@ -32,6 +32,7 @@ const (
 	PortExternalHC = 58772
 
 	// TODO: These should be defaults and should be configurable with viper
+	DockerSocket    = "unix:///var/run/docker.sock"
 	ContainerPrefix = ApplicationName + "-"
 	Registry        = "quay.io"
 	ImageName       = "ontsys/centos-ensemble"
