@@ -25,6 +25,7 @@ import (
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/iscenv/internal/app"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/kardianos/osext"
 	"github.com/spf13/cobra"
 )
@@ -84,15 +85,28 @@ func start(_ *cobra.Command, args []string) {
 	ports = append(ports, fmt.Sprintf("+%d:%d", iscenv.PortExternalWeb, iscenv.PortInternalWeb))
 	ports = append(ports, fmt.Sprintf("+%d:%d", iscenv.PortExternalHC, iscenv.PortInternalHC))
 
+	rlog := app.DockerRepoLogger(iscenv.Repository)
+	log.Debug("Retrieving local versions")
+	// Get the local versions (passing an empty plugins list means *only* local)
+	versions, err := getVersions(iscenv.Repository, []string{})
+	if err != nil {
+		app.ErrorLogger(rlog, err).Fatal("Failed to retrieve versions")
+	}
+
 	// If no version was passed we will use the latest already downloaded image.  This gives some level of predictability to this feature.  You won't suddenly end up with a brand new field test version when you recreate an instance.
 	if startFlags.Version == "" {
-		// Get the local versions (passing an empty plugins list means *only* local)
-		versions, err := getVersions(iscenv.Repository, []string{})
-		if err != nil {
-			app.ErrorLogger(nil, err).Fatal("Failed to determine latest version")
+		if len(versions) == 0 {
+			rlog.Fatal("No local versions, must provide version with --version flag")
 		}
-
 		startFlags.Version = versions.Latest().Version
+	} else {
+		if !versions.Exists(startFlags.Version) {
+			vlog := rlog.WithField("version", startFlags.Version)
+			vlog.Info("Unable to find version locally, attempting to download.  This may take some time.")
+			if err := app.DockerPull(startFlags.Version); err != nil {
+				vlog.WithError(err).Fatal("Failed to pull image")
+			}
+		}
 	}
 
 	instances := multiInstanceFlags.getInstances(args)
