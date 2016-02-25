@@ -22,8 +22,13 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	defaultLogLevel = log.InfoLevel
+)
+
 var globalFlags = struct {
-	Verbose    bool
+	LogJSON    bool
+	LogLevel   string
 	ConfigFile string
 }{}
 
@@ -40,15 +45,31 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
+	cobra.OnInitialize(
+		initLogs,
+		initConfig,
+	)
 
-	// FIXME: Replace with log level
-	// FIXME: Add switch to flip logs to JSON
-	rootCmd.PersistentFlags().BoolVarP(&globalFlags.Verbose, "verbose", "", false, "verbose output")
+	rootCmd.PersistentFlags().BoolVar(&globalFlags.LogJSON, "log-json", false, "use JSON formatted logs")
+	rootCmd.PersistentFlags().StringVar(&globalFlags.LogLevel, "log-level", defaultLogLevel.String(), "log level")
 	rootCmd.PersistentFlags().StringVar(&globalFlags.ConfigFile, "config", "", "config file (default is ~/.config/iscenv/iscenv.yaml")
 }
 
+func initLogs() {
+	if globalFlags.LogJSON {
+		log.SetFormatter(new(log.JSONFormatter))
+	}
+
+	if level, err := log.ParseLevel(globalFlags.LogLevel); err == nil {
+		log.SetLevel(level)
+		log.WithField("logLevel", level.String()).Debug("Switched log level")
+	} else {
+		log.WithField("logLevel", globalFlags.LogLevel).Error("Unknown log level, using default")
+	}
+}
+
 func initConfig() {
+
 	if globalFlags.ConfigFile != "" {
 		viper.SetConfigFile(globalFlags.ConfigFile)
 	}
