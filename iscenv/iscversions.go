@@ -21,3 +21,17 @@ type ISCVersions []*ISCVersion
 func (evs ISCVersions) Latest() *ISCVersion {
 	return evs[len(evs)-1]
 }
+
+func (evs ISCVersions) Exists(versionString string) bool {
+	return evs.Find(versionString) != nil
+}
+
+func (evs ISCVersions) Find(versionString string) *ISCVersion {
+	for _, version := range evs {
+		if version.Version == versionString {
+			return version
+		}
+	}
+
+	return nil
+}

@@ -27,8 +27,11 @@ import (
 	"github.com/ontariosystems/iscenv/iscenv"
 )
 
-const NewDefaultDockerConfigName = ".docker/config.json"
-const OldDefaultDockerConfigName = ".dockercfg"
+const (
+	NewConfigKey               = "auths"
+	NewDefaultDockerConfigName = ".docker/config.json"
+	OldDefaultDockerConfigName = ".dockercfg"
+)
 
 // Will return nil, nil if the file simply doesn't exist
 func LoadDefaultDockerConfig() (*iscenv.DockerConfig, error) {
@@ -51,7 +54,20 @@ func LoadDockerConfig(path string) (*iscenv.DockerConfig, error) {
 		Entries: make(map[string]iscenv.DockerConfigEntry),
 	}
 
-	if err := json.Unmarshal(bytes, &cfg.Entries); err != nil {
+	// There are two different potential formats of docker config, we're going to attempt to autodetch which one this is
+	// We can't just base it on the path because they can provide random paths
+	eval := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(bytes, &eval); err != nil {
+		return nil, NewDockerConfigError(path, "", err)
+	}
+
+	var rm json.RawMessage
+	var ok bool
+	if rm, ok = eval[NewConfigKey]; !ok {
+		rm = json.RawMessage(bytes)
+	}
+
+	if err := json.Unmarshal(rm, &cfg.Entries); err != nil {
 		return nil, NewDockerConfigError(path, "", err)
 	}
 
