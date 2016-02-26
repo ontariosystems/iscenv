@@ -130,10 +130,15 @@ func start(_ *cobra.Command, args []string) {
 			Volumes:          volumes,
 			Ports:            ports,
 			Entrypoint:       []string{"/bin/iscenv", "_start"},
-			Command:          []string{fmt.Sprintf("--plugins=%s", startFlags.Plugins)}, // TODO: Plugin parameters and parameters passed from start itself
-			VolumesFrom:      startFlags.VolumesFrom,
-			ContainerLinks:   startFlags.ContainerLinks,
-			Recreate:         startFlags.Remove,
+			Command: []string{
+				// TODO: Plugin parameters and additional parameters passed from start itself (maybe)
+				fmt.Sprintf("--plugins=%s", startFlags.Plugins),
+				fmt.Sprintf("--log-level=%s", globalFlags.LogLevel),
+				fmt.Sprintf("--log-json=%t", globalFlags.LogJSON),
+			},
+			VolumesFrom:    startFlags.VolumesFrom,
+			ContainerLinks: startFlags.ContainerLinks,
+			Recreate:       startFlags.Remove,
 		})
 
 		if err != nil {
@@ -159,28 +164,33 @@ func getPluginConfig(version string, pluginFlags map[string]*iscenv.PluginFlags,
 	volumes = make([]string, 0)
 	ports = make([]string, 0)
 
-	if err := activateStartersAndClose(pluginsToActivate, func(id, pluginPath string, starter iscenv.Starter) error {
-		// Mount the plugin itself into the /bin directory
-		volumes = append(volumes, fmt.Sprintf("%s:%s/%s:ro", pluginPath, iscenv.InternalISCEnvBinaryDir, filepath.Base(pluginPath)))
-		if env, err := starter.Environment(version, *pluginFlags[id]); err != nil {
-			return app.NewPluginError(id, "Environment", pluginPath, err)
-		} else if env != nil {
-			environment = append(environment, env...)
-		}
+	if err := activateStartersAndClose(pluginsToActivate,
+		app.PluginArgs{
+			LogLevel: globalFlags.LogLevel,
+			LogJSON:  globalFlags.LogJSON,
+		},
+		func(id, pluginPath string, starter iscenv.Starter) error {
+			// Mount the plugin itself into the /bin directory
+			volumes = append(volumes, fmt.Sprintf("%s:%s/%s:ro", pluginPath, iscenv.InternalISCEnvBinaryDir, filepath.Base(pluginPath)))
+			if env, err := starter.Environment(version, *pluginFlags[id]); err != nil {
+				return app.NewPluginError(id, "Environment", pluginPath, err)
+			} else if env != nil {
+				environment = append(environment, env...)
+			}
 
-		if vols, err := starter.Volumes(version, *pluginFlags[id]); err != nil {
-			return app.NewPluginError(id, "Volumes", pluginPath, err)
-		} else if vols != nil {
-			volumes = append(volumes, vols...)
-		}
+			if vols, err := starter.Volumes(version, *pluginFlags[id]); err != nil {
+				return app.NewPluginError(id, "Volumes", pluginPath, err)
+			} else if vols != nil {
+				volumes = append(volumes, vols...)
+			}
 
-		if pts, err := starter.Ports(version, *pluginFlags[id]); err != nil {
-			return app.NewPluginError(id, "Ports", pluginPath, err)
-		} else if pts != nil {
-			ports = append(ports, pts...)
-		}
-		return nil
-	}); err != nil {
+			if pts, err := starter.Ports(version, *pluginFlags[id]); err != nil {
+				return app.NewPluginError(id, "Ports", pluginPath, err)
+			} else if pts != nil {
+				ports = append(ports, pts...)
+			}
+			return nil
+		}); err != nil {
 		return nil, nil, nil, err
 	}
 

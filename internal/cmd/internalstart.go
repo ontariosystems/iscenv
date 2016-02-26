@@ -75,16 +75,22 @@ func internalStart(_ *cobra.Command, _ []string) {
 	starters := make([]*starterInfo, len(pluginsToActivate))
 
 	i := 0
-	pm, err := activateStarters(pluginsToActivate, func(id, pluginPath string, starter iscenv.Starter) error {
-		startStatus.Update(app.StartPhaseInitPlugins, nil, id)
-		starters[i] = &starterInfo{
-			ID:      id,
-			Path:    pluginPath,
-			Starter: starter,
-		}
-		i++
-		return nil
-	})
+	pm, err := activateStarters(
+		pluginsToActivate,
+		app.PluginArgs{
+			LogLevel: globalFlags.LogLevel,
+			LogJSON:  globalFlags.LogJSON,
+		},
+		func(id, pluginPath string, starter iscenv.Starter) error {
+			startStatus.Update(app.StartPhaseInitPlugins, nil, id)
+			starters[i] = &starterInfo{
+				ID:      id,
+				Path:    pluginPath,
+				Starter: starter,
+			}
+			i++
+			return nil
+		})
 
 	if pm != nil {
 		defer pm.Close()

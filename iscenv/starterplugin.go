@@ -55,6 +55,7 @@ type Starter interface {
 // The client (primary executable) RPC-based implementation of the interface
 type StarterRPC struct{ client *rpc.Client }
 
+// The logger is intentionally not passed to this method as logging cannot yet be configured during the flag setup...
 func (s StarterRPC) Flags() (PluginFlags, error) {
 	var resp PluginFlags
 	err := s.client.Call("Plugin.Flags", new(interface{}), &resp)

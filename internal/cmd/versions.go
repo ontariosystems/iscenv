@@ -140,7 +140,7 @@ func getVersions(image string, plugins []string) (iscenv.ISCVersions, error) {
 }
 
 func getVersionerPM() *app.PluginManager {
-	pm, err := app.NewPluginManager(iscenv.ApplicationName, iscenv.VersionerKey, iscenv.VersionerPlugin{})
+	pm, err := app.NewPluginManager(iscenv.ApplicationName, iscenv.VersionerKey, iscenv.VersionerPlugin{}, app.PluginArgs{LogLevel: globalFlags.LogLevel, LogJSON: globalFlags.LogJSON})
 	if err != nil {
 		log.WithError(err).Fatal("Failed to create plugin manager")
 	}

@@ -24,8 +24,8 @@ import (
 type activateStarterFn func(id, pluginPath string, starter iscenv.Starter) error
 
 // if pluginsToActivate is nil (rather than an empty slice, it means all)
-func activateStartersAndClose(pluginsToActivate []string, fn activateStarterFn) error {
-	pm, err := activateStarters(pluginsToActivate, fn)
+func activateStartersAndClose(pluginsToActivate []string, pluginArgs app.PluginArgs, fn activateStarterFn) error {
+	pm, err := activateStarters(pluginsToActivate, pluginArgs, fn)
 	if pm != nil {
 		defer pm.Close()
 	}
@@ -34,8 +34,8 @@ func activateStartersAndClose(pluginsToActivate []string, fn activateStarterFn) 
 
 // if pluginsToActivate is nil (rather than an empty slice, it means all)
 // You must check to see if pm is nil and call close *even* if there is an error
-func activateStarters(pluginsToActivate []string, fn activateStarterFn) (pm *app.PluginManager, err error) {
-	pm, err = app.NewPluginManager(iscenv.ApplicationName, iscenv.StarterKey, iscenv.StarterPlugin{})
+func activateStarters(pluginsToActivate []string, pluginArgs app.PluginArgs, fn activateStarterFn) (pm *app.PluginManager, err error) {
+	pm, err = app.NewPluginManager(iscenv.ApplicationName, iscenv.StarterKey, iscenv.StarterPlugin{}, pluginArgs)
 	if err != nil {
 		return nil, err
 	}
