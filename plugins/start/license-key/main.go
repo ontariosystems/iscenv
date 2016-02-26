@@ -24,8 +24,12 @@ import (
 	"path/filepath"
 	"syscall"
 
+	log "github.com/Sirupsen/logrus"
+
 	"github.com/ontariosystems/iscenv/iscenv"
 )
+
+var plog = iscenv.PLog()
 
 const (
 	envName = "ISC_KEY_URL"
@@ -79,11 +83,12 @@ func (*Plugin) BeforeInstance(state iscenv.InternalInstanceState) error {
 	gid := stat.Gid
 
 	keyPath := filepath.Join(mgrDir, "cache.key")
-	fmt.Println("Updating cache.key")
-	fmt.Printf("    URL: %s", url)
-	fmt.Printf("   Path: %s", keyPath)
-	fmt.Printf("  Owner: %s", uid)
-	fmt.Printf("  Group: %s", gid)
+	plog.WithFields(log.Fields{
+		"url":   url,
+		"path":  keyPath,
+		"owner": uid,
+		"group": gid,
+	}).Debug("Updating ISC product license file")
 
 	resp, err := UnsafeGet(url)
 	if err != nil {
@@ -107,6 +112,13 @@ func (*Plugin) BeforeInstance(state iscenv.InternalInstanceState) error {
 
 	os.Chown(keyPath, int(uid), int(gid))
 	os.Chmod(keyPath, 0644)
+
+	plog.WithFields(log.Fields{
+		"url":   url,
+		"path":  keyPath,
+		"owner": uid,
+		"group": gid,
+	}).Info("Updated ISC product license file")
 
 	return nil
 }

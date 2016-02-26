@@ -51,7 +51,7 @@ func ssh(_ *cobra.Command, args []string) {
 	}
 
 	instance, ilog := app.FindInstanceAndLogger(args[0])
-	if instance != nil {
+	if instance == nil {
 		ilog.Fatal(app.ErrNoSuchInstance)
 	}
 

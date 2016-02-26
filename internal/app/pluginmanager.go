@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	golog "log"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -36,7 +37,7 @@ func init() {
 	golog.SetOutput(ioutil.Discard)
 }
 
-func NewPluginManager(applicationName, pluginType string, iscenvPlugin plugin.Plugin) (*PluginManager, error) {
+func NewPluginManager(applicationName, pluginType string, iscenvPlugin plugin.Plugin, args PluginArgs) (*PluginManager, error) {
 	exeDir, err := osext.ExecutableFolder()
 	if err != nil {
 		return nil, err
@@ -55,7 +56,9 @@ func NewPluginManager(applicationName, pluginType string, iscenvPlugin plugin.Pl
 			Client: plugin.NewClient(&plugin.ClientConfig{
 				HandshakeConfig: iscenv.PluginHandshake,
 				Plugins:         map[string]plugin.Plugin{pluginType: iscenvPlugin},
-				Cmd:             exec.Command(exe),
+				Cmd:             exec.Command(exe, args.ToArgs()...),
+				SyncStdout:      os.Stdout,
+				SyncStderr:      os.Stderr,
 			}),
 		}
 

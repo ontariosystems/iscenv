@@ -58,6 +58,8 @@ func init() {
 func initLogs() {
 	if globalFlags.LogJSON {
 		log.SetFormatter(new(log.JSONFormatter))
+	} else {
+		log.SetFormatter(&log.TextFormatter{ForceColors: true})
 	}
 
 	if level, err := log.ParseLevel(globalFlags.LogLevel); err == nil {

@@ -27,7 +27,8 @@ import (
 // Add the flags from the available starter plugins to the provided command
 func addStarterFlags(cmd *cobra.Command, pluginsFlag *string, pluginFlags map[string]*iscenv.PluginFlags) error {
 	available := make([]string, 0)
-	if err := activateStartersAndClose(nil, func(id, path string, starter iscenv.Starter) error {
+	// Logging can't have been configured yet, so we're using an empty PluginArgs
+	if err := activateStartersAndClose(nil, app.PluginArgs{}, func(id, path string, starter iscenv.Starter) error {
 		available = append(available, id)
 		flags, err := starter.Flags()
 		if err != nil {
