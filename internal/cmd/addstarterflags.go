@@ -22,26 +22,35 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/iscenv/internal/app"
+	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 )
 
 // Add the flags from the available starter plugins to the provided command
-func addStarterFlags(cmd *cobra.Command, pluginsFlag *string, pluginFlags map[string]*iscenv.PluginFlags) error {
+func addStarterFlags(cmd *cobra.Command) error {
 	available := make([]string, 0)
 	// Logging can't have been configured yet, so we're using an empty PluginArgs
 	if err := activateStartersAndClose(nil, app.PluginArgs{}, func(id, path string, starter iscenv.Starter) error {
 		available = append(available, id)
-		flags, err := starter.Flags()
+		pluginFlags, err := starter.Flags()
 		if err != nil {
 			return app.NewPluginError(id, "Flags", path, err)
 		}
-		pluginFlags[id] = &flags
-		pluginFlags[id].AddFlagsToFlagSet(id, cmd.Flags())
+
+		for _, pluginFlag := range pluginFlags.Flags {
+			flagName := id + "-" + pluginFlag.Flag
+			if pluginFlag.HasConfig {
+				flags.AddConfigFlag(cmd, flagName, pluginFlag.DefaultValue, pluginFlag.Usage)
+			} else {
+				flags.AddFlag(cmd, flagName, pluginFlag.DefaultValue, pluginFlag.Usage)
+			}
+		}
+
 		return nil
 	}); err != nil {
 		return err
 	}
 
-	cmd.Flags().StringVar(pluginsFlag, "plugins", "", "An ordered comma-separated list of plugins you wish to activate. available plugins: "+strings.Join(available, ","))
+	flags.AddConfigFlag(cmd, "plugins", "", "An ordered comma-separated list of plugins you wish to activate. available plugins: "+strings.Join(available, ","))
 
 	return nil
 }

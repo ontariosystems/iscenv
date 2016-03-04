@@ -19,8 +19,6 @@ package iscenv
 import (
 	"fmt"
 	"strings"
-
-	"github.com/spf13/pflag"
 )
 
 func NewPluginFlags() PluginFlags {
@@ -34,7 +32,7 @@ type PluginFlags struct {
 }
 
 // Add a Plugin Flag to the list of available flags.
-func (pf *PluginFlags) AddFlag(flag string, defaultValue interface{}, usage string) error {
+func (pf *PluginFlags) AddFlag(flag string, hasConfig bool, defaultValue interface{}, usage string) error {
 	flag = strings.ToLower(flag)
 	if _, ok := pf.Flags[flag]; ok {
 		return fmt.Errorf("Flag already exists, flag: %s", flag)
@@ -42,11 +40,4 @@ func (pf *PluginFlags) AddFlag(flag string, defaultValue interface{}, usage stri
 
 	pf.Flags[flag] = NewPluginFlag(flag, defaultValue, usage)
 	return nil
-}
-
-// This is to be called by iscenv primary process
-func (pf *PluginFlags) AddFlagsToFlagSet(prefix string, flags *pflag.FlagSet) {
-	for _, flag := range pf.Flags {
-		flag.AddFlagToFlagSet(prefix, flags)
-	}
 }

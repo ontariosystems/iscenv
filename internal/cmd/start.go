@@ -24,22 +24,12 @@ import (
 
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/iscenv/internal/app"
+	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/kardianos/osext"
 	"github.com/spf13/cobra"
 )
-
-var startFlags = struct {
-	Remove         bool
-	Version        string
-	PortOffset     int64
-	VolumesFrom    []string
-	ContainerLinks []string
-	StartTimeout   int64
-	Plugins        string
-	PluginFlags    map[string]*iscenv.PluginFlags
-}{}
 
 var startCmd = &cobra.Command{
 	Use:   "start INSTANCE [INSTANCE...]",
@@ -49,25 +39,51 @@ var startCmd = &cobra.Command{
 }
 
 func init() {
+	rootCmd.AddCommand(startCmd)
+
 	// Since, we're adding flags and this has to happen in init, we're unfortunately going to have to load up and close the plugins here and in the start function, we could persist the manager globally but it's not as safe as a failure in init could concievably leave rpc servers running
-	startFlags.PluginFlags = make(map[string]*iscenv.PluginFlags)
-	if err := addStarterFlags(startCmd, &startFlags.Plugins, startFlags.PluginFlags); err != nil {
+	if err := addStarterFlags(startCmd); err != nil {
 		app.ErrorLogger(nil, err).Fatal(app.ErrFailedToAddPluginFlags)
 	}
 
 	addMultiInstanceFlags(startCmd, "start")
-	startCmd.Flags().BoolVarP(&startFlags.Remove, "rm", "", false, "Remove existing instance before starting.  By default, this switch will preserve port settings when recreating the instance.")
-	startCmd.Flags().StringVarP(&startFlags.Version, "version", "v", "", "The version of ISC product to start.  By default this will find the latest version on your system.")
-	startCmd.Flags().StringSliceVar(&startFlags.ContainerLinks, "link", nil, "Add link to another container.  They should be in the format 'iscenv-{iscenvname}', 'iscenv-{iscenvname}:{alias}' or '{containername}:{alias}'")
-	startCmd.Flags().Int64VarP(&startFlags.PortOffset, "port-offset", "p", -1, "The port offset for this instance's ports.  -1 means autodetect.  Will increment by 1 if more than 1 instance is specified.")
-	startCmd.Flags().Int64Var(&startFlags.StartTimeout, "start-timeout", 300, "The number of seconds to wait on an instance to start before timing out.")
-	startCmd.Flags().StringSliceVar(&startFlags.VolumesFrom, "volumes-from", nil, "Mount volumes from the specified container(s)")
-
-	rootCmd.AddCommand(startCmd)
+	flags.AddFlag(startCmd, "rm", false, "Remove existing instance before starting.  By default, this switch will preserve port settings when recreating the instance.")
+	flags.AddFlagP(startCmd, "version", "v", "", "The version of ISC product to start.  By default this will find the latest version on your system.")
+	flags.AddFlag(startCmd, "link", []string(nil), "Add link to another container.  They should be in the format 'iscenv-{iscenvname}', 'iscenv-{iscenvname}:{alias}' or '{containername}:{alias}'")
+	flags.AddFlagP(startCmd, "port-offset", "p", int64(-1), "The port offset for this instance's ports.  -1 means autodetect.  Will increment by 1 if more than 1 instance is specified.")
+	flags.AddFlag(startCmd, "timeout", int64(300), "The number of seconds to wait on an instance to start before timing out.")
+	flags.AddFlag(startCmd, "volumes-from", []string(nil), "Mount volumes from the specified container(s)")
+	flags.AddConfigFlag(startCmd, "internal-instance", "docker", "The name of the actual ISC product instance within the container")
+	flags.AddConfigFlag(startCmd, "ccontrol-path", "ccontrol", "The path to the ccontrol executable within the container")
 }
 
-func start(_ *cobra.Command, args []string) {
-	environment, volumes, ports, err := getPluginConfig(startFlags.Version, startFlags.PluginFlags, strings.Split(startFlags.Plugins, ","))
+func start(cmd *cobra.Command, args []string) {
+	log.Debug("Retrieving local versions")
+	// Get the local versions (passing an empty plugins list means *only* local)
+	versions, err := getVersions(iscenv.Repository, []string{})
+	if err != nil {
+		app.ErrorLogger(nil, err).Fatal("Failed to retrieve local versions")
+	}
+
+	// If no version was passed we will use the latest already downloaded image.  This gives some level of predictability to this feature.  You won't suddenly end up with a brand new field test version when you recreate an instance.
+	version := flags.GetString(cmd, "version")
+	if version == "" {
+		if len(versions) == 0 {
+			log.Fatal("No local versions from which to choose latest, must provide version with --version flag")
+		}
+		version = versions.Latest().Version
+	}
+
+	if !versions.Exists(version) {
+		vlog := app.DockerRepoLogger(iscenv.Repository).WithField("version", version)
+		vlog.Info("Unable to find version locally, attempting to download.  This may take some time.")
+		if err := app.DockerPull(version); err != nil {
+			vlog.WithError(err).Fatal("Failed to pull image")
+		}
+	}
+
+	pluginsToActivate := strings.Split(flags.GetString(cmd, "plugins"), ",")
+	environment, volumes, ports, err := getPluginConfig(cmd, pluginsToActivate, version)
 	if err != nil {
 		app.ErrorLogger(nil, err).Fatal("Failed to load container settings from plugin")
 	}
@@ -85,33 +101,8 @@ func start(_ *cobra.Command, args []string) {
 	ports = append(ports, fmt.Sprintf("+%d:%d", iscenv.PortExternalWeb, iscenv.PortInternalWeb))
 	ports = append(ports, fmt.Sprintf("+%d:%d", iscenv.PortExternalHC, iscenv.PortInternalHC))
 
-	rlog := app.DockerRepoLogger(iscenv.Repository)
-	log.Debug("Retrieving local versions")
-	// Get the local versions (passing an empty plugins list means *only* local)
-	versions, err := getVersions(iscenv.Repository, []string{})
-	if err != nil {
-		app.ErrorLogger(rlog, err).Fatal("Failed to retrieve versions")
-	}
-
-	// If no version was passed we will use the latest already downloaded image.  This gives some level of predictability to this feature.  You won't suddenly end up with a brand new field test version when you recreate an instance.
-	if startFlags.Version == "" {
-		if len(versions) == 0 {
-			rlog.Fatal("No local versions, must provide version with --version flag")
-		}
-		startFlags.Version = versions.Latest().Version
-	} else {
-		if !versions.Exists(startFlags.Version) {
-			vlog := rlog.WithField("version", startFlags.Version)
-			vlog.Info("Unable to find version locally, attempting to download.  This may take some time.")
-			if err := app.DockerPull(startFlags.Version); err != nil {
-				vlog.WithError(err).Fatal("Failed to pull image")
-			}
-		}
-	}
-
-	instances := multiInstanceFlags.getInstances(args)
-
-	po := startFlags.PortOffset
+	instances := getMultipleInstances(cmd, args)
+	po := flags.GetInt64(cmd, "port-offset")
 	pos := po < 0 || len(instances) > 1
 	if po < 0 {
 		po = 0
@@ -123,7 +114,7 @@ func start(_ *cobra.Command, args []string) {
 		_, err := app.DockerStart(app.DockerStartOptions{
 			Name:             instanceName,
 			Repository:       iscenv.Repository,
-			Version:          startFlags.Version,
+			Version:          version,
 			PortOffset:       po,
 			PortOffsetSearch: pos,
 			Environment:      environment,
@@ -132,13 +123,15 @@ func start(_ *cobra.Command, args []string) {
 			Entrypoint:       []string{"/bin/iscenv", "_start"},
 			Command: []string{
 				// TODO: Plugin parameters and additional parameters passed from start itself (maybe)
-				fmt.Sprintf("--plugins=%s", startFlags.Plugins),
-				fmt.Sprintf("--log-level=%s", globalFlags.LogLevel),
-				fmt.Sprintf("--log-json=%t", globalFlags.LogJSON),
+				fmt.Sprintf("--instance=%s", flags.GetString(cmd, "internal-instance")),
+				fmt.Sprintf("--ccontrol-path=%s", flags.GetString(cmd, "ccontrol-path")),
+				fmt.Sprintf("--plugins=%s", flags.GetString(cmd, "plugins")),
+				fmt.Sprintf("--log-level=%s", flags.GetString(rootCmd, "log-level")),
+				fmt.Sprintf("--log-json=%t", flags.GetBool(rootCmd, "log-json")),
 			},
-			VolumesFrom:    startFlags.VolumesFrom,
-			ContainerLinks: startFlags.ContainerLinks,
-			Recreate:       startFlags.Remove,
+			VolumesFrom:    flags.GetStringSlice(cmd, "volumes-from"),
+			ContainerLinks: flags.GetStringSlice(cmd, "link"),
+			Recreate:       flags.GetBool(cmd, "rm"),
 		})
 
 		if err != nil {
@@ -150,7 +143,7 @@ func start(_ *cobra.Command, args []string) {
 			ilog.Fatal("Failed to find newly created instance")
 		}
 
-		if err := app.WaitForInstance(instance, time.Duration(startFlags.StartTimeout)*time.Second); err != nil {
+		if err := app.WaitForInstance(instance, time.Duration(flags.GetInt64(cmd, "timeout"))*time.Second); err != nil {
 			app.ErrorLogger(ilog, err).Fatal("Failed to start instance")
 		}
 
@@ -158,33 +151,35 @@ func start(_ *cobra.Command, args []string) {
 	}
 }
 
-func getPluginConfig(version string, pluginFlags map[string]*iscenv.PluginFlags, pluginsToActivate []string) (environment []string, volumes []string, ports []string, err error) {
+func getPluginConfig(cmd *cobra.Command, pluginsToActivate []string, version string) (environment []string, volumes []string, ports []string, err error) {
 
+	log.Debugf("Getting configuration from plugins: %v", len(pluginsToActivate))
 	environment = make([]string, 0)
 	volumes = make([]string, 0)
 	ports = make([]string, 0)
 
 	if err := activateStartersAndClose(pluginsToActivate,
 		app.PluginArgs{
-			LogLevel: globalFlags.LogLevel,
-			LogJSON:  globalFlags.LogJSON,
+			LogLevel: flags.GetString(rootCmd, "log-level"),
+			LogJSON:  flags.GetBool(rootCmd, "log-json"),
 		},
 		func(id, pluginPath string, starter iscenv.Starter) error {
+			flagValues := getPluginFlagValues(cmd, id)
 			// Mount the plugin itself into the /bin directory
 			volumes = append(volumes, fmt.Sprintf("%s:%s/%s:ro", pluginPath, iscenv.InternalISCEnvBinaryDir, filepath.Base(pluginPath)))
-			if env, err := starter.Environment(version, *pluginFlags[id]); err != nil {
+			if env, err := starter.Environment(version, flagValues); err != nil {
 				return app.NewPluginError(id, "Environment", pluginPath, err)
 			} else if env != nil {
 				environment = append(environment, env...)
 			}
 
-			if vols, err := starter.Volumes(version, *pluginFlags[id]); err != nil {
+			if vols, err := starter.Volumes(version, flagValues); err != nil {
 				return app.NewPluginError(id, "Volumes", pluginPath, err)
 			} else if vols != nil {
 				volumes = append(volumes, vols...)
 			}
 
-			if pts, err := starter.Ports(version, *pluginFlags[id]); err != nil {
+			if pts, err := starter.Ports(version, flagValues); err != nil {
 				return app.NewPluginError(id, "Ports", pluginPath, err)
 			} else if pts != nil {
 				ports = append(ports, pts...)
@@ -195,4 +190,17 @@ func getPluginConfig(version string, pluginFlags map[string]*iscenv.PluginFlags,
 	}
 
 	return environment, volumes, ports, nil
+}
+
+func getPluginFlagValues(cmd *cobra.Command, plugin string) map[string]interface{} {
+	flagValues := make(map[string]interface{})
+
+	prefix := cmd.Name() + "-" + plugin + "-"
+	for _, key := range flags.GetKeys() {
+		if strings.HasPrefix(key, prefix) {
+			flagValues[strings.TrimPrefix(key, prefix)] = flags.GetValueWithKey(key)
+		}
+	}
+
+	return flagValues
 }

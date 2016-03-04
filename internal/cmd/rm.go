@@ -35,8 +35,8 @@ func init() {
 	addMultiInstanceFlags(rmCmd, "rm")
 }
 
-func rm(_ *cobra.Command, args []string) {
-	instances := multiInstanceFlags.getInstances(args)
+func rm(cmd *cobra.Command, args []string) {
+	instances := getMultipleInstances(cmd, args)
 	for _, instanceName := range instances {
 		instance, ilog := app.FindInstanceAndLogger(instanceName)
 		if instance == nil {

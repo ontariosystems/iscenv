@@ -23,15 +23,12 @@ import (
 	log "github.com/Sirupsen/logrus"
 
 	"github.com/ontariosystems/iscenv/internal/app"
+	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 
 	"github.com/spf13/cobra"
 )
 
 type sshExecFn func(string, []string) error
-
-var sshFlags = struct {
-	Command string
-}{}
 
 var sshCmd = &cobra.Command{
 	Use:   "ssh INSTANCE",
@@ -42,10 +39,11 @@ var sshCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(sshCmd)
-	sshCmd.Flags().StringVarP(&sshFlags.Command, "command", "c", "", "Execute an SSH command directly")
+
+	flags.AddFlagP(sshCmd, "command", "c", "", "Execute a command over SSH and exit")
 }
 
-func ssh(_ *cobra.Command, args []string) {
+func ssh(cmd *cobra.Command, args []string) {
 	if len(args) != 1 {
 		log.Fatal(app.ErrSingleInstanceArg)
 	}
@@ -56,8 +54,8 @@ func ssh(_ *cobra.Command, args []string) {
 	}
 
 	var cmdArgs []string
-	if sshFlags.Command != "" {
-		cmdArgs = toArgs(sshFlags.Command)
+	if command := flags.GetString(cmd, "command"); command != "" {
+		cmdArgs = toArgs(command)
 	} else {
 		cmdArgs = defaultExecCommand
 	}

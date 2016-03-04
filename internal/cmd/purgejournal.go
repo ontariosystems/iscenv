@@ -36,8 +36,8 @@ func init() {
 	addMultiInstanceFlags(purgeJournalCmd, "start")
 }
 
-func purgeJournal(_ *cobra.Command, args []string) {
-	instances := multiInstanceFlags.getInstances(args)
+func purgeJournal(cmd *cobra.Command, args []string) {
+	instances := getMultipleInstances(cmd, args)
 	for _, instanceName := range instances {
 		instance, ilog := app.FindInstanceAndLogger(instanceName)
 		if instance == nil {
