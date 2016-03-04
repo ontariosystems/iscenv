@@ -28,14 +28,17 @@ import (
 )
 
 var internalPurgeJournalCmd = &cobra.Command{
-	Use:    "_purgejournal",
-	Short:  "internal: purge old journal files",
-	Long:   "DO NOT RUN THIS OUTSIDE OF AN INSTANCE CONTAINER. deletes all isc journal files that are not the current active journal file",
-	Hidden: true,
-	Run:    internalPurgeJournal,
+	Use:   "_purgejournal",
+	Short: "internal: purge old journal files",
+	Long:  "deletes all isc journal files that are not the current active journal file (this command is only available within containers)",
+	Run:   internalPurgeJournal,
 }
 
 func init() {
+	if err := app.EnsureWithinContainer("_purgejournal"); err != nil {
+		return
+	}
+
 	rootCmd.AddCommand(internalPurgeJournalCmd)
 }
 
