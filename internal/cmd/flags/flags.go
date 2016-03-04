@@ -117,7 +117,7 @@ func AddConfigFlagP(cmd *cobra.Command, name string, shorthand string, value int
 func AddFlagComplex(cmd *cobra.Command, persistent bool, cfg bool, name string, shorthand string, value interface{}, usage string) {
 	key := GetFlagKey(cmd, name)
 	if cfg {
-		usage += "  Configuration key path: " + key
+		usage += " (config path: " + key + ")"
 	}
 
 	f := &flag{config: cfg}

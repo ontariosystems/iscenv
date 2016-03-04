@@ -18,9 +18,10 @@ package iscenv
 
 import "fmt"
 
-func NewPluginFlag(flag string, defaultValue interface{}, usage string) *PluginFlag {
+func NewPluginFlag(flag string, hasConfig bool, defaultValue interface{}, usage string) *PluginFlag {
 	return &PluginFlag{
 		Flag:         flag,
+		HasConfig:    hasConfig,
 		Usage:        usage,
 		DefaultValue: defaultValue,
 	}

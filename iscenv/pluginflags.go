@@ -38,6 +38,6 @@ func (pf *PluginFlags) AddFlag(flag string, hasConfig bool, defaultValue interfa
 		return fmt.Errorf("Flag already exists, flag: %s", flag)
 	}
 
-	pf.Flags[flag] = NewPluginFlag(flag, defaultValue, usage)
+	pf.Flags[flag] = NewPluginFlag(flag, hasConfig, defaultValue, usage)
 	return nil
 }
