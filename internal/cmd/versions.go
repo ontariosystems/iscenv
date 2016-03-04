@@ -27,6 +27,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/iscenv/internal/app"
+	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 )
 
 const (
@@ -52,9 +53,9 @@ func init() {
 
 	rootCmd.AddCommand(versionsCmd)
 
-	versionsCmd.Flags().BoolVarP(&versionsFlags.NoTrunc, "no-trunc", "", false, "Don't truncate output")
-	versionsCmd.Flags().BoolVarP(&versionsFlags.Quiet, "quiet", "q", false, "Only display numeric IDs")
-	versionsCmd.Flags().StringVar(&versionsFlags.Plugins, "plugins", "", `An ordered comma-separated list of plugins you wish to activate.  The "local" versions plugin will always be active as as the baseline. available plugins: `+strings.Join(pm.AvailablePlugins(), ","))
+	flags.AddFlag(versionsCmd, "no-trunc", false, "Don't truncate output")
+	flags.AddFlagP(versionsCmd, "quiet", "q", false, "Only display numeric IDs")
+	flags.AddConfigFlag(versionsCmd, "plugins", "", `An ordered comma-separated list of plugins you wish to activate.  The "local" versions plugin will always be active as as the baseline. available plugins: `+strings.Join(pm.AvailablePlugins(), ","))
 }
 
 func versions(_ *cobra.Command, _ []string) {
@@ -140,7 +141,15 @@ func getVersions(image string, plugins []string) (iscenv.ISCVersions, error) {
 }
 
 func getVersionerPM() *app.PluginManager {
-	pm, err := app.NewPluginManager(iscenv.ApplicationName, iscenv.VersionerKey, iscenv.VersionerPlugin{}, app.PluginArgs{LogLevel: globalFlags.LogLevel, LogJSON: globalFlags.LogJSON})
+	pm, err := app.NewPluginManager(
+		iscenv.ApplicationName,
+		iscenv.VersionerKey,
+		iscenv.VersionerPlugin{},
+		app.PluginArgs{
+			LogLevel: flags.GetString(rootCmd, "log-level"),
+			LogJSON:  flags.GetBool(rootCmd, "log-json"),
+		},
+	)
 	if err != nil {
 		log.WithError(err).Fatal("Failed to create plugin manager")
 	}

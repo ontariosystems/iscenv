@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 )
 
 var restartCmd = &cobra.Command{
@@ -30,8 +31,8 @@ var restartCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(restartCmd)
 
-	restartCmd.Flags().UintVarP(&stopFlags.Timeout, "time", "t", 60, "The amount of time to wait for the instance to stop cleanly before killing it.")
 	addMultiInstanceFlags(restartCmd, "restart")
+	flags.AddFlagP(restartCmd, "time", "t", uint(60), "The amount of time to wait for the instance to stop cleanly before killing it.")
 }
 
 func restart(c *cobra.Command, args []string) {

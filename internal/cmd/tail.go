@@ -20,13 +20,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/ontariosystems/iscenv/internal/app"
+	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 )
-
-var tailFlags = struct {
-	Follow   bool
-	Lines    string
-	Filename string
-}{}
 
 var tailCmd = &cobra.Command{
 	Use:   "tail INSTANCE",
@@ -42,12 +37,12 @@ var tailFilenames = map[string]string{
 func init() {
 	rootCmd.AddCommand(tailCmd)
 
-	tailCmd.Flags().BoolVarP(&tailFlags.Follow, "follow", "f", false, "Follow log output")
-	tailCmd.Flags().StringVarP(&tailFlags.Lines, "lines", "n", "all", "Output all lines; or use -n K to output the last K lines; or use +K to output the Kth and following lines")
-	tailCmd.Flags().StringVarP(&tailFlags.Filename, "file", "l", "cconsole", "Filename to tail. `cconsole` is a magic filename, and the default")
+	flags.AddFlagP(tailCmd, "follow", "f", false, "Follow log output")
+	flags.AddFlagP(tailCmd, "lines", "n", "all", "Output all lines; or use -n K to output the last K lines; or use +K to output the Kth and following lines")
+	flags.AddFlagP(tailCmd, "file", "l", "cconsole", "Filename to tail. `cconsole` is a magic filename, and the default")
 }
 
-func tail(_ *cobra.Command, args []string) {
+func tail(cmd *cobra.Command, args []string) {
 	if len(args) != 1 {
 		log.Fatal(app.ErrSingleInstanceArg)
 	}
@@ -57,30 +52,34 @@ func tail(_ *cobra.Command, args []string) {
 		ilog.Fatal(app.ErrNoSuchInstance)
 	}
 
-	if err := app.DockerExec(instance, false, buildTailArgs(args)...); err != nil {
-		app.ErrorLogger(ilog.WithField("tailFile", tailFlags.Filename), err).Fatal("Failed to tail file")
+	if err := app.DockerExec(instance, false, buildTailArgs(cmd, args)...); err != nil {
+		app.ErrorLogger(ilog.WithField("tailFile", flags.GetString(cmd, "file")), err).Fatal("Failed to tail file")
 	}
 }
 
-func buildTailArgs(args []string) []string {
+func buildTailArgs(cmd *cobra.Command, args []string) []string {
 	tailArgs := []string{"tail"}
-	if tailFlags.Follow {
+	if flags.GetBool(cmd, "follow") {
 		tailArgs = append(tailArgs, "-f")
 	}
-	if tailFlags.Lines != "" {
-		if tailFlags.Lines == "all" {
-			tailFlags.Lines = "+0"
+
+	lines := flags.GetString(cmd, "lines")
+	if lines != "" {
+		if lines == "all" {
+			lines = "+0"
 		}
-		tailArgs = append(tailArgs, "-n", tailFlags.Lines)
+		tailArgs = append(tailArgs, "-n", lines)
 	}
 
-	if magicFilename, ok := tailFilenames[tailFlags.Filename]; ok {
-		tailFlags.Filename = magicFilename
+	file := flags.GetString(cmd, "file")
+	if actualFile, ok := tailFilenames[file]; ok {
+		file = actualFile
 	}
-	if tailFlags.Filename == "" {
+
+	if file == "" {
 		tailArgs = append(tailArgs, tailFilenames["cconsole"])
 	} else {
-		tailArgs = append(tailArgs, tailFlags.Filename)
+		tailArgs = append(tailArgs, file)
 	}
 
 	return tailArgs

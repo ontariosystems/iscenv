@@ -18,13 +18,10 @@ package cmd
 
 import (
 	"github.com/ontariosystems/iscenv/internal/app"
+	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 
 	"github.com/spf13/cobra"
 )
-
-var stopFlags = struct {
-	Timeout uint
-}{}
 
 var stopCmd = &cobra.Command{
 	Use:   "stop [OPTIONS] INSTANCE [INSTANCE...]",
@@ -36,12 +33,12 @@ var stopCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(stopCmd)
 
-	stopCmd.Flags().UintVarP(&stopFlags.Timeout, "time", "t", 60, "The number of seconds to wait for the instance to stop cleanly before killing it.")
 	addMultiInstanceFlags(stopCmd, "stop")
+	flags.AddFlagP(stopCmd, "time", "t", uint(60), "The number of seconds to wait for the instance to stop cleanly before killing it.")
 }
 
-func stop(_ *cobra.Command, args []string) {
-	instances := multiInstanceFlags.getInstances(args)
+func stop(cmd *cobra.Command, args []string) {
+	instances := getMultipleInstances(cmd, args)
 	for _, instanceName := range instances {
 		instance, ilog := app.FindInstanceAndLogger(instanceName)
 		if instance == nil {
@@ -49,7 +46,7 @@ func stop(_ *cobra.Command, args []string) {
 			continue
 		}
 
-		if err := app.DockerClient.StopContainer(instance.ID, stopFlags.Timeout); err != nil {
+		if err := app.DockerClient.StopContainer(instance.ID, flags.GetUint(cmd, "time")); err != nil {
 			app.ErrorLogger(ilog, err).Fatal("Failed to stop instance")
 		}
 

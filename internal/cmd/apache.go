@@ -51,10 +51,10 @@ func init() {
 	addMultiInstanceFlags(apacheCmd, "apache")
 }
 
-func configureApacheSite(_ *cobra.Command, args []string) {
+func configureApacheSite(cmd *cobra.Command, args []string) {
 	ensure(app.IsUserRoot)
 
-	instances := multiInstanceFlags.getInstances(args)
+	instances := getMultipleInstances(cmd, args)
 	var validInstances iscenv.ISCInstances
 	for _, instanceName := range instances {
 		instance := strings.ToLower(instanceName)

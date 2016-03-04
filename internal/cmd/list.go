@@ -23,14 +23,10 @@ import (
 	"time"
 
 	"github.com/ontariosystems/iscenv/internal/app"
+	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 
 	"github.com/spf13/cobra"
 )
-
-var listFlags = struct {
-	NoTrunc bool
-	Quiet   bool
-}{}
 
 var listCmd = &cobra.Command{
 	Use:   "list",
@@ -42,23 +38,23 @@ var listCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(listCmd)
 
-	listCmd.Flags().BoolVarP(&listFlags.NoTrunc, "no-trunc", "", false, "Don't truncate output")
-	listCmd.Flags().BoolVarP(&listFlags.Quiet, "quiet", "q", false, "Only display numeric IDs")
+	flags.AddFlag(listCmd, "no-trunc", false, "Don't truncate output")
+	flags.AddFlagP(listCmd, "quiet", "q", false, "Only display numeric IDs")
 }
 
-func list(_ *cobra.Command, _ []string) {
+func list(cmd *cobra.Command, _ []string) {
 	instances := app.GetInstances()
 	w := tabwriter.NewWriter(os.Stdout, 20, 1, 3, ' ', 0)
-	if !listFlags.Quiet {
+	if !flags.GetBool(cmd, "quiet") {
 		fmt.Fprintln(w, "CONTAINER ID\tVERSION\tCREATED\tSTATUS\tSUPERSERVER\tWEB\tNAME")
 	}
 
 	for _, instance := range instances {
 		id := instance.ID
-		if !listFlags.NoTrunc {
+		if !flags.GetBool(cmd, "no-trunc") {
 			id = id[:12]
 		}
-		if !listFlags.Quiet {
+		if !flags.GetBool(cmd, "quiet") {
 			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\t%d\t%s\n",
 				id,
 				instance.Version,

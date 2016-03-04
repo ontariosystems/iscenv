@@ -26,6 +26,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/iscenv/internal/app"
+	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 )
 
 type starterInfo struct {
@@ -33,13 +34,6 @@ type starterInfo struct {
 	Path    string
 	Starter iscenv.Starter
 }
-
-var internalStartFlags = struct {
-	Instance     string
-	CControlPath string
-	Plugins      string
-	PluginFlags  map[string]*iscenv.PluginFlags
-}{}
 
 var internalStartCmd = &cobra.Command{
 	Use:    "_start",
@@ -52,24 +46,26 @@ var internalStartCmd = &cobra.Command{
 var startStatus = app.NewStartStatus()
 
 func init() {
-	internalStartFlags.PluginFlags = make(map[string]*iscenv.PluginFlags)
-	if err := addStarterFlags(internalStartCmd, &internalStartFlags.Plugins, internalStartFlags.PluginFlags); err != nil {
+	if err := app.EnsureWithinContainer("_start"); err != nil {
+		return
+	}
+
+	rootCmd.AddCommand(internalStartCmd)
+
+	if err := addStarterFlags(internalStartCmd); err != nil {
 		app.ErrorLogger(nil, err).Fatal(app.ErrFailedToAddPluginFlags)
 	}
 
-	internalStartCmd.Flags().StringVarP(&internalStartFlags.Instance, "instance", "i", "docker", "The instance to manage")
-	internalStartCmd.Flags().StringVarP(&internalStartFlags.CControlPath, "ccontrolpath", "c", "ccontrol", "The path to the ccontrol executable in the image")
-
-	rootCmd.AddCommand(internalStartCmd)
+	flags.AddConfigFlagP(internalStartCmd, "instance", "i", "", "The instance to manage")
+	flags.AddConfigFlagP(internalStartCmd, "ccontrol-path", "c", "ccontrol", "The path to the ccontrol executable in the image")
 }
 
-func internalStart(_ *cobra.Command, _ []string) {
-	app.EnsureWithinContainer("_start")
+func internalStart(cmd *cobra.Command, _ []string) {
 
 	go startHealthCheck()
 
 	// We can't use the closing activator because we need the plugins to keep running the whole time that _start runs
-	pluginsToActivate := strings.Split(internalStartFlags.Plugins, ",")
+	pluginsToActivate := strings.Split(flags.GetString(cmd, "plugins"), ",")
 	startStatus.ActivePlugins = pluginsToActivate
 	startStatus.Update(app.StartPhaseInitPlugins, nil, "")
 	starters := make([]*starterInfo, len(pluginsToActivate))
@@ -78,8 +74,8 @@ func internalStart(_ *cobra.Command, _ []string) {
 	pm, err := activateStarters(
 		pluginsToActivate,
 		app.PluginArgs{
-			LogLevel: globalFlags.LogLevel,
-			LogJSON:  globalFlags.LogJSON,
+			LogLevel: flags.GetString(rootCmd, "log-level"),
+			LogJSON:  flags.GetBool(rootCmd, "log-json"),
 		},
 		func(id, pluginPath string, starter iscenv.Starter) error {
 			startStatus.Update(app.StartPhaseInitPlugins, nil, id)
@@ -101,7 +97,7 @@ func internalStart(_ *cobra.Command, _ []string) {
 	}
 
 	startStatus.Update(app.StartPhaseInitManager, nil, "")
-	manager, err := app.NewInternalInstanceManager(internalStartFlags.Instance, internalStartFlags.CControlPath)
+	manager, err := app.NewInternalInstanceManager(flags.GetString(cmd, "instance"), flags.GetString(cmd, "ccontrol-path"))
 	if err != nil {
 		app.ErrorLogger(nil, err).Fatal("Failed to create instance manager")
 	}

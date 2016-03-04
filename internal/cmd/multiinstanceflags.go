@@ -20,30 +20,23 @@ import (
 	"strings"
 
 	"github.com/ontariosystems/iscenv/internal/app"
+	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-var multiInstanceFlags multiInstanceOps
-
-type multiInstanceOps struct {
-	all    bool
-	up     bool
-	exited bool
-}
-
-func (this multiInstanceOps) validate(args []string) {
+func validateMultiInstanceFlags(cmd *cobra.Command, args []string) {
 	used := []string{}
-	if this.all {
+	if mif(cmd, "all") {
 		used = append(used, "--all")
 	}
 
-	if this.up {
+	if mif(cmd, "up") {
 		used = append(used, "--up")
 	}
 
-	if this.exited {
+	if mif(cmd, "exited") {
 		used = append(used, "--exited")
 	}
 
@@ -56,8 +49,8 @@ func (this multiInstanceOps) validate(args []string) {
 	}
 }
 
-func (this multiInstanceOps) getInstances(args []string) []string {
-	this.validate(args)
+func getMultipleInstances(cmd *cobra.Command, args []string) []string {
+	validateMultiInstanceFlags(cmd, args)
 
 	if len(args) > 0 {
 		// Instance names are case-insensitive on the command line but are always actually lower case
@@ -71,7 +64,7 @@ func (this multiInstanceOps) getInstances(args []string) []string {
 	names := []string{}
 	instances := app.GetInstances()
 	for _, instance := range instances {
-		if this.all || (this.up && strings.HasPrefix(instance.Status, "Up")) || (this.exited && strings.HasPrefix(instance.Status, "Exited")) {
+		if mif(cmd, "all") || (mif(cmd, "up") && strings.HasPrefix(instance.Status, "Up")) || (mif(cmd, "exited") && strings.HasPrefix(instance.Status, "Exited")) {
 			names = append(names, instance.Name)
 		}
 	}
@@ -79,8 +72,12 @@ func (this multiInstanceOps) getInstances(args []string) []string {
 	return names
 }
 
-func addMultiInstanceFlags(command *cobra.Command, commandDesc string) {
-	command.Flags().BoolVarP(&multiInstanceFlags.all, "all", "", false, "Run "+commandDesc+" on all existing iscenv instances")
-	command.Flags().BoolVarP(&multiInstanceFlags.up, "up", "", false, "Run "+commandDesc+" on all running iscenv instances")
-	command.Flags().BoolVarP(&multiInstanceFlags.exited, "exited", "", false, "Run "+commandDesc+" on all exited iscenv instances")
+func addMultiInstanceFlags(cmd *cobra.Command, commandDesc string) {
+	flags.AddFlag(cmd, "all", false, "Run "+commandDesc+" on all existing iscenv instances")
+	flags.AddFlag(cmd, "up", false, "Run "+commandDesc+" on all running iscenv instances")
+	flags.AddFlag(cmd, "exited", false, "Run "+commandDesc+" on all exited iscenv instances")
+}
+
+func mif(cmd *cobra.Command, name string) bool {
+	return flags.GetBool(cmd, name)
 }

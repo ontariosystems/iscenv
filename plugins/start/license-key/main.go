@@ -43,12 +43,12 @@ type Plugin struct{}
 
 func (*Plugin) Flags() (iscenv.PluginFlags, error) {
 	flags := iscenv.NewPluginFlags()
-	flags.AddFlag("url", "", "The full URL of the ISC product key to download")
+	flags.AddFlag("url", true, "", "The full URL of the ISC product key to download")
 	return flags, nil
 }
 
-func (*Plugin) Environment(_ string, flags iscenv.PluginFlags) ([]string, error) {
-	url, ok := flags.Flags["url"].Value.(string)
+func (*Plugin) Environment(_ string, flags map[string]interface{}) ([]string, error) {
+	url, ok := flags["url"].(string)
 	if !ok || url == "" {
 		return nil, nil
 	}
@@ -56,11 +56,11 @@ func (*Plugin) Environment(_ string, flags iscenv.PluginFlags) ([]string, error)
 	return []string{fmt.Sprintf("%s=%s", envName, url)}, nil
 }
 
-func (*Plugin) Volumes(_ string, _ iscenv.PluginFlags) ([]string, error) {
+func (*Plugin) Volumes(_ string, _ map[string]interface{}) ([]string, error) {
 	return nil, nil
 }
 
-func (*Plugin) Ports(_ string, _ iscenv.PluginFlags) ([]string, error) {
+func (*Plugin) Ports(_ string, _ map[string]interface{}) ([]string, error) {
 	return nil, nil
 }
 

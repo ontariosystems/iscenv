@@ -21,11 +21,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/ontariosystems/iscenv/internal/app"
+	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 )
-
-var csessionFlags = struct {
-	Namespace string
-}{}
 
 var csessionCmd = &cobra.Command{
 	Use:   "csession INSTANCE",
@@ -36,19 +33,19 @@ var csessionCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(csessionCmd)
-
-	csessionCmd.Flags().StringVarP(&csessionFlags.Namespace, "namespace", "n", "%SYS", "Use a specific starting namespace")
+	flags.AddConfigFlagP(csessionCmd, "namespace", "n", "%SYS", "Use a specific starting namespace")
 }
 
-func csession(_ *cobra.Command, args []string) {
+func csession(cmd *cobra.Command, args []string) {
 	if len(args) != 1 {
 		log.Fatal(app.ErrSingleInstanceArg)
 	}
 
 	cmdArgs := []string{"csession", "docker"}
-	if csessionFlags.Namespace != "" {
+	ns := flags.GetString(cmd, "namespace")
+	if ns != "" {
 		cmdArgs = append(cmdArgs, "-U")
-		cmdArgs = append(cmdArgs, csessionFlags.Namespace)
+		cmdArgs = append(cmdArgs, ns)
 	}
 
 	instance, ilog := app.FindInstanceAndLogger(args[0])
