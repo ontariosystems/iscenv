@@ -32,7 +32,7 @@ const (
 	defaultConfigFile = "iscenv"
 	defaultConfigExt  = "json"
 	defaultConfigDir  = "$HOME/.config/iscenv/"
-	defaultConfigPath = defaultConfigDir + defaultConfigFile
+	defaultConfigPath = defaultConfigDir + defaultConfigFile + "." + defaultConfigExt
 )
 
 var rootCmd = &cobra.Command{
@@ -53,7 +53,7 @@ func init() {
 		initLogs,
 	)
 
-	flags.AddFlagComplex(rootCmd, true, true, "config", "", "", "config file (default is "+defaultConfigPath+")")
+	flags.AddFlagComplex(rootCmd, true, false, "config", "", "", "config file (default is "+defaultConfigPath+")")
 	flags.AddFlagComplex(rootCmd, true, true, "log-level", "", defaultLogLevel.String(), "log level")
 	flags.AddFlagComplex(rootCmd, true, true, "log-json", "", false, "use JSON formatted logs")
 }
