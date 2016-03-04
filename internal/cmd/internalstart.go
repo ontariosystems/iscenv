@@ -36,11 +36,10 @@ type starterInfo struct {
 }
 
 var internalStartCmd = &cobra.Command{
-	Use:    "_start",
-	Short:  "internal: start/manage ISC product ",
-	Long:   "DO NOT RUN THIS OUTSIDE OF AN INSTANCE CONTAINER. manages an ISC product instance",
-	Hidden: true,
-	Run:    internalStart,
+	Use:   "_start",
+	Short: "start/manage ISC product ",
+	Long:  "manages an ISC product instance (this command is only available within containers)",
+	Run:   internalStart,
 }
 
 var startStatus = app.NewStartStatus()
