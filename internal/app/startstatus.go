@@ -40,18 +40,18 @@ func NewStartStatus() *StartStatus {
 	return &StartStatus{
 		Phase:         StartPhaseStartup,
 		ActivePlugins: []string{},
-		InstanceState: &iscenv.InternalInstanceState{},
+		InstanceState: &iscenv.InternalInstance{},
 	}
 }
 
 type StartStatus struct {
-	Phase           StartPhase                    `json:"phase"`
-	ActivePlugins   []string                      `json:"activePlugins"`
-	ExecutingPlugin string                        `json:"executingPlugin"`
-	InstanceState   *iscenv.InternalInstanceState `json:"instanceState"`
+	Phase           StartPhase               `json:"phase"`
+	ActivePlugins   []string                 `json:"activePlugins"`
+	ExecutingPlugin string                   `json:"executingPlugin"`
+	InstanceState   *iscenv.InternalInstance `json:"instanceState"`
 }
 
-func (ss *StartStatus) Update(phase StartPhase, state *iscenv.InternalInstanceState, executingPlugin string) {
+func (ss *StartStatus) Update(phase StartPhase, state *iscenv.InternalInstance, executingPlugin string) {
 	// Done this way rather than simply autoadvancing so the calling code is easier to read
 	if ss.Phase != phase && ss.Phase+1 != phase {
 		panic(fmt.Sprintf("Attempted to skip a phase or move backwards, current: %d, next: %s", ss.Phase, phase))

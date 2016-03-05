@@ -39,6 +39,7 @@ func WaitForInstance(instance *iscenv.ISCInstance, timeout time.Duration) error 
 
 func WaitForInstanceForever(instance *iscenv.ISCInstance, c chan error) {
 	for {
+		// FIXME: Check if the docker instance stopped....
 		resp, err := http.Get(fmt.Sprintf("http://localhost:%d", instance.Ports.HealthCheck))
 		if err == nil {
 			defer resp.Body.Close()

@@ -64,7 +64,7 @@ func (*Plugin) Ports(_ string, _ map[string]interface{}) ([]string, error) {
 	return nil, nil
 }
 
-func (*Plugin) BeforeInstance(state iscenv.InternalInstanceState) error {
+func (*Plugin) BeforeInstance(state iscenv.InternalInstance) error {
 	url := os.Getenv(envName)
 	if url == "" {
 		return nil
@@ -123,10 +123,10 @@ func (*Plugin) BeforeInstance(state iscenv.InternalInstanceState) error {
 	return nil
 }
 
-func (*Plugin) WithInstance(state iscenv.InternalInstanceState) error {
+func (*Plugin) WithInstance(state iscenv.InternalInstance) error {
 	return nil
 }
 
-func (*Plugin) AfterInstance(state iscenv.InternalInstanceState) error {
+func (*Plugin) AfterInstance(state iscenv.InternalInstance) error {
 	return nil
 }
