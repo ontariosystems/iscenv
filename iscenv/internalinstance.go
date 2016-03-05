@@ -30,20 +30,8 @@ import (
 )
 
 const (
-	// This is the string which will be piped into a csession command to load the actual code to be executed into an in-memory buffer from a file
+	// This is the string which will be piped into a csession command to load the actual code to be executed into an in-memory buffer from a file.
 	codeImportString = `try { set f="%s" open f:"R":1 if $test { use f zload  close f do MAIN halt } else { do $zutil(4, $job, 98) } } catch { do BACK^%%ETN do $zutil(4, $job, 99) }`
-
-	// This is the template of an INT code wrapper which will run arbitrary code provided by the user.  This has to be valid INT code (as does the interpolated code).  So, there must be *no* whitespace except the last line which *must* be a blank line.
-//	executorRoutine = `EXECUTE
-// try {
-//   do MAIN
-// } catch ex {
-//   do BACK^%%ETN
-//   do $zutil(4, $job, 99)
-// }
-//%s
-//
-//`
 )
 
 type InternalInstance struct {
@@ -101,6 +89,7 @@ func qlistStatus(statusAndTime string) (InternalInstanceStatus, string) {
 	return InternalInstanceStatus(strings.ToLower(s[0])), a
 }
 
+// This will execute the label MAIN from the properly formatted Cache INT code stored in the codeReader in namespace
 func (ii *InternalInstance) Execute(namespace string, codeReader io.Reader) (output string, err error) {
 	elog := log.WithField("namespace", namespace)
 
@@ -135,23 +124,12 @@ func (ii *InternalInstance) Execute(namespace string, codeReader io.Reader) (out
 }
 
 func (ii *InternalInstance) genExecutorTmpFile(codeReader io.Reader) (string, error) {
-	//	code, err := ioutil.ReadAll(codeReader)
-	//	if err != nil {
-	//		return "", err
-	//	}
-
 	tmpFile, err := ioutil.TempFile("", "iscenv-ii-exec-")
 	if err != nil {
 		return "", err
 	}
 
 	defer tmpFile.Close()
-
-	//	wrappedCode := fmt.Sprintf(executorRoutine, string(code))
-	//	if _, err := tmpFile.Write([]byte(wrappedCode)); err != nil {
-	//		return "", err
-	//	}
-	//
 
 	if _, err := io.Copy(tmpFile, codeReader); err != nil {
 		return "", nil
