@@ -53,7 +53,11 @@ func init() {
 	flags.AddFlagP(startCmd, "port-offset", "p", int64(-1), "The port offset for this instance's ports.  -1 means autodetect.  Will increment by 1 if more than 1 instance is specified.")
 	flags.AddFlag(startCmd, "timeout", int64(300), "The number of seconds to wait on an instance to start before timing out.")
 	flags.AddFlag(startCmd, "volumes-from", []string(nil), "Mount volumes from the specified container(s)")
+
+	// Flags overriding the default settings *inside* of containers
 	flags.AddConfigFlag(startCmd, "internal-instance", "docker", "The name of the actual ISC product instance within the container")
+	flags.AddConfigFlag(startCmd, "superserver-port", int(iscenv.PortInternalSS), "The super server port inside the ISC product container")
+	flags.AddConfigFlag(startCmd, "isc-http-port", int(iscenv.PortInternalWeb), "The ISC Web Server port inside the ISC product container")
 	flags.AddConfigFlag(startCmd, "ccontrol-path", "ccontrol", "The path to the ccontrol executable within the container")
 }
 
@@ -97,8 +101,8 @@ func start(cmd *cobra.Command, args []string) {
 	volumes = append(volumes, fmt.Sprintf("%s:%s:ro", exe, iscenv.InternalISCEnvPath))
 
 	// Add the standard ports
-	ports = append(ports, fmt.Sprintf("+%d:%d", iscenv.PortExternalSS, iscenv.PortInternalSS))
-	ports = append(ports, fmt.Sprintf("+%d:%d", iscenv.PortExternalWeb, iscenv.PortInternalWeb))
+	ports = append(ports, fmt.Sprintf("+%d:%d", iscenv.PortExternalSS, flags.GetInt(cmd, "superserver-port")))
+	ports = append(ports, fmt.Sprintf("+%d:%d", iscenv.PortExternalWeb, flags.GetInt(cmd, "isc-http-port")))
 	ports = append(ports, fmt.Sprintf("+%d:%d", iscenv.PortExternalHC, iscenv.PortInternalHC))
 
 	instances := getMultipleInstances(cmd, args)

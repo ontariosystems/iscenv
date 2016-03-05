@@ -22,7 +22,7 @@ var Version string
 const (
 	ApplicationName = "iscenv"
 
-	PortInternalSS = 56772
+	PortInternalSS = 1972
 	PortExternalSS = 56772
 
 	PortInternalWeb = 57772
