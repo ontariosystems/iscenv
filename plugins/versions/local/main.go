@@ -39,19 +39,19 @@ func main() {
 type Plugin struct{}
 
 func (*Plugin) Versions(image string) (iscenv.ISCVersions, error) {
-	images, err := DockerClient.ListImages(docker.ListImagesOptions{All: false})
+	localImages, err := DockerClient.ListImages(docker.ListImagesOptions{All: false})
 	if err != nil {
 		return nil, err
 	}
 
 	vs := []string{}                        // for sorting
 	vm := make(map[string]docker.APIImages) // for lookup
-	for _, image := range images {
-		for _, repoTag := range image.RepoTags {
+	for _, localImage := range localImages {
+		for _, repoTag := range localImage.RepoTags {
 			repo, tag := splitRepoTag(repoTag)
-			if repo == iscenv.Repository {
+			if repo == image {
 				if m, _ := regexp.MatchString("^\\d+(\\.\\d+)?", tag); m {
-					vm[tag] = image
+					vm[tag] = localImage
 					vs = append(vs, tag)
 				}
 			}
