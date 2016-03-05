@@ -53,12 +53,16 @@ func GetBool(cmd *cobra.Command, name string) bool {
 	return GetValue(cmd, name).(bool)
 }
 
+func GetInt(cmd *cobra.Command, name string) int {
+	return int(forceFloat64(GetValue(cmd, name)))
+}
+
 func GetInt64(cmd *cobra.Command, name string) int64 {
-	return GetValue(cmd, name).(int64)
+	return int64(forceFloat64(GetValue(cmd, name)))
 }
 
 func GetUint(cmd *cobra.Command, name string) uint {
-	return GetValue(cmd, name).(uint)
+	return uint(forceFloat64(GetValue(cmd, name)))
 }
 
 func GetStringSlice(cmd *cobra.Command, name string) []string {
@@ -136,6 +140,8 @@ func AddFlagComplex(cmd *cobra.Command, persistent bool, cfg bool, name string, 
 		f.value = cmdFlags.StringP(name, shorthand, v, usage)
 	case bool:
 		f.value = cmdFlags.BoolP(name, shorthand, v, usage)
+	case int:
+		f.value = cmdFlags.IntP(name, shorthand, v, usage)
 	case int64:
 		f.value = cmdFlags.Int64P(name, shorthand, v, usage)
 	case uint:
@@ -160,4 +166,36 @@ func GetFlagKey(cmd *cobra.Command, name string) string {
 	}
 
 	return name
+}
+
+// viper uses spf13's cast library to quietly covert types in all manner of ways, (strings to ints by parsing for example).  We don't want to go that far, but since viper stores all numeric values as float64 we have to do a little conversion.
+func forceFloat64(num interface{}) float64 {
+	switch n := num.(type) {
+	case float64:
+		return n
+	case float32:
+		return float64(n)
+	case int64:
+		return float64(n)
+	case int32:
+		return float64(n)
+	case int16:
+		return float64(n)
+	case int8:
+		return float64(n)
+	case int:
+		return float64(n)
+	case uint64:
+		return float64(n)
+	case uint32:
+		return float64(n)
+	case uint16:
+		return float64(n)
+	case uint8:
+		return float64(n)
+	case uint:
+		return float64(n)
+	}
+
+	panic(fmt.Sprintf("unsupported type: %T", num))
 }
