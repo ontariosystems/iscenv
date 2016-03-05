@@ -63,8 +63,11 @@ func init() {
 
 func start(cmd *cobra.Command, args []string) {
 	log.Debug("Retrieving local versions")
+	ensureImage()
+
 	// Get the local versions (passing an empty plugins list means *only* local)
-	versions, err := getVersions(iscenv.Repository, []string{})
+	image := flags.GetString(rootCmd, "image")
+	versions, err := getVersions(image, []string{})
 	if err != nil {
 		app.ErrorLogger(nil, err).Fatal("Failed to retrieve local versions")
 	}
@@ -79,9 +82,9 @@ func start(cmd *cobra.Command, args []string) {
 	}
 
 	if !versions.Exists(version) {
-		vlog := app.DockerRepoLogger(iscenv.Repository).WithField("version", version)
+		vlog := app.DockerRepoLogger(image).WithField("version", version)
 		vlog.Info("Unable to find version locally, attempting to download.  This may take some time.")
-		if err := app.DockerPull(version); err != nil {
+		if err := app.DockerPull(image, version); err != nil {
 			vlog.WithError(err).Fatal("Failed to pull image")
 		}
 	}
@@ -117,7 +120,7 @@ func start(cmd *cobra.Command, args []string) {
 		ilog.Info("Starting instance")
 		_, err := app.DockerStart(app.DockerStartOptions{
 			Name:             instanceName,
-			Repository:       iscenv.Repository,
+			Repository:       image,
 			Version:          version,
 			PortOffset:       po,
 			PortOffsetSearch: pos,

@@ -14,15 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package app
+package cmd
 
 import (
-	docker "github.com/fsouza/go-dockerclient"
+	log "github.com/Sirupsen/logrus"
+	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 )
 
-func GetAuthConfig(registry string) (docker.AuthConfiguration, error) {
-	var err error
-	authcfg := docker.AuthConfiguration{}
-	authcfg.Username, authcfg.Password, authcfg.Email, err = GetRegistryCredentials(registry)
-	return authcfg, err
+func ensureImage() {
+	if flags.GetString(rootCmd, "image") == "" {
+		log.Fatal("You must set provide an image to use when creating containers either using the --image switch or by setting a value in your configuration file (recommended)")
+	}
 }

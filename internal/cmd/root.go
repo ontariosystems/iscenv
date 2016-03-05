@@ -56,6 +56,10 @@ func init() {
 	flags.AddFlagComplex(rootCmd, true, false, "config", "", "", "config file (default is "+defaultConfigPath+")")
 	flags.AddFlagComplex(rootCmd, true, true, "log-level", "", defaultLogLevel.String(), "log level")
 	flags.AddFlagComplex(rootCmd, true, true, "log-json", "", false, "use JSON formatted logs")
+
+	// This flag is the image which will be used by default when creating new containers or listing versions.
+	// Technically, very few commands actually need this flag but I did not want the config to have to have it specified multiple places when it doesn't make sense for it to differ between commands (and would actually be detrimental)
+	flags.AddFlagComplex(rootCmd, true, true, "image", "", "", "the image to use when creating ISC product containers.  You will want to set a default for this in your configuration file (eg. mycompany/ensemble)")
 }
 
 func initLogs() {
