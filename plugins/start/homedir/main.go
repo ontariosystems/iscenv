@@ -18,10 +18,8 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"os/user"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/ontariosystems/iscenv/iscenv"
 )
 
@@ -32,8 +30,7 @@ func main() {
 type Plugin struct{}
 
 func (*Plugin) Flags() (iscenv.PluginFlags, error) {
-	log.SetOutput(os.Stdout)
-	return iscenv.PluginFlags{}, nil
+	return iscenv.NewPluginFlags(), nil
 }
 
 func (*Plugin) Environment(_ string, _ map[string]interface{}) ([]string, error) {
