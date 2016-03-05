@@ -18,31 +18,33 @@ package app
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"os/signal"
 	"strings"
 	"syscall"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/ontariosystems/iscenv/iscenv"
 )
 
 const (
 	IIMDefaultCControlPath = "ccontrol"
+	IIMDefaultCSessionPath = "csession"
 )
 
-type InstanceStateFn func(state *iscenv.InternalInstanceState)
+type InstanceStateFn func(state *iscenv.InternalInstance)
 
-func NewInternalInstanceManager(instanceName string, ccontrolPath string) (*InternalInstanceManager, error) {
+func NewInternalInstanceManager(instanceName string, ccontrolPath string, csessionPath string) (*InternalInstanceManager, error) {
 	if ccontrolPath == "" {
 		ccontrolPath = IIMDefaultCControlPath
 	}
 
 	iim := &InternalInstanceManager{
-		InternalInstanceState: new(iscenv.InternalInstanceState),
+		InternalInstance: &iscenv.InternalInstance{CSessionPath: csessionPath},
 		instanceName:          instanceName,
 		ccontrolPath:          ccontrolPath,
+		csessionPath:          csessionPath,
 	}
 
 	if err := iim.Update(); err != nil {
@@ -56,7 +58,8 @@ func NewInternalInstanceManager(instanceName string, ccontrolPath string) (*Inte
 type InternalInstanceManager struct {
 	instanceName string
 	ccontrolPath string
-	*iscenv.InternalInstanceState
+	csessionPath string
+	*iscenv.InternalInstance
 
 	InstanceRunningHandler InstanceStateFn
 }
@@ -77,7 +80,7 @@ func (iim *InternalInstanceManager) Manage() error {
 
 	log.Printf("Started instance, name: %s, status: %s", iim.instanceName, iim.Status)
 	if iim.InstanceRunningHandler != nil {
-		iim.InstanceRunningHandler(iim.InternalInstanceState)
+		iim.InstanceRunningHandler(iim.InternalInstance)
 	}
 
 	sigchan := make(chan os.Signal, 1)
@@ -139,7 +142,7 @@ func (iim *InternalInstanceManager) Update() error {
 		return err
 	}
 
-	if err := iim.InternalInstanceState.Update(qlist); err != nil {
+	if err := iim.InternalInstance.Update(qlist); err != nil {
 		return err
 	}
 
