@@ -24,6 +24,7 @@ import (
 	"github.com/ontariosystems/iscenv/iscenv"
 )
 
+// TODO: Fully document this
 type DockerStartOptions struct {
 	Name             string
 	Repository       string
@@ -33,7 +34,8 @@ type DockerStartOptions struct {
 	Entrypoint       []string
 	Command          []string
 	Environment      []string
-	Volumes          []string
+	Volumes          []string // Volumes provided in the standard host:container:mode format
+	Copies           []string // Copies files provided in the format host:container into the container before it starts
 	VolumesFrom      []string
 	ContainerLinks   []string
 	Ports            []string
