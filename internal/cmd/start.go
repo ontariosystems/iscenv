@@ -90,7 +90,7 @@ func start(cmd *cobra.Command, args []string) {
 	}
 
 	pluginsToActivate := strings.Split(flags.GetString(cmd, "plugins"), ",")
-	environment, volumes, ports, err := getPluginConfig(cmd, pluginsToActivate, version)
+	environment, copies, volumes, ports, err := getPluginConfig(cmd, pluginsToActivate, version)
 	if err != nil {
 		app.ErrorLogger(nil, err).Fatal("Failed to load container settings from plugin")
 	}
@@ -100,8 +100,8 @@ func start(cmd *cobra.Command, args []string) {
 		app.ErrorLogger(nil, err).Fatal("Failed to determine iscenv executable path for bind mount")
 	}
 
-	// Add the iscenv executable itself as a volume
-	volumes = append(volumes, fmt.Sprintf("%s:%s:ro", exe, iscenv.InternalISCEnvPath))
+	// Add the iscenv executable itself as an item to copy into the container
+	copies = append(copies, fmt.Sprintf("%s:%s", exe, iscenv.InternalISCEnvPath))
 
 	// Add the standard ports
 	ports = append(ports, fmt.Sprintf("+%d:%d", iscenv.PortExternalSS, flags.GetInt(cmd, "superserver-port")))
@@ -126,6 +126,7 @@ func start(cmd *cobra.Command, args []string) {
 			PortOffsetSearch: pos,
 			Environment:      environment,
 			Volumes:          volumes,
+			Copies:           copies,
 			Ports:            ports,
 			Entrypoint:       []string{"/bin/iscenv", "_start"},
 			Command: []string{
@@ -158,10 +159,11 @@ func start(cmd *cobra.Command, args []string) {
 	}
 }
 
-func getPluginConfig(cmd *cobra.Command, pluginsToActivate []string, version string) (environment []string, volumes []string, ports []string, err error) {
+func getPluginConfig(cmd *cobra.Command, pluginsToActivate []string, version string) (environment, copies, volumes, ports []string, err error) {
 
 	log.Debugf("Getting configuration from plugins: %v", len(pluginsToActivate))
 	environment = make([]string, 0)
+	copies = make([]string, 0)
 	volumes = make([]string, 0)
 	ports = make([]string, 0)
 
@@ -173,7 +175,7 @@ func getPluginConfig(cmd *cobra.Command, pluginsToActivate []string, version str
 		func(id, pluginPath string, starter iscenv.Starter) error {
 			flagValues := getPluginFlagValues(cmd, id)
 			// Mount the plugin itself into the /bin directory
-			volumes = append(volumes, fmt.Sprintf("%s:%s/%s:ro", pluginPath, iscenv.InternalISCEnvBinaryDir, filepath.Base(pluginPath)))
+			copies = append(copies, fmt.Sprintf("%s:%s/%s", pluginPath, iscenv.InternalISCEnvBinaryDir, filepath.Base(pluginPath)))
 			if env, err := starter.Environment(version, flagValues); err != nil {
 				return app.NewPluginError(id, "Environment", pluginPath, err)
 			} else if env != nil {
@@ -193,10 +195,10 @@ func getPluginConfig(cmd *cobra.Command, pluginsToActivate []string, version str
 			}
 			return nil
 		}); err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
-	return environment, volumes, ports, nil
+	return environment, copies, volumes, ports, nil
 }
 
 func getPluginFlagValues(cmd *cobra.Command, plugin string) map[string]interface{} {
