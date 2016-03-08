@@ -104,7 +104,6 @@ func performCopies(id string, copies []string) error {
 	go func() {
 		defer w.Close()
 		err := writeTar(copies, w)
-		log.Debug("Signaling tar waiter channel")
 		tarErrChan <- err
 	}()
 
