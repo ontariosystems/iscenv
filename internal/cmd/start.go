@@ -204,12 +204,16 @@ func getPluginConfig(cmd *cobra.Command, pluginsToActivate []string, version str
 func getPluginFlagValues(cmd *cobra.Command, plugin string) map[string]interface{} {
 	flagValues := make(map[string]interface{})
 
-	prefix := cmd.Name() + "-" + plugin + "-"
+	flog := log.WithField("plugin", plugin)
+	prefix := cmd.Name() + "." + plugin + "-"
 	for _, key := range flags.GetKeys() {
 		if strings.HasPrefix(key, prefix) {
-			flagValues[strings.TrimPrefix(key, prefix)] = flags.GetValueWithKey(key)
+			value := flags.GetValueWithKey(key)
+			flagValues[strings.TrimPrefix(key, prefix)] = value
+			flog = flog.WithField(key, value)
 		}
 	}
 
+	flog.Debug("Retrieved plugin flags")
 	return flagValues
 }
