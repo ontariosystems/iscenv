@@ -25,9 +25,10 @@ build: version
 	$(call compile_plugin,linux,amd64,versions,local)
 
 	# Starter Plugins
-	$(call compile_plugin,linux,amd64,start,homedir)
 	$(call compile_plugin,linux,amd64,start,license-key)
+	$(call compile_plugin,linux,amd64,start,homedir)
 	$(call compile_plugin,linux,amd64,start,service-bindings)
+	$(call compile_plugin,linux,amd64,start,shm)
 
 # This is a temporary target until we sort out a good single Travis-like build system
 build	@curl -Ss -o /usr/local/share/ca-certificates/os_root_ca.crt http://statler.ontsys.com/v2/OS%20Certificate%20Bundle/1.0/os_root_ca.crt
