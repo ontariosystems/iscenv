@@ -64,7 +64,7 @@ func (opts *DockerStartOptions) ToHostConfig() *docker.HostConfig {
 	return &docker.HostConfig{
 		// TODO: Try turning this off or better still allow it to be activated with a plugin or better even again allow the appropriate capabilities to be set with a plugin
 		Privileged: true,
-		Binds:      opts.Volumes,
+		Binds:      opts.VolumeBinds(),
 		Links:      opts.ContainerLinks,
 		// Plugin
 		PortBindings: opts.ToDockerPortBindings(),
@@ -82,6 +82,17 @@ func (opts *DockerStartOptions) InternalVolumes() map[string]struct{} {
 			volumes[s[1]] = struct{}{}
 		}
 	}
+	return volumes
+}
+
+func (opts *DockerStartOptions) VolumeBinds() []string {
+	volumes := make([]string, 0)
+	for _, volume := range opts.Volumes {
+		if strings.Contains(volume, ":") {
+			volumes = append(volumes, volume)
+		}
+	}
+
 	return volumes
 }
 
