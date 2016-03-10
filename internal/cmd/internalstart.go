@@ -145,6 +145,7 @@ func internalStart(cmd *cobra.Command, _ []string) {
 	}
 
 	startStatus.Update(app.StartPhaseShutdown, nil, "")
+	log.Info("Completed instance management")
 }
 
 func startHealthCheck() {
