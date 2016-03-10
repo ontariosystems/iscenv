@@ -14,6 +14,7 @@ only if they will not complicate the intentionally simple design of this project
 - Output the log of the docker container during start
 - Start should fail if the container stops
 - Add the ability to run a command with `iscenv csession`
+- Copy updated binaries to container when starting
 - Versions plugins
   - Should have required config
 		- plugins
