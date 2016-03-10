@@ -18,7 +18,6 @@ package app
 
 import (
 	"archive/tar"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -103,8 +102,7 @@ func performCopies(id string, copies []string) error {
 	tarErrChan := make(chan error, 1)
 	go func() {
 		defer w.Close()
-		err := writeTar(copies, w)
-		tarErrChan <- err
+		tarErrChan <- writeTar(copies, w)
 	}()
 
 	log.Debug("Uploading copies to container")
@@ -114,16 +112,18 @@ func performCopies(id string, copies []string) error {
 		NoOverwriteDirNonDir: true,
 	})
 
+	if err != nil {
+		log.WithError(err).Error("Failed to copy local files to container")
+		return err
+	}
+
 	log.Debug("Client complete waiting on tar go routine")
-	tarErr := <-tarErrChan
+	if err := <-tarErrChan; err != nil {
+		log.WithError(err).Error("Failed to tar local files for container copy")
+		return err
+	}
 
 	log.Debug("Tar go routine complete")
-	if err != nil || tarErr != nil {
-		log.WithError(tarErr).Error("Failed to tar local files for container copy")
-		log.WithError(err).Error("Failed to copy local files to container")
-
-		return errors.New("Copy to container failed")
-	}
 
 	return nil
 }
