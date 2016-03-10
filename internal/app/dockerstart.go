@@ -43,6 +43,18 @@ func DockerStart(opts DockerStartOptions) (id string, err error) {
 			if err != nil {
 				return existing.ID, err
 			}
+
+			if container.State.Running {
+				ilog.Info("Instance is already running")
+				return existing.ID, nil
+			}
+
+			// This does not happen in a running container becuase we don't want to overwrite busy files
+			log.Debug("Updating ISCEnv binaries in existing container")
+			if err := performCopies(container.ID, opts.Copies); err != nil {
+				return container.ID, err
+			}
+
 			return existing.ID, DockerClient.StartContainer(existing.ID, container.HostConfig)
 		}
 

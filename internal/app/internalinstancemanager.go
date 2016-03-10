@@ -118,6 +118,8 @@ func (iim *InternalInstanceManager) Start() error {
 }
 
 func (iim *InternalInstanceManager) Stop() error {
+	ilog := log.WithField("name", iim.instanceName)
+	ilog.Debug("Shutting down instance")
 	if iim.Status.Up() {
 		args := []string{"stop", iim.instanceName}
 		if iim.Status.RequiresBypass() {
