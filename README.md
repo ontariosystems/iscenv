@@ -11,18 +11,14 @@ Below are some items that we wish (or may wish) to do in the future.  Those in t
 only if they will not complicate the intentionally simple design of this project.
 
 ## Needed
-- Evaluate command execution / exits for consistency (use fatal at the same times, always loop over all instances or always fail on first error)
+- Output the log of the docker container during start
+- Start should fail if the container stops
 - Add the ability to run a command with `iscenv csession`
-- Add an inspect command
-- Remove all outputhelper calls outside of the internal/cmd package
 - Versions plugins
   - Should have required config
-	  - product
-		- image
 		- plugins
-      - Local - default, always used
-			- AWS
 			- Quay
+			- AWS
 		- non-default plugins run in order until the *first* successful image discovery, then it's compared to local to decide if it needs to be downloaded
 
 
