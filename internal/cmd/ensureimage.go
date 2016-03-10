@@ -23,6 +23,6 @@ import (
 
 func ensureImage() {
 	if flags.GetString(rootCmd, "image") == "" {
-		log.Fatal("You must set provide an image to use when creating containers either using the --image switch or by setting a value in your configuration file (recommended)")
+		log.Fatal("You must provide an image to use when creating containers either using the --image switch or by setting a value in your configuration file (recommended)")
 	}
 }
