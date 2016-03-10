@@ -42,9 +42,9 @@ func NewInternalInstanceManager(instanceName string, ccontrolPath string, csessi
 
 	iim := &InternalInstanceManager{
 		InternalInstance: &iscenv.InternalInstance{CSessionPath: csessionPath},
-		instanceName:          instanceName,
-		ccontrolPath:          ccontrolPath,
-		csessionPath:          csessionPath,
+		instanceName:     instanceName,
+		ccontrolPath:     ccontrolPath,
+		csessionPath:     csessionPath,
 	}
 
 	if err := iim.Update(); err != nil {
@@ -74,19 +74,23 @@ func (iim *InternalInstanceManager) qlist() (string, error) {
 }
 
 func (iim *InternalInstanceManager) Manage() error {
+	ilog := log.WithField("name", iim.instanceName)
+	ilog.Debug("Starting instance")
 	if err := iim.Start(); err != nil {
 		return err
 	}
 
-	log.Printf("Started instance, name: %s, status: %s", iim.instanceName, iim.Status)
 	if iim.InstanceRunningHandler != nil {
+		ilog.Debug("Executing instance running handler")
 		iim.InstanceRunningHandler(iim.InternalInstance)
 	}
+
+	ilog.WithField("status", iim.Status).Info("Started instance")
 
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGABRT, syscall.SIGHUP)
 
-	// TODO: Deal with transient "run this during cache up" type commands, that should run and then cache should stop
+	// TODO: Add a stop immediately flag that allows you to just run the instance running handler and then exit
 
 	sig := <-sigchan
 	log.Printf("Got signal: %s\n", sig)
