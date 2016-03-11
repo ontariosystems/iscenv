@@ -30,9 +30,7 @@ import (
 const (
 	defaultLogLevel   = log.InfoLevel
 	defaultConfigFile = "iscenv"
-	defaultConfigExt  = "json"
 	defaultConfigDir  = "$HOME/.config/iscenv/"
-	defaultConfigPath = defaultConfigDir + defaultConfigFile + "." + defaultConfigExt
 )
 
 var rootCmd = &cobra.Command{
@@ -53,7 +51,7 @@ func init() {
 		initLogs,
 	)
 
-	flags.AddFlagComplex(rootCmd, true, false, "config", "", "", "config file (default is "+defaultConfigPath+")")
+	flags.AddFlagComplex(rootCmd, true, false, "config", "", "", "the path to a configuration file in json, toml, yaml or hcl format")
 	flags.AddFlagComplex(rootCmd, true, true, "log-level", "", defaultLogLevel.String(), "log level")
 	flags.AddFlagComplex(rootCmd, true, true, "log-json", "", false, "use JSON formatted logs")
 
@@ -83,7 +81,6 @@ func initConfig() {
 		viper.SetConfigFile(configPath)
 	}
 
-	viper.SetConfigType(defaultConfigExt)
 	viper.SetConfigName(defaultConfigFile)
 	viper.AddConfigPath(defaultConfigDir)
 	viper.AddConfigPath("./")
@@ -91,9 +88,14 @@ func initConfig() {
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
-		if !os.IsNotExist(err) {
+		if !os.IsNotExist(err) && !unsupportedConfigTypeBlank(err) {
 			fmt.Printf("Invalid configuration file, err: %s\n", err)
 			os.Exit(1)
 		}
 	}
+}
+
+// TODO: Remove this code when https://github.com/spf13/viper/pull/161 is merged and the updated version is vendored
+func unsupportedConfigTypeBlank(err error) bool {
+	return err.Error() == `Unsupported Config Type ""`
 }
