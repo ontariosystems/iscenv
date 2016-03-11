@@ -17,7 +17,9 @@ limitations under the License.
 package cmd
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"path/filepath"
 	"strings"
 	"time"
@@ -150,6 +152,26 @@ func start(cmd *cobra.Command, args []string) {
 		if instance == nil {
 			ilog.Fatal("Failed to find newly created instance")
 		}
+
+		r, w := io.Pipe()
+		defer w.Close()
+
+		go func() {
+			scanner := bufio.NewScanner(r)
+			for scanner.Scan() {
+				fmt.Println(scanner.Text())
+			}
+
+			if err := scanner.Err(); err != nil {
+				log.WithError(err).Error("Error while outputting container logs")
+			}
+		}()
+
+		go func() {
+			if err := app.DockerLogs(instance, w); err != nil {
+				log.WithError(err).Error("Error while retrieving container logs")
+			}
+		}()
 
 		if err := app.WaitForInstance(instance, time.Duration(flags.GetInt64(cmd, "timeout"))*time.Second); err != nil {
 			app.ErrorLogger(ilog, err).Fatal("Failed to start instance")
