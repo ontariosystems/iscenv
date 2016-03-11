@@ -27,9 +27,7 @@ const (
 	defaultRegistry = "https://index.docker.io/v1/"
 )
 
-// TODO: pass in the image
 func DockerPull(image, tag string) error {
-
 	authcfgs, err := docker.NewAuthConfigurationsFromDockerCfg()
 	if err != nil {
 		return err
@@ -52,7 +50,6 @@ func DockerPull(image, tag string) error {
 		}
 	}
 
-	// TODO: when the image cna be passed in this will have to be parsed
 	imgopts := docker.PullImageOptions{
 		Registry:     registry,
 		Repository:   image,

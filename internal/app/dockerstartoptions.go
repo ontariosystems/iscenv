@@ -20,26 +20,49 @@ import (
 	"strconv"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/ontariosystems/iscenv/iscenv"
 )
 
-// TODO: Fully document this
 type DockerStartOptions struct {
-	Name             string
-	Repository       string
-	Version          string
-	PortOffset       int64
-	PortOffsetSearch bool
-	Entrypoint       []string
-	Command          []string
-	Environment      []string
-	Volumes          []string // Volumes provided in the standard host:container:mode format
-	Copies           []string // Copies files provided in the format host:container into the container before it starts
-	VolumesFrom      []string
-	ContainerLinks   []string
-	Ports            []string
+	// The name of the instance
+	Name string
+	// The image repository from which the container will be created
+	Repository string
+	// The version of the image to use
+	Version string
+	// The port by which the external ports will be offset (or the starting offset for search if searching)
+	PortOffset int64
 
+	// Search for the next available port offset?
+	PortOffsetSearch bool
+
+	// The entrypoint for the container
+	Entrypoint []string
+
+	// The command for the container
+	Command []string
+
+	// Environment variables in standard docker format (ENV=VALUE)
+	Environment []string
+
+	// Volumes provided in the standard host:container:mode format
+	Volumes []string
+
+	// Copies files provided in the format host:container into the container before it starts
+	Copies []string
+
+	// The names of containers from which volumes will be used
+	VolumesFrom []string
+
+	// Containers to which this container should be linked
+	ContainerLinks []string
+
+	// Port mappings in standard <IP>:host:container format
+	Ports []string
+
+	// Should the container be deleted if it already exists?
 	Recreate bool
 }
 
@@ -126,15 +149,14 @@ func (opts *DockerStartOptions) ToDockerPortBindings() map[docker.Port][]docker.
 				hostPort = s[1]
 				containerPort = s[2]
 			default:
-				// TODO: log a warning?
+				log.WithField("portString", bindString).Warning("Single port mappings are not supported")
 			}
 
 			if strings.HasPrefix(hostPort, "+") {
 				strings.TrimPrefix(hostPort, "+")
-				// TODO: Log a warning if search is still enabled
 				i, err := strconv.ParseInt(hostPort, 10, 64)
 				if err != nil {
-					// TODO: log a warning
+					log.WithField("port", hostPort).Warning("Could not parse host port")
 					continue
 				}
 				hostPort = strconv.FormatInt(i+opts.PortOffset, 10)
