@@ -33,67 +33,57 @@ func DockerStart(opts DockerStartOptions) (id string, err error) {
 	instances := GetInstances()
 	existing := instances.Find(opts.Name)
 
-	// When we recreate we want to maintain the exact same port offset
+	var container *docker.Container
 	if existing != nil {
 		ilog.Debug("Found existing instance")
-		// Just ensure it's up and return
-		if !opts.Recreate {
-			ilog.Debug("Starting instance")
-			container, err := GetContainerForInstance(existing)
+		if opts.Recreate {
+			ilog.Debug("Determining existing port offset")
+			opts.PortOffsetSearch = false
+			opts.PortOffset, err = existing.PortOffset()
 			if err != nil {
-				return existing.ID, err
+				return "", err
 			}
 
-			if container.State.Running {
-				ilog.Info("Instance is already running")
-				return existing.ID, nil
+			ilog.Debug("Removing instance")
+			if err := DockerRemove(existing); err != nil {
+				return "", err
 			}
 
-			// This does not happen in a running container becuase we don't want to overwrite busy files
-			log.Debug("Updating ISCEnv binaries in existing container")
-			if err := performCopies(container.ID, opts.Copies); err != nil {
-				return container.ID, err
+			// Reload the instances as the deletion has made the previous list invalid
+			instances = GetInstances()
+			if err != nil {
+				return "", err
 			}
 
-			return existing.ID, DockerClient.StartContainer(existing.ID, container.HostConfig)
-		}
-
-		ilog.Debug("Determining existing port offset")
-		epo, err := existing.PortOffset()
-		if err != nil {
+			existing = nil
+		} else if container, err = GetContainerForInstance(existing); err != nil {
 			return "", err
 		}
+	}
 
-		opts.PortOffset = epo
-		opts.PortOffsetSearch = false
-
-		ilog.Debug("Removing instance")
-		if err := DockerRemove(existing); err != nil {
-			return "", err
+	if existing == nil {
+		if opts.PortOffsetSearch {
+			if opts.PortOffset, err = instances.CalculatePortOffset(opts.PortOffset); err != nil {
+				return "", err
+			}
+		} else {
+			if upo, err := instances.UsedPortOffset(opts.PortOffset); err != nil {
+				return "", err
+			} else if upo {
+				return "", fmt.Errorf("Port offset conflict, offset: %s", opts.PortOffset)
+			}
 		}
-		// Reload the instances as the deletion has made the previous list invalid
-		instances = GetInstances()
+
+		ilog.Debug("Creating container")
+		container, err = DockerClient.CreateContainer(*opts.ToCreateContainerOptions())
 		if err != nil {
 			return "", err
 		}
 	}
 
-	if opts.PortOffsetSearch {
-		if opts.PortOffset, err = instances.CalculatePortOffset(opts.PortOffset); err != nil {
-			return "", err
-		}
-	} else {
-		if upo, err := instances.UsedPortOffset(opts.PortOffset); err != nil {
-			return "", err
-		} else if upo {
-			return "", fmt.Errorf("Port offset conflict, offset: %s", opts.PortOffset)
-		}
-	}
-
-	ilog.Debug("Creating container")
-	container, err := DockerClient.CreateContainer(*opts.ToCreateContainerOptions())
-	if err != nil {
-		return "", err
+	if container.State.Running {
+		ilog.Info("Instance is already running")
+		return existing.ID, nil
 	}
 
 	if err := performCopies(container.ID, opts.Copies); err != nil {
