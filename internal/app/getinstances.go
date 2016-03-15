@@ -21,7 +21,6 @@ import (
 	"strconv"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/fsouza/go-dockerclient"
 	"github.com/ontariosystems/iscenv/iscenv"
 )
@@ -120,7 +119,6 @@ func getPorts(container *docker.Container) (ssPort, httpPort, hcPort iscenv.Cont
 }
 
 func setPort(envVar string, envString string, port *iscenv.ContainerPort) (err error) {
-	log.WithField("env", envVar).WithField("value", envString).Debug("Searching for port")
 	prefix := envVar + "="
 	if strings.HasPrefix(envString, prefix) {
 		val := strings.TrimPrefix(envString, prefix)
