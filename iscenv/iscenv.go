@@ -24,12 +24,15 @@ const (
 
 	PortInternalSS = 1972
 	PortExternalSS = 56772
+	EnvInternalSS  = "ISC_SUPERSERVER_PORT"
 
 	PortInternalWeb = 57772
 	PortExternalWeb = 57772
+	EnvInternalWeb  = "ISC_HTTP_PORT"
 
 	PortInternalHC = 58772
 	PortExternalHC = 58772
+	EnvInternalHC  = "ISCENV_HEALTHCHECK_PORT"
 
 	// TODO: These should be defaults and should be configurable with viper
 	DockerSocket    = "unix:///var/run/docker.sock"

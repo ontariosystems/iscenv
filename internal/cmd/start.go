@@ -106,9 +106,18 @@ func start(cmd *cobra.Command, args []string) {
 	copies = append(copies, fmt.Sprintf("%s:%s", exe, iscenv.InternalISCEnvPath))
 
 	// Add the standard ports
-	ports = append(ports, fmt.Sprintf("+%d:%d", iscenv.PortExternalSS, flags.GetInt(cmd, "superserver-port")))
-	ports = append(ports, fmt.Sprintf("+%d:%d", iscenv.PortExternalWeb, flags.GetInt(cmd, "isc-http-port")))
+
+	ssPort := flags.GetInt(cmd, "superserver-port")
+	httpPort := flags.GetInt(cmd, "isc-http-port")
+
+	ports = append(ports, fmt.Sprintf("+%d:%d", iscenv.PortExternalSS, ssPort))
+	ports = append(ports, fmt.Sprintf("+%d:%d", iscenv.PortExternalWeb, httpPort))
 	ports = append(ports, fmt.Sprintf("+%d:%d", iscenv.PortExternalHC, iscenv.PortInternalHC))
+
+	// Add environment variables for the internal ports
+	environment = append(environment, fmt.Sprintf("%s=%d", iscenv.EnvInternalSS, ssPort))
+	environment = append(environment, fmt.Sprintf("%s=%d", iscenv.EnvInternalWeb, httpPort))
+	environment = append(environment, fmt.Sprintf("%s=%d", iscenv.EnvInternalHC, iscenv.PortInternalHC))
 
 	instances := getMultipleInstances(cmd, args)
 	po := flags.GetInt64(cmd, "port-offset")

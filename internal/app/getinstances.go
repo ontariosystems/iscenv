@@ -17,11 +17,13 @@ limitations under the License.
 package app
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 
-	"github.com/ontariosystems/iscenv/iscenv"
-
+	log "github.com/Sirupsen/logrus"
 	"github.com/fsouza/go-dockerclient"
+	"github.com/ontariosystems/iscenv/iscenv"
 )
 
 // GetInstances will return a list of available ISC product Instances.
@@ -68,6 +70,10 @@ func GetInstances() iscenv.ISCInstances {
 			}
 
 			ilog := InstanceLogger(instance)
+			ssPort, httpPort, hcPort, err := getPorts(container)
+			if err != nil {
+				ErrorLogger(ilog, err).Error("Failed to determine ports")
+			}
 
 			for intPort, bindings := range container.HostConfig.PortBindings {
 				bp, err := GetDockerBindingPort(bindings)
@@ -78,11 +84,11 @@ func GetInstances() iscenv.ISCInstances {
 				}
 
 				switch intPort {
-				case DockerPort(iscenv.PortInternalSS):
+				case DockerPort(ssPort):
 					instance.Ports.SuperServer = bp
-				case DockerPort(iscenv.PortInternalWeb):
+				case DockerPort(httpPort):
 					instance.Ports.Web = bp
-				case DockerPort(iscenv.PortInternalHC):
+				case DockerPort(hcPort):
 					instance.Ports.HealthCheck = bp
 				}
 			}
@@ -92,4 +98,42 @@ func GetInstances() iscenv.ISCInstances {
 	}
 
 	return instances
+}
+
+func getPorts(container *docker.Container) (ssPort, httpPort, hcPort iscenv.ContainerPort, err error) {
+	for _, env := range container.Config.Env {
+		setPort(iscenv.EnvInternalSS, env, &ssPort)
+		setPort(iscenv.EnvInternalWeb, env, &httpPort)
+		setPort(iscenv.EnvInternalHC, env, &hcPort)
+	}
+
+	missing := []string{}
+	addMissing(iscenv.EnvInternalSS, ssPort, &missing)
+	addMissing(iscenv.EnvInternalWeb, httpPort, &missing)
+	addMissing(iscenv.EnvInternalHC, hcPort, &missing)
+
+	if len(missing) > 0 {
+		err = fmt.Errorf("Missing port environment variables: %s", strings.Join(missing, ","))
+	}
+
+	return
+}
+
+func setPort(envVar string, envString string, port *iscenv.ContainerPort) (err error) {
+	log.WithField("env", envVar).WithField("value", envString).Debug("Searching for port")
+	prefix := envVar + "="
+	if strings.HasPrefix(envString, prefix) {
+		val := strings.TrimPrefix(envString, prefix)
+		iport, err := strconv.Atoi(val)
+		*port = iscenv.ContainerPort(iport)
+		return err
+	}
+
+	return
+}
+
+func addMissing(portVar string, port iscenv.ContainerPort, missing *[]string) {
+	if port == 0 {
+		*missing = append(*missing, portVar)
+	}
 }
