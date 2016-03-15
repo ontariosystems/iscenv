@@ -36,6 +36,6 @@ func init() {
 }
 
 func restart(c *cobra.Command, args []string) {
-	stop(c, args)
-	start(c, args)
+	stop(stopCmd, args)
+	start(startCmd, args)
 }
