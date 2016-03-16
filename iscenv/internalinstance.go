@@ -38,6 +38,7 @@ const (
 		`else { do $zutil(4, $job, 98) } } ` +
 		`catch ex { ` +
 		`do BACK^%%ETN ` +
+		`use 0 ` +
 		`write !,"Exception: ",ex.DisplayString(),!,` +
 		`"  name: ",ex.Name,!,` +
 		`"  code: ",ex.Code,! ` +
