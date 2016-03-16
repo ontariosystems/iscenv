@@ -32,6 +32,7 @@ import (
 const (
 	// This is the string which will be piped into a csession command to load the actual code to be executed into an in-memory buffer from a file.
 	codeImportString = `try { ` +
+		`znspace "%s" ` +
 		`set f="%s" ` +
 		`open f:"R":1 ` +
 		`if $test { use f zload  close f do MAIN halt } ` +
@@ -112,7 +113,8 @@ func (ii *InternalInstance) Execute(namespace string, codeReader io.Reader) (out
 
 	defer os.Remove(codePath)
 
-	cmd := exec.Command(ii.CSessionPath, ii.Name, "-U", namespace)
+	// Not using -U because it won't work if the user has a startup namespace
+	cmd := exec.Command(ii.CSessionPath, ii.Name)
 
 	in, err := cmd.StdinPipe()
 	if err != nil {
@@ -123,7 +125,7 @@ func (ii *InternalInstance) Execute(namespace string, codeReader io.Reader) (out
 	cmd.Stdout = &out
 
 	cmd.Start()
-	importString := fmt.Sprintf(codeImportString, codePath)
+	importString := fmt.Sprintf(codeImportString, namespace, codePath)
 	elog.WithField("importCode", importString).Debug("Attempting to load INT code into buffer")
 	if _, err := in.Write([]byte(importString)); err != nil {
 		return "", err
