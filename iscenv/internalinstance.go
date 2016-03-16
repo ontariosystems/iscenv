@@ -31,7 +31,18 @@ import (
 
 const (
 	// This is the string which will be piped into a csession command to load the actual code to be executed into an in-memory buffer from a file.
-	codeImportString = `try { set f="%s" open f:"R":1 if $test { use f zload  close f do MAIN halt } else { do $zutil(4, $job, 98) } } catch { do BACK^%%ETN do $zutil(4, $job, 99) }`
+	codeImportString = `try { ` +
+		`set f="%s" ` +
+		`open f:"R":1 ` +
+		`if $test { use f zload  close f do MAIN halt } ` +
+		`else { do $zutil(4, $job, 98) } } ` +
+		`catch ex { ` +
+		`do BACK^%%ETN ` +
+		`write !,"Exception: ",ex.DisplayString(),!,` +
+		`"  name: ",ex.Name,!,` +
+		`"  code: ",ex.Code,! ` +
+		`do $zutil(4, $job, 99) ` +
+		`}`
 )
 
 type InternalInstance struct {
