@@ -36,14 +36,14 @@ func DockerStart(opts DockerStartOptions) (id string, err error) {
 	var container *docker.Container
 	if existing != nil {
 		ilog.Debug("Found existing instance")
-		if opts.Recreate {
-			ilog.Debug("Determining existing port offset")
-			opts.PortOffsetSearch = false
-			opts.PortOffset, err = existing.PortOffset()
-			if err != nil {
-				return "", err
-			}
+		ilog.Debug("Determining existing port offset")
+		opts.PortOffsetSearch = false
+		opts.PortOffset, err = existing.PortOffset()
+		if err != nil {
+			return "", err
+		}
 
+		if opts.Recreate {
 			ilog.Debug("Removing instance")
 			if err := DockerRemove(existing); err != nil {
 				return "", err
