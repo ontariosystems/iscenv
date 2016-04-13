@@ -14,80 +14,52 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package homedirplugin
+package main
 
 import (
-	"fmt"
-	"os/user"
-
+	log "github.com/Sirupsen/logrus"
 	"github.com/ontariosystems/iscenv/iscenv"
 )
 
-const (
-	pluginKey = "homedir"
-)
+var plog = log.WithField("plugin", "external-test-plugin")
 
 type Plugin struct{}
 
-func (plugin *Plugin) Main() {
-	iscenv.ServeStartPlugin(plugin)
-}
-
-func (*Plugin) Key() string {
-	return pluginKey
+func main() {
+	iscenv.ServeStartPlugin(new(Plugin))
 }
 
 func (*Plugin) Flags() (iscenv.PluginFlags, error) {
+	plog.Info("Flags")
 	return iscenv.NewPluginFlags(), nil
 }
 
-func (*Plugin) Environment(_ string, _ map[string]interface{}) ([]string, error) {
-	home, err := getUserHome()
-	if err != nil {
-		return nil, err
-	}
-
-	return []string{
-		fmt.Sprintf("HOST_HOME=%s", home),
-	}, nil
+func (*Plugin) Environment(version string, flags map[string]interface{}) ([]string, error) {
+	plog.Info("Environment")
+	return nil, nil
 }
 
 func (*Plugin) Volumes(_ string, _ map[string]interface{}) ([]string, error) {
-	home, err := getUserHome()
-	if err != nil {
-		return nil, err
-	}
-
-	return []string{
-		fmt.Sprintf("%[1]s:%[1]s:rw", home),
-	}, nil
+	plog.Info("Volumes")
+	return nil, nil
 }
 
 func (*Plugin) Ports(_ string, _ map[string]interface{}) ([]string, error) {
-	return []string{}, nil
+	plog.Info("Ports")
+	return nil, nil
 }
 
 func (*Plugin) BeforeInstance(state iscenv.InternalInstance) error {
+	plog.Info("BeforeInstance")
 	return nil
 }
 
 func (*Plugin) WithInstance(state iscenv.InternalInstance) error {
+	plog.Info("WithInstance")
 	return nil
 }
 
 func (*Plugin) AfterInstance(state iscenv.InternalInstance) error {
+	plog.Info("AfterInstance")
 	return nil
-}
-
-func getUserHome() (string, error) {
-	current, err := user.Current()
-	if err != nil {
-		return "", err
-	}
-
-	if current.HomeDir == "" {
-		return "", fmt.Errorf("Could not determine home directory, user: %s", current.Username)
-	}
-
-	return current.HomeDir, nil
 }

@@ -42,9 +42,7 @@ var startCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(startCmd)
-
-	// Since, we're adding flags and this has to happen in init, we're unfortunately going to have to load up and close the plugins here and in the start function, we could persist the manager globally but it's not as safe as a failure in init could concievably leave rpc servers running
-	if err := addStarterFlags(startCmd); err != nil {
+	if err := addStarterFlagsIfNotPluginCall(startCmd); err != nil {
 		app.ErrorLogger(nil, err).Fatal(app.ErrFailedToAddPluginFlags)
 	}
 
@@ -205,8 +203,11 @@ func getPluginConfig(cmd *cobra.Command, pluginsToActivate []string, version str
 		},
 		func(id, pluginPath string, starter iscenv.Starter) error {
 			flagValues := getPluginFlagValues(cmd, id)
-			// Mount the plugin itself into the /bin directory
-			copies = append(copies, fmt.Sprintf("%s:%s/%s", pluginPath, iscenv.InternalISCEnvBinaryDir, filepath.Base(pluginPath)))
+			// Copy external plugin binaries to the /bin directory
+			if pluginPath != "" {
+				copies = append(copies, fmt.Sprintf("%s:%s/%s", pluginPath, iscenv.InternalISCEnvBinaryDir, filepath.Base(pluginPath)))
+			}
+
 			if env, err := starter.Environment(version, flagValues); err != nil {
 				return app.NewPluginError(id, "Environment", pluginPath, err)
 			} else if env != nil {

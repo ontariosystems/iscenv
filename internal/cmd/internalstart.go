@@ -51,7 +51,7 @@ func init() {
 
 	rootCmd.AddCommand(internalStartCmd)
 
-	if err := addStarterFlags(internalStartCmd); err != nil {
+	if err := addStarterFlagsIfNotPluginCall(internalStartCmd); err != nil {
 		app.ErrorLogger(nil, err).Fatal(app.ErrFailedToAddPluginFlags)
 	}
 

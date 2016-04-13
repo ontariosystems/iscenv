@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package localversionsplugin
 
 import (
 	"regexp"
@@ -26,17 +26,25 @@ import (
 	"github.com/ontariosystems/iscenv/iscenv"
 )
 
+const (
+	pluginKey = "local"
+)
+
 var DockerClient *docker.Client
 
-func main() {
+type Plugin struct{}
+
+func (plugin *Plugin) Main() {
 	var err error
 	if DockerClient, err = docker.NewClient(iscenv.DockerSocket); err != nil {
 		log.WithError(err).Fatal("Failed to create docker client")
 	}
-	iscenv.ServeVersionsPlugin(new(Plugin))
+	iscenv.ServeVersionsPlugin(plugin)
 }
 
-type Plugin struct{}
+func (*Plugin) Key() string {
+	return pluginKey
+}
 
 func (*Plugin) Versions(image string) (iscenv.ISCVersions, error) {
 	localImages, err := DockerClient.ListImages(docker.ListImagesOptions{All: false})
