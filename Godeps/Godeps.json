@@ -4,18 +4,13 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/BurntSushi/toml",
-			"Comment": "v0.1.0-46-gbbd5bb6",
+			"Comment": "v0.2.0",
 			"Rev": "bbd5bb678321a0d6e58f1099321dfa73391c1b6f"
 		},
 		{
 			"ImportPath": "github.com/Sirupsen/logrus",
-			"Comment": "v0.9.0-13-g74bde9e",
-			"Rev": "74bde9ea4c5b2c78995da8ed56d37e75644dc941"
-		},
-		{
-			"ImportPath": "github.com/cpuguy83/go-md2man/md2man",
-			"Comment": "v1.0.4",
-			"Rev": "71acacd42f85e5e82f70a55327789582a5200a90"
+			"Comment": "v0.10.0-4-g7e6f976",
+			"Rev": "7e6f9765803ea8356f45fd9b3c62305fb36cca51"
 		},
 		{
 			"ImportPath": "github.com/creack/termios/raw",
@@ -27,33 +22,29 @@
 		},
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient",
-			"Comment": "0.2.1-889-gddbe4dd",
-			"Rev": "ddbe4ddacd876fa8f9202e656c1972124c4a665d"
+			"Comment": "0.2.1-931-gd0dcc54",
+			"Rev": "d0dcc54ccb72ff550f503cb56e1ee839a79c8428"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/go-plugin",
-			"Rev": "3143eccf5d61654c652d9c41e10b2d43865417d7"
+			"Rev": "cccb4a1328abbb89898f3ecf4311a05bddc4de6d"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/hcl",
-			"Rev": "5b00661d055d07495c9e785198f607c1fb93061e"
+			"Rev": "27a57f2605e04995c111273c263d51cee60d9bc4"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/yamux",
 			"Rev": "df949784da9ed028ee76df44652e42d37a09d7e4"
 		},
 		{
-			"ImportPath": "github.com/inconshreveable/mousetrap",
-			"Rev": "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
-		},
-		{
 			"ImportPath": "github.com/kardianos/osext",
-			"Rev": "6e7f843663477789fac7c02def0d0909e969b4e5"
+			"Rev": "29ae4ffbc9a6fe9fb2bc5029050ce6996ea1d3bc"
 		},
 		{
 			"ImportPath": "github.com/kr/pretty",
-			"Comment": "go.weekly.2011-12-22-27-ge6ac2fc",
-			"Rev": "e6ac2fc51e89a3249e82157fa0bb7a18ef9dd5bb"
+			"Comment": "go.weekly.2011-12-22-29-gadd1dbc",
+			"Rev": "add1dbc86daf0f983cd4a48ceb39deb95c729b67"
 		},
 		{
 			"ImportPath": "github.com/kr/text",
@@ -61,8 +52,8 @@
 		},
 		{
 			"ImportPath": "github.com/magiconair/properties",
-			"Comment": "v1.6.0-5-g497d0af",
-			"Rev": "497d0afefddf378f9ffb3c89db6a326985908519"
+			"Comment": "v1.7.0",
+			"Rev": "c265cfa48dda6474e208715ca93e987829f572f8"
 		},
 		{
 			"ImportPath": "github.com/mcuadros/go-version",
@@ -73,29 +64,20 @@
 			"Rev": "d2dd0262208475919e1a362f675cfc0e7c10e905"
 		},
 		{
-			"ImportPath": "github.com/russross/blackfriday",
-			"Comment": "v1.4-2-g300106c",
-			"Rev": "300106c228d52c8941d4b3de6054a6062a86dda3"
-		},
-		{
-			"ImportPath": "github.com/shurcooL/sanitized_anchor_name",
-			"Rev": "10ef21a441db47d8b13ebcc5fd2310f636973c77"
-		},
-		{
 			"ImportPath": "github.com/spf13/cast",
-			"Rev": "ee7b3e0353166ab1f3a605294ac8cd2b77953778"
+			"Rev": "27b586b42e29bec072fe7379259cc719e1289da6"
 		},
 		{
 			"ImportPath": "github.com/spf13/cobra",
-			"Rev": "1c44ec8d3f1552cac48999f9306da23c4d8a288b"
+			"Rev": "4c05eb1145f16d0e6bb4a3e1b6d769f4713cb41f"
 		},
 		{
 			"ImportPath": "github.com/spf13/jwalterweatherman",
-			"Rev": "d00654080cddbd2b082acaa74007cb94a2b40866"
+			"Rev": "33c24e77fb80341fe7130ee7c594256ff08ccc46"
 		},
 		{
 			"ImportPath": "github.com/spf13/pflag",
-			"Rev": "7f60f83a2c81bc3c3c0d5297f61ddfa68da9d3b7"
+			"Rev": "8f6a28b0916586e7f22fe931ae2fcfc380b1c0e6"
 		},
 		{
 			"ImportPath": "github.com/spf13/viper",
@@ -103,7 +85,7 @@
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/ssh/terminal",
-			"Rev": "c8b9e6388ef638d5a8a9d865c634befdc46a6784"
+			"Rev": "1777f3ba8c1fed80fcaec3317e3aaa4f627764d2"
 		},
 		{
 			"ImportPath": "gopkg.in/fsnotify.v1",
