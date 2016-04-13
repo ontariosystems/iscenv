@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/hashicorp/go-plugin"
 	"github.com/kardianos/osext"
 	"github.com/ontariosystems/iscenv/iscenv"
@@ -43,27 +44,56 @@ func NewPluginManager(applicationName, pluginType string, iscenvPlugin plugin.Pl
 		return nil, err
 	}
 
-	exes, err := filepath.Glob(filepath.Join(exeDir, fmt.Sprintf("%s-%s-*", applicationName, pluginType)))
+	thisExe, err := osext.Executable()
 	if err != nil {
 		return nil, err
 	}
 
-	clients := make(map[string]*PluginClient)
+	// The internal plugins are the defaults
+	plugins := make(map[string]string)
+	if internal, ok := InternalPlugins[pluginType]; ok {
+		for key := range internal {
+			plugins[key] = ""
+		}
+	}
+	log.Debugf("Found %d internal %s plugin(s)", len(InternalPlugins[pluginType]), pluginType)
+
+	log.Debugf("Searching %s for external %s plugins", pluginType, exeDir)
+	exes, err := filepath.Glob(filepath.Join(exeDir, fmt.Sprintf("%s-%s-*", applicationName, pluginType)))
+	if err != nil {
+		return nil, err
+	}
+	log.Debugf("Found %d external %s plugin(s)", len(exes), pluginType)
+
+	// Plugins on disk override the internal plugins
 	for _, exe := range exes {
-		id := strings.SplitN(filepath.Base(exe), "-", 3)[2]
+		key := strings.SplitN(filepath.Base(exe), "-", 3)[2]
+		plugins[key] = exe
+	}
+
+	clients := make(map[string]*PluginClient)
+	for key, exe := range plugins {
+		var cmd *exec.Cmd
+		if exe != "" {
+			cmd = exec.Command(exe, args.ToArgs()...)
+		} else {
+			cmd = exec.Command(thisExe, append([]string{"plugin", pluginType, key}, args.ToArgs()...)...)
+		}
+
 		client := &PluginClient{
 			ExecutablePath: exe,
 			Client: plugin.NewClient(&plugin.ClientConfig{
 				HandshakeConfig: iscenv.PluginHandshake,
 				Plugins:         map[string]plugin.Plugin{pluginType: iscenvPlugin},
-				Cmd:             exec.Command(exe, args.ToArgs()...),
+				Cmd:             cmd,
 				SyncStdout:      os.Stdout,
 				SyncStderr:      os.Stderr,
 			}),
 		}
 
-		clients[id] = client
+		clients[key] = client
 	}
+	log.Debugf("Found %d unique %s plugin(s)", len(clients), pluginType)
 
 	return &PluginManager{
 		pluginType: pluginType,

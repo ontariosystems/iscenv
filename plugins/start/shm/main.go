@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package shmplugin
 
 import (
 	"fmt"
@@ -26,17 +26,22 @@ import (
 	"github.com/ontariosystems/iscenv/iscenv"
 )
 
-var plog = iscenv.PLog()
+var plog = log.WithField("plugin", pluginKey)
 
 const (
-	envName = "ISCENV_SHM_SIZE"
+	pluginKey = "shm"
+	envName   = "ISCENV_SHM_SIZE"
 )
 
-func main() {
-	iscenv.ServeStartPlugin(new(Plugin))
+type Plugin struct{}
+
+func (plugin *Plugin) Main() {
+	iscenv.ServeStartPlugin(plugin)
 }
 
-type Plugin struct{}
+func (*Plugin) Key() string {
+	return pluginKey
+}
 
 func (*Plugin) Flags() (iscenv.PluginFlags, error) {
 	flags := iscenv.NewPluginFlags()

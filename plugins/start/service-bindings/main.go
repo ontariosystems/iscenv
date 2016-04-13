@@ -14,21 +14,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package servicebindingsplugin
 
 import (
 	"bytes"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/ontariosystems/iscenv/iscenv"
 )
 
-var plog = iscenv.PLog()
+const (
+	pluginKey = "service-bindings"
+)
 
-func main() {
-	iscenv.ServeStartPlugin(new(Plugin))
-}
+var plog = log.WithField("plugin", pluginKey)
 
 type Plugin struct{}
+
+func (plugin *Plugin) Main() {
+	iscenv.ServeStartPlugin(plugin)
+}
+
+func (*Plugin) Key() string {
+	return pluginKey
+}
 
 func (*Plugin) Flags() (iscenv.PluginFlags, error) {
 	return iscenv.NewPluginFlags(), nil

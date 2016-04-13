@@ -25,6 +25,15 @@ import (
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 )
 
+// Adding starter flags when doing plugin calls causes an infinite loop
+func addStarterFlagsIfNotPluginCall(cmd *cobra.Command) error {
+	if isPluginCall() {
+		return nil
+	}
+
+	return addStarterFlags(cmd)
+}
+
 // Add the flags from the available starter plugins to the provided command
 func addStarterFlags(cmd *cobra.Command) error {
 	available := make([]string, 0)
