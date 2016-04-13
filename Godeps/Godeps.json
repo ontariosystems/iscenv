@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/ontariosystems/iscenv",
-	"GoVersion": "go1.5",
+	"GoVersion": "go1.6",
 	"Deps": [
 		{
 			"ImportPath": "github.com/BurntSushi/toml",
@@ -63,6 +63,10 @@
 			"ImportPath": "github.com/magiconair/properties",
 			"Comment": "v1.6.0-5-g497d0af",
 			"Rev": "497d0afefddf378f9ffb3c89db6a326985908519"
+		},
+		{
+			"ImportPath": "github.com/mcuadros/go-version",
+			"Rev": "d52711f8d6bea8dc01efafdb68ad95a4e2606630"
 		},
 		{
 			"ImportPath": "github.com/mitchellh/mapstructure",
