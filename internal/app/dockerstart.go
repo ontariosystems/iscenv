@@ -44,7 +44,7 @@ func DockerStart(opts DockerStartOptions) (id string, err error) {
 		}
 
 		if opts.Recreate {
-			ilog.Debug("Removing instance")
+			ilog.Info("Removing existing instance")
 			if err := DockerRemove(existing); err != nil {
 				return "", err
 			}
