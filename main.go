@@ -1,5 +1,5 @@
 /*
-Copyright 2015 Ontario Systems
+Copyright 2016 Ontario Systems
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,9 +16,8 @@ limitations under the License.
 
 package main
 
-// Version This version number will be injected by the build system based on the Mercurial tags on the repository
-var Version string
+import "github.com/ontariosystems/iscenv/internal/cmd"
 
 func main() {
-	execute()
+	cmd.Execute()
 }

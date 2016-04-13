@@ -1,7 +1,6 @@
 syntax: glob
 
 pkg
-iscenv
 .idea
 *.iml
 *.swp
