@@ -1,6 +1,6 @@
 PKGDIR=pkg
 CACHEDIR=cache
-compile=GO15VENDOREXPERIMENT=1 GOOS=$(1) GOARCH=$(2) go build -ldflags "-X github.com/ontariosystems/iscenv/internal/iscenv.Version=$(VERSION)" -o=$(PKGDIR)/$(1)/$(2)/bin/iscenv
+compile=GO15VENDOREXPERIMENT=1 GOOS=$(1) GOARCH=$(2) go build -ldflags "-X github.com/ontariosystems/iscenv/iscenv.Version=$(VERSION)" -o=$(PKGDIR)/$(1)/$(2)/bin/iscenv
 compile_plugin=GO15VENDOREXPERIMENT=1 GOOS=$(1) GOARCH=$(2) go build -o=$(PKGDIR)/$(1)/$(2)/bin/iscenv-$(3)-$(4) plugins/$(3)/$(4)/*.go
 
 .PHONY: all clean version build build-external-test-plugin
