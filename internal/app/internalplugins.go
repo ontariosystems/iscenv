@@ -22,6 +22,7 @@ import (
 	"github.com/ontariosystems/iscenv/plugins/start/service-bindings"
 	"github.com/ontariosystems/iscenv/plugins/start/shm"
 	"github.com/ontariosystems/iscenv/plugins/versions/local"
+	"github.com/ontariosystems/iscenv/plugins/versions/quay"
 )
 
 // An API for starting internal plugins
@@ -42,11 +43,8 @@ var InternalPlugins internalPluginMapping
 func init() {
 	InternalPlugins = make(internalPluginMapping)
 
-	///////////
-	// Use this structure to dynamically create the plugins command
-	// Update the plugin manager to use this list to dynamically build its *initial* list that can still be overridden by files on disk
-
 	addPlugin("versions", new(localversionsplugin.Plugin))
+	addPlugin("versions", new(quayversionsplugin.Plugin))
 
 	addPlugin("start", new(licensekeyplugin.Plugin))
 	addPlugin("start", new(homedirplugin.Plugin))

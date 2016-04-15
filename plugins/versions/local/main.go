@@ -71,7 +71,12 @@ func (*Plugin) Versions(image string) (iscenv.ISCVersions, error) {
 	versions := make(iscenv.ISCVersions, len(vs), len(vs))
 	for i, v := range vs {
 		ai := vm[v]
-		versions[i] = &iscenv.ISCVersion{ID: ai.ID, Version: v, Created: ai.Created}
+		versions[i] = &iscenv.ISCVersion{
+			ID:      strings.TrimPrefix(ai.ID, "sha256:"),
+			Version: v,
+			Created: ai.Created,
+			Source:  "local",
+		}
 	}
 
 	return versions, nil
