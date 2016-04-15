@@ -14,11 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package iscenv
+package quayversionsplugin
 
-type ISCVersion struct {
-	ID      string
-	Version string
-	Created int64
-	Source  string
+import (
+	"net/http"
+	"net/url"
+)
+
+func newRegistryClient(url *url.URL, username, password string) *http.Client {
+	return &http.Client{
+		Transport: &BasicAuthTransport{
+			URL:      url,
+			Username: username,
+			Password: password,
+			Transport: &DockerTokenTransport{
+				Username:  username,
+				Password:  password,
+				Transport: http.DefaultTransport,
+			},
+		},
+	}
 }

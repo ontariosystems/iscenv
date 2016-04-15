@@ -16,7 +16,33 @@ limitations under the License.
 
 package iscenv
 
+import (
+	"sort"
+
+	"github.com/mcuadros/go-version"
+)
+
 type ISCVersions []*ISCVersion
+
+func (evs ISCVersions) Len() int      { return len(evs) }
+func (evs ISCVersions) Swap(i, j int) { evs[i], evs[j] = evs[j], evs[i] }
+func (evs ISCVersions) Less(i, j int) bool {
+	cmp := version.CompareSimple(version.Normalize(evs[i].Version), version.Normalize(evs[j].Version))
+	if cmp == 0 {
+		return evs[i].Version < evs[j].Version
+	}
+
+	return cmp < 0
+}
+
+func (evs *ISCVersions) AddIfMissing(ev *ISCVersion) bool {
+	if !evs.Exists(ev.Version) {
+		*evs = append(*evs, ev)
+		return true
+	}
+
+	return false
+}
 
 func (evs ISCVersions) Latest() *ISCVersion {
 	return evs[len(evs)-1]
@@ -34,4 +60,8 @@ func (evs ISCVersions) Find(versionString string) *ISCVersion {
 	}
 
 	return nil
+}
+
+func (evs *ISCVersions) Sort() {
+	sort.Sort(*evs)
 }
