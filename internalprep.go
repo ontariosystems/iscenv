@@ -1,5 +1,5 @@
 /*
-Copyright 2015 Ontario Systems
+Copyright 2016 Ontario Systems
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -75,7 +75,7 @@ func prep(_ *cobra.Command, _ []string) {
 	cmd("chmod", "775", logLocation)
 
 	// Doing this before the stop so that the first useful start's logs will be in the appropriate place
-	cmd("deployment_service", "config", "-u", "root", "-p", "password", "-s", "config", "-i", "ConsoleFile", "-v", cconsoleLocation)
+	cmd("deployment_service", "config", "-h", "http://localhost:57772", "-u", "root", "-p", "password", "-s", "config", "-i", "ConsoleFile", "-v", cconsoleLocation)
 
 	if internalPrepUID != "" && internalPrepGID != "" {
 		cmd("supervisorctl", "stop", "ensemble")
@@ -101,7 +101,7 @@ func prep(_ *cobra.Command, _ []string) {
 		cmd("sh", "-c", "rm -f /ensemble/instances/docker/devuser/studio/templates/*") // TODO: use native go to remove these
 	}
 
-	cmd("deployment_service", "seccfg", "-u", "root", "-p", "password", "-s", "Services", "-N", "%Service_Bindings", "-i", "Enabled", "-v", "1")
+	cmd("deployment_service", "seccfg", "-h", "http://localhost:57772", "-u", "root", "-p", "password", "-s", "Services", "-N", "%Service_Bindings", "-i", "Enabled", "-v", "1")
 
 	if internalPrepHostIP != "" {
 		// I could have done this by executing a sed one-liner but i resisted the urge and wrote it in native go
@@ -246,7 +246,7 @@ func updateCacheKey(url string) {
 		return
 	}
 
-	out, err := exec.Command("deployment_service", "license", "-u", "root", "-p", "password").CombinedOutput()
+	out, err := exec.Command("deployment_service", "license", "-h", "http://localhost:57772", "-u", "root", "-p", "password").CombinedOutput()
 	if err != nil {
 		fmt.Printf("WARNING: Could not activate new cache.key file, error: %s\n", err)
 		return
