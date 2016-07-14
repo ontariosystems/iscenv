@@ -30,8 +30,8 @@ const (
 	PortExternalWeb = 57772
 	EnvInternalWeb  = "ISC_HTTP_PORT"
 
-	PortInternalHC = 58772
-	PortExternalHC = 58772
+	PortInternalHC = 59772
+	PortExternalHC = 59772
 	EnvInternalHC  = "ISCENV_HEALTHCHECK_PORT"
 
 	// TODO: These should be defaults and should be configurable with viper
