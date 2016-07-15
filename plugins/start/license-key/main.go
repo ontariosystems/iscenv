@@ -48,9 +48,9 @@ func (*Plugin) Key() string {
 }
 
 func (*Plugin) Flags() (iscenv.PluginFlags, error) {
-	flags := iscenv.NewPluginFlags()
-	flags.AddFlag("url", true, "", "The full URL of the ISC product key to download")
-	return flags, nil
+	fb := iscenv.NewPluginFlagsBuilder()
+	fb.AddFlag("url", true, "", "The full URL of the ISC product key to download")
+	return fb.Flags()
 }
 
 func (*Plugin) Environment(_ string, flags map[string]interface{}) ([]string, error) {
@@ -116,8 +116,13 @@ func (*Plugin) BeforeInstance(state *isclib.Instance) error {
 		return err
 	}
 
-	os.Chown(keyPath, int(uid), int(gid))
-	os.Chmod(keyPath, 0644)
+	if err := os.Chown(keyPath, int(uid), int(gid)); err != nil {
+		return err
+	}
+
+	if err := os.Chmod(keyPath, 0644); err != nil {
+		return err
+	}
 
 	plog.WithFields(log.Fields{
 		"url":   url,

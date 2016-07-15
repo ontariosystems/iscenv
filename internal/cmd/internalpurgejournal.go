@@ -43,9 +43,6 @@ func init() {
 }
 
 func internalPurgeJournal(_ *cobra.Command, _ []string) {
-	// verify we are running in a container
-	app.EnsureWithinContainer("_purgejournal")
-
 	journals, err := filepath.Glob("/data/journal/[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].[0-9][0-9][0-9]")
 	if err != nil {
 		app.ErrorLogger(nil, err).Fatal("Failed to list journal files")

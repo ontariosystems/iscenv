@@ -16,8 +16,6 @@ limitations under the License.
 
 package iscenv
 
-import "fmt"
-
 func NewPluginFlag(flag string, hasConfig bool, defaultValue interface{}, usage string) *PluginFlag {
 	return &PluginFlag{
 		Flag:         flag,
@@ -32,8 +30,4 @@ type PluginFlag struct {
 	HasConfig    bool
 	DefaultValue interface{}
 	Usage        string
-}
-
-func fullFlag(prefix, flag string) string {
-	return fmt.Sprintf("%s-%s", prefix, flag)
 }

@@ -45,9 +45,9 @@ func (*Plugin) Key() string {
 }
 
 func (*Plugin) Flags() (iscenv.PluginFlags, error) {
-	flags := iscenv.NewPluginFlags()
-	flags.AddFlag("size", true, 8192, "The size of shared memory in megabytes")
-	return flags, nil
+	fb := iscenv.NewPluginFlagsBuilder()
+	fb.AddFlag("size", true, 8192, "The size of shared memory in megabytes")
+	return fb.Flags()
 }
 
 func (*Plugin) Environment(_ string, flags map[string]interface{}) ([]string, error) {
@@ -102,7 +102,7 @@ func (*Plugin) AfterInstance(state *isclib.Instance) error {
 func sysctl(param string, size int) error {
 	if b, err := exec.Command("sysctl", "-w", fmt.Sprintf("kernel.%s=%d", param, size)).CombinedOutput(); err != nil {
 		out := string(b)
-		log.WithFields(log.Fields{
+		plog.WithFields(log.Fields{
 			"param":  param,
 			"size":   size,
 			"stdout": out,

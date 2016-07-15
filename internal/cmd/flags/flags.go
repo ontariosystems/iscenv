@@ -156,7 +156,9 @@ func AddFlagComplex(cmd *cobra.Command, persistent bool, cfg bool, name string, 
 	}
 
 	if cfg {
-		viper.BindPFlag(key, cmdFlags.Lookup(name))
+		if err := viper.BindPFlag(key, cmdFlags.Lookup(name)); err != nil {
+			panic(err)
+		}
 	}
 }
 
