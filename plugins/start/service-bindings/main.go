@@ -21,6 +21,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/ontariosystems/iscenv/iscenv"
+	"github.com/ontariosystems/isclib"
 )
 
 const (
@@ -55,11 +56,11 @@ func (*Plugin) Ports(_ string, _ map[string]interface{}) ([]string, error) {
 	return nil, nil
 }
 
-func (*Plugin) BeforeInstance(instance iscenv.InternalInstance) error {
+func (*Plugin) BeforeInstance(instance *isclib.Instance) error {
 	return nil
 }
 
-func (*Plugin) WithInstance(instance iscenv.InternalInstance) error {
+func (*Plugin) WithInstance(instance *isclib.Instance) error {
 	plog.Debug("Enabling ISC service bindings")
 
 	code := `MAIN
@@ -85,6 +86,6 @@ func (*Plugin) WithInstance(instance iscenv.InternalInstance) error {
 	return nil
 }
 
-func (*Plugin) AfterInstance(instance iscenv.InternalInstance) error {
+func (*Plugin) AfterInstance(instance *isclib.Instance) error {
 	return nil
 }

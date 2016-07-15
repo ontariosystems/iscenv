@@ -17,75 +17,57 @@ limitations under the License.
 package app
 
 import (
-	"fmt"
 	"os"
-	"os/exec"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/ontariosystems/iscenv/iscenv"
+	"github.com/ontariosystems/isclib"
 )
 
-const (
-	IIMDefaultCControlPath = "ccontrol"
-	IIMDefaultCSessionPath = "csession"
-)
+type InstanceStateFn func(instance *isclib.Instance)
 
-type InstanceStateFn func(state *iscenv.InternalInstance)
+func NewISCInstanceManager(instanceName string, ccontrolPath string, csessionPath string) (*ISCInstanceManager, error) {
 
-func NewInternalInstanceManager(instanceName string, ccontrolPath string, csessionPath string) (*InternalInstanceManager, error) {
-	if ccontrolPath == "" {
-		ccontrolPath = IIMDefaultCControlPath
+	if ccontrolPath != "" {
+		isclib.SetCControlPath(ccontrolPath)
 	}
 
-	iim := &InternalInstanceManager{
-		InternalInstance: &iscenv.InternalInstance{CSessionPath: csessionPath},
-		instanceName:     instanceName,
-		ccontrolPath:     ccontrolPath,
-		csessionPath:     csessionPath,
+	if csessionPath != "" {
+		isclib.SetCSessionPath(csessionPath)
 	}
 
-	if err := iim.Update(); err != nil {
+	instance, err := isclib.LoadInstance(instanceName)
+	if err != nil {
 		return nil, err
 	}
 
-	return iim, nil
+	eim := &ISCInstanceManager{
+		Instance: instance,
+	}
+
+	return eim, nil
 }
 
 // Manages a instance within a container
-type InternalInstanceManager struct {
-	instanceName string
-	ccontrolPath string
-	csessionPath string
-	*iscenv.InternalInstance
-
+type ISCInstanceManager struct {
+	*isclib.Instance
 	InstanceRunningHandler InstanceStateFn
 }
 
-func (iim *InternalInstanceManager) qlist() (string, error) {
-	out, err := exec.Command(iim.ccontrolPath, "qlist", iim.instanceName).CombinedOutput()
-	if err != nil {
-		return "", err
-	}
-
-	return strings.TrimSpace(string(out)), nil
-}
-
-func (iim *InternalInstanceManager) Manage() error {
-	ilog := log.WithField("name", iim.instanceName)
+func (eim *ISCInstanceManager) Manage() error {
+	ilog := log.WithField("name", eim.Instance.Name)
 	ilog.Debug("Starting instance")
-	if err := iim.Start(); err != nil {
+	if err := eim.Instance.Start(); err != nil {
 		return err
 	}
 
-	if iim.InstanceRunningHandler != nil {
+	if eim.InstanceRunningHandler != nil {
 		ilog.Debug("Executing instance running handler")
-		iim.InstanceRunningHandler(iim.InternalInstance)
+		eim.InstanceRunningHandler(eim.Instance)
 	}
 
-	ilog.WithField("status", iim.Status).Info("Started instance")
+	ilog.WithField("status", eim.Status).Info("Started instance")
 
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGABRT, syscall.SIGHUP)
@@ -95,62 +77,5 @@ func (iim *InternalInstanceManager) Manage() error {
 	sig := <-sigchan
 	log.Printf("Got signal: %s\n", sig)
 
-	return iim.Stop()
-}
-
-// TODO: Think about a nozstu flag if there's a reason
-func (iim *InternalInstanceManager) Start() error {
-	if iim.Status.Down() {
-		if output, err := exec.Command(iim.ccontrolPath, "start", iim.instanceName, "quietly").CombinedOutput(); err != nil {
-			return fmt.Errorf("Error starting instance, error: %s, output: %s", err, output)
-		}
-	}
-
-	if err := iim.Update(); err != nil {
-		return fmt.Errorf("Error refreshing instance state during start, error: %s", err)
-	}
-
-	if !iim.Status.Running() {
-		return fmt.Errorf("Failed to start instance, name: %s, status: %s", iim.instanceName, iim.Status)
-	}
-
-	return nil
-}
-
-func (iim *InternalInstanceManager) Stop() error {
-	ilog := log.WithField("name", iim.instanceName)
-	ilog.Debug("Shutting down instance")
-	if iim.Status.Up() {
-		args := []string{"stop", iim.instanceName}
-		if iim.Status.RequiresBypass() {
-			args = append(args, "bypass")
-		}
-		args = append(args, "quietly")
-		if output, err := exec.Command(iim.ccontrolPath, args...).CombinedOutput(); err != nil {
-			return fmt.Errorf("Error stopping instance, error: %s, output: %s", err, output)
-		}
-	}
-
-	if err := iim.Update(); err != nil {
-		return fmt.Errorf("Error refreshing instance state during stop, error: %s", err)
-	}
-
-	if !iim.Status.Down() {
-		return fmt.Errorf("Failed to stop instance, name: %s, status: %s", iim.instanceName, iim.Status)
-	}
-
-	return nil
-}
-
-func (iim *InternalInstanceManager) Update() error {
-	qlist, err := iim.qlist()
-	if err != nil {
-		return err
-	}
-
-	if err := iim.InternalInstance.Update(qlist); err != nil {
-		return err
-	}
-
-	return nil
+	return eim.Stop()
 }

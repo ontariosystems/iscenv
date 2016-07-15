@@ -27,6 +27,7 @@ import (
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
+	"github.com/ontariosystems/isclib"
 )
 
 type starterInfo struct {
@@ -97,7 +98,7 @@ func internalStart(cmd *cobra.Command, _ []string) {
 	}
 
 	startStatus.Update(app.StartPhaseInitManager, nil, "")
-	manager, err := app.NewInternalInstanceManager(
+	manager, err := app.NewISCInstanceManager(
 		flags.GetString(cmd, "instance"),
 		flags.GetString(cmd, "ccontrol-path"),
 		flags.GetString(cmd, "csession-path"),
@@ -106,40 +107,40 @@ func internalStart(cmd *cobra.Command, _ []string) {
 		app.ErrorLogger(nil, err).Fatal("Failed to create instance manager")
 	}
 
-	startStatus.Update(app.StartPhaseEventBeforeInstance, manager.InternalInstance, "")
+	startStatus.Update(app.StartPhaseEventBeforeInstance, manager.Instance, "")
 	for _, starter := range starters {
 		plog := starterLogger(starter, "BeforeInstance")
 		plog.Info("Executing plugin")
 		startStatus.Update(app.StartPhaseEventBeforeInstance, nil, starter.ID)
-		if err := starter.Starter.BeforeInstance(*manager.InternalInstance); err != nil {
+		if err := starter.Starter.BeforeInstance(manager.Instance); err != nil {
 			app.ErrorLogger(plog, err).Fatal(app.ErrFailedEventPlugin)
 		}
 	}
 
-	manager.InstanceRunningHandler = func(*iscenv.InternalInstance) {
-		startStatus.Update(app.StartPhaseEventWithInstance, manager.InternalInstance, "")
+	manager.InstanceRunningHandler = func(*isclib.Instance) {
+		startStatus.Update(app.StartPhaseEventWithInstance, manager.Instance, "")
 		for _, starter := range starters {
 			plog := starterLogger(starter, "WithInstance")
 			plog.Info("Executing plugin")
 			startStatus.Update(app.StartPhaseEventWithInstance, nil, starter.ID)
-			if err := starter.Starter.WithInstance(*manager.InternalInstance); err != nil {
+			if err := starter.Starter.WithInstance(manager.Instance); err != nil {
 				app.ErrorLogger(plog, err).Fatal(app.ErrFailedEventPlugin)
 			}
 		}
 
-		startStatus.Update(app.StartPhaseInstanceRunning, manager.InternalInstance, "")
+		startStatus.Update(app.StartPhaseInstanceRunning, manager.Instance, "")
 	}
 
 	if err := manager.Manage(); err != nil {
 		app.ErrorLogger(nil, err).Fatal("Failed to manage instance")
 	}
 
-	startStatus.Update(app.StartPhaseEventAfterInstance, manager.InternalInstance, "")
+	startStatus.Update(app.StartPhaseEventAfterInstance, manager.Instance, "")
 	for _, starter := range starters {
 		plog := starterLogger(starter, "AfterInstance")
 		plog.Info("Executing plugin")
 		startStatus.Update(app.StartPhaseEventAfterInstance, nil, starter.ID)
-		if err := starter.Starter.AfterInstance(*manager.InternalInstance); err != nil {
+		if err := starter.Starter.AfterInstance(manager.Instance); err != nil {
 			app.ErrorLogger(plog, err).Fatal(app.ErrFailedEventPlugin)
 		}
 	}

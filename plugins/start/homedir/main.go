@@ -21,6 +21,7 @@ import (
 	"os/user"
 
 	"github.com/ontariosystems/iscenv/iscenv"
+	"github.com/ontariosystems/isclib"
 )
 
 const (
@@ -67,15 +68,15 @@ func (*Plugin) Ports(_ string, _ map[string]interface{}) ([]string, error) {
 	return []string{}, nil
 }
 
-func (*Plugin) BeforeInstance(state iscenv.InternalInstance) error {
+func (*Plugin) BeforeInstance(state *isclib.Instance) error {
 	return nil
 }
 
-func (*Plugin) WithInstance(state iscenv.InternalInstance) error {
+func (*Plugin) WithInstance(state *isclib.Instance) error {
 	return nil
 }
 
-func (*Plugin) AfterInstance(state iscenv.InternalInstance) error {
+func (*Plugin) AfterInstance(state *isclib.Instance) error {
 	return nil
 }
 
