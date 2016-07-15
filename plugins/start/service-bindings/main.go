@@ -62,6 +62,9 @@ func (*Plugin) BeforeInstance(instance *isclib.Instance) error {
 
 func (*Plugin) WithInstance(instance *isclib.Instance) error {
 	plog.Debug("Enabling ISC service bindings")
+	if err := instance.ExecuteAsManager(); err != nil {
+		return err
+	}
 
 	code := `MAIN
  new
