@@ -65,29 +65,8 @@ func start(cmd *cobra.Command, args []string) {
 	log.Debug("Retrieving local versions")
 	ensureImage()
 
-	// Get the local versions (passing an empty plugins list means *only* local)
 	image := flags.GetString(rootCmd, "image")
-	versions, err := getVersions(image, []string{})
-	if err != nil {
-		app.ErrorLogger(nil, err).Fatal("Failed to retrieve local versions")
-	}
-
-	// If no version was passed we will use the latest already downloaded image.  This gives some level of predictability to this feature.  You won't suddenly end up with a brand new field test version when you recreate an instance.
-	version := flags.GetString(cmd, "version")
-	if version == "" {
-		if len(versions) == 0 {
-			log.Fatal("No local versions from which to choose latest, must provide version with --version flag")
-		}
-		version = versions.Latest().Version
-	}
-
-	if !versions.Exists(version) {
-		vlog := app.DockerRepoLogger(image).WithField("version", version)
-		vlog.Info("Unable to find version locally, attempting to download.  This may take some time.")
-		if err := app.DockerPull(image, version); err != nil {
-			vlog.WithError(err).Fatal("Failed to pull image")
-		}
-	}
+	version := getVersion(image, flags.GetString(cmd, "version"))
 
 	pluginsToActivate := strings.Split(flags.GetString(cmd, "plugins"), ",")
 	environment, copies, volumes, ports, err := getPluginConfig(cmd, pluginsToActivate, version)
@@ -186,6 +165,37 @@ func start(cmd *cobra.Command, args []string) {
 
 		ilog.Info("Started instance")
 	}
+}
+
+// getVersion will determine the appropriate version of the provided docker image to use and download it as needed.
+// If the requestedVersion is not empty, it will use that version.
+// If the requested version is empty, it will search for the latest local version for this supplied image.
+// It returns the actual version to be used.
+func getVersion(image, requestedVersion string) string {
+	// Get the local versions (passing an empty plugins list means *only* local)
+	versions, err := getVersions(image, []string{})
+	if err != nil {
+		app.ErrorLogger(nil, err).Fatal("Failed to retrieve local versions")
+	}
+
+	// If no version was passed we will use the latest already downloaded image.  This gives some level of predictability to this feature.  You won't suddenly end up with a brand new field test version when you recreate an instance.
+	version := requestedVersion
+	if version == "" {
+		if len(versions) == 0 {
+			log.Fatal("No local versions from which to choose latest, must provide version with --version flag")
+		}
+		version = versions.Latest().Version
+	}
+
+	if !versions.Exists(version) {
+		vlog := app.DockerRepoLogger(image).WithField("version", version)
+		vlog.Info("Unable to find version locally, attempting to download.  This may take some time.")
+		if err := app.DockerPull(image, version); err != nil {
+			vlog.WithError(err).Fatal("Failed to pull image")
+		}
+	}
+
+	return version
 }
 
 func getPluginConfig(cmd *cobra.Command, pluginsToActivate []string, version string) (environment, copies, volumes, ports []string, err error) {

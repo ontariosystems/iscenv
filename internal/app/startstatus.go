@@ -54,7 +54,7 @@ type StartStatus struct {
 func (ss *StartStatus) Update(phase StartPhase, state *isclib.Instance, executingPlugin string) {
 	// Done this way rather than simply auto-advancing so the calling code is easier to read
 	if ss.Phase != phase && ss.Phase+1 != phase {
-		panic(fmt.Sprintf("Attempted to skip a phase or move backwards, current: %d, next: %s", ss.Phase, phase))
+		panic(fmt.Sprintf("Attempted to skip a phase or move backwards, current: %d, next: %d", ss.Phase, phase))
 	}
 	ss.Phase = phase
 	if state != nil {

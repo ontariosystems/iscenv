@@ -23,8 +23,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-type execExecFn func(string, []string) error
-
 var (
 	defaultExecCommand = []string{"/bin/bash", "-l"}
 )

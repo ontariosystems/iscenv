@@ -99,7 +99,7 @@ func getVersions(image string, plugins []string) (iscenv.ISCVersions, error) {
 
 	// No need for error handling as we'll always log fatal within the loop in the event of an error
 	log.WithField("plugin", baseVersionPlugin).Debug("Executing default version plugin")
-	pm.ActivatePlugins([]string{baseVersionPlugin}, func(id, path string, raw interface{}) error {
+	if err := pm.ActivatePlugins([]string{baseVersionPlugin}, func(id, path string, raw interface{}) error {
 		var err error
 		plog := app.PluginLogger(id, "Versions", path)
 		versioner := raw.(iscenv.Versioner)
@@ -112,11 +112,13 @@ func getVersions(image string, plugins []string) (iscenv.ISCVersions, error) {
 
 		plog.WithField("count", len(versions)).Debug("Retrieved versions")
 		return nil
-	})
+	}); err != nil {
+		log.WithError(err).Error("Execution of default version plugin failed")
+	}
 
 	// No need for error handling as we'll always log fatal within the loop in the event of an error
 	log.Debugf("Executing %d additional version plugin(s)", len(plugins))
-	pm.ActivatePlugins(plugins, func(id, path string, raw interface{}) error {
+	if err := pm.ActivatePlugins(plugins, func(id, path string, raw interface{}) error {
 		// Local was added to the plugins list which makes no sense but isn't worthy of an error (and we don't want to log because it will corrupt the table output of versions)
 		if strings.EqualFold(id, baseVersionPlugin) {
 			log.WithField("plugin", baseVersionPlugin).Debug("Skipping default version plugin (it was already executed)")
@@ -139,7 +141,9 @@ func getVersions(image string, plugins []string) (iscenv.ISCVersions, error) {
 		}
 
 		return nil
-	})
+	}); err != nil {
+		log.WithError(err).Error("Execution of additional version plugins failed")
+	}
 
 	versions.Sort()
 	return versions, nil

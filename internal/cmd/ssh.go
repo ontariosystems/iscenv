@@ -28,8 +28,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type sshExecFn func(string, []string) error
-
 var sshCmd = &cobra.Command{
 	Use:   "ssh INSTANCE",
 	Short: "Connect to an instance",

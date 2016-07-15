@@ -34,7 +34,6 @@ func WaitForInstance(instance *iscenv.ISCInstance, timeout time.Duration) error 
 	case <-time.After(timeout):
 		return fmt.Errorf("Timed out waiting for instance initialization, %s", instance.Name)
 	}
-	return nil
 }
 
 func WaitForInstanceForever(instance *iscenv.ISCInstance, c chan error) {
