@@ -19,6 +19,7 @@ package main
 import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/ontariosystems/iscenv/iscenv"
+	"github.com/ontariosystems/isclib"
 )
 
 var plog = log.WithField("plugin", "external-test-plugin")
@@ -49,17 +50,17 @@ func (*Plugin) Ports(_ string, _ map[string]interface{}) ([]string, error) {
 	return nil, nil
 }
 
-func (*Plugin) BeforeInstance(state iscenv.InternalInstance) error {
+func (*Plugin) BeforeInstance(state *isclib.Instance) error {
 	plog.Info("BeforeInstance")
 	return nil
 }
 
-func (*Plugin) WithInstance(state iscenv.InternalInstance) error {
+func (*Plugin) WithInstance(state *isclib.Instance) error {
 	plog.Info("WithInstance")
 	return nil
 }
 
-func (*Plugin) AfterInstance(state iscenv.InternalInstance) error {
+func (*Plugin) AfterInstance(state *isclib.Instance) error {
 	plog.Info("AfterInstance")
 	return nil
 }

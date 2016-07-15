@@ -28,10 +28,13 @@ import (
 type DockerStartOptions struct {
 	// The name of the instance
 	Name string
+
 	// The image repository from which the container will be created
 	Repository string
+
 	// The version of the image to use
 	Version string
+
 	// The port by which the external ports will be offset (or the starting offset for search if searching)
 	PortOffset int64
 

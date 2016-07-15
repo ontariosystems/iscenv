@@ -19,7 +19,7 @@ package app
 import (
 	"fmt"
 
-	"github.com/ontariosystems/iscenv/iscenv"
+	"github.com/ontariosystems/isclib"
 )
 
 // The order here *must* match the actual order that things are started
@@ -40,19 +40,19 @@ func NewStartStatus() *StartStatus {
 	return &StartStatus{
 		Phase:         StartPhaseStartup,
 		ActivePlugins: []string{},
-		InstanceState: &iscenv.InternalInstance{},
+		InstanceState: nil,
 	}
 }
 
 type StartStatus struct {
-	Phase           StartPhase               `json:"phase"`
-	ActivePlugins   []string                 `json:"activePlugins"`
-	ExecutingPlugin string                   `json:"executingPlugin"`
-	InstanceState   *iscenv.InternalInstance `json:"instanceState"`
+	Phase           StartPhase       `json:"phase"`
+	ActivePlugins   []string         `json:"activePlugins"`
+	ExecutingPlugin string           `json:"executingPlugin"`
+	InstanceState   *isclib.Instance `json:"instanceState"`
 }
 
-func (ss *StartStatus) Update(phase StartPhase, state *iscenv.InternalInstance, executingPlugin string) {
-	// Done this way rather than simply autoadvancing so the calling code is easier to read
+func (ss *StartStatus) Update(phase StartPhase, state *isclib.Instance, executingPlugin string) {
+	// Done this way rather than simply auto-advancing so the calling code is easier to read
 	if ss.Phase != phase && ss.Phase+1 != phase {
 		panic(fmt.Sprintf("Attempted to skip a phase or move backwards, current: %d, next: %s", ss.Phase, phase))
 	}

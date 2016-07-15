@@ -19,6 +19,8 @@ package iscenv
 import (
 	"net/rpc"
 
+	"github.com/ontariosystems/isclib"
+
 	"github.com/hashicorp/go-plugin"
 )
 
@@ -43,13 +45,13 @@ type Starter interface {
 	Ports(version string, flagValues map[string]interface{}) ([]string, error)
 
 	// Will run within the container before the instance starts
-	BeforeInstance(state InternalInstance) error
+	BeforeInstance(state *isclib.Instance) error
 
 	// Will run within the container after the instance starts
-	WithInstance(state InternalInstance) error
+	WithInstance(state *isclib.Instance) error
 
 	// Will run within the container after the instance stops
-	AfterInstance(state InternalInstance) error
+	AfterInstance(state *isclib.Instance) error
 }
 
 // The client (primary executable) RPC-based implementation of the interface
@@ -85,19 +87,19 @@ func (s StarterRPC) Ports(version string, flagValues map[string]interface{}) ([]
 	return resp, err
 }
 
-func (s StarterRPC) BeforeInstance(state InternalInstance) error {
+func (s StarterRPC) BeforeInstance(state *isclib.Instance) error {
 	var resp struct{}
 	err := s.client.Call("Plugin.BeforeInstance", state, &resp)
 	return err
 }
 
-func (s StarterRPC) WithInstance(state InternalInstance) error {
+func (s StarterRPC) WithInstance(state *isclib.Instance) error {
 	var resp struct{}
 	err := s.client.Call("Plugin.WithInstance", state, &resp)
 	return err
 }
 
-func (s StarterRPC) AfterInstance(state InternalInstance) error {
+func (s StarterRPC) AfterInstance(state *isclib.Instance) error {
 	var resp struct{}
 	err := s.client.Call("Plugin.AfterInstance", state, &resp)
 	return err
@@ -126,15 +128,15 @@ func (s *StarterRPCServer) Ports(opts HostOpts, resp *[]string) (err error) {
 	return err
 }
 
-func (s *StarterRPCServer) BeforeInstance(state InternalInstance, resp *struct{}) (err error) {
+func (s *StarterRPCServer) BeforeInstance(state *isclib.Instance, resp *struct{}) (err error) {
 	return s.Plugin.BeforeInstance(state)
 }
 
-func (s *StarterRPCServer) WithInstance(state InternalInstance, resp *struct{}) (err error) {
+func (s *StarterRPCServer) WithInstance(state *isclib.Instance, resp *struct{}) (err error) {
 	return s.Plugin.WithInstance(state)
 }
 
-func (s *StarterRPCServer) AfterInstance(state InternalInstance, resp *struct{}) (err error) {
+func (s *StarterRPCServer) AfterInstance(state *isclib.Instance, resp *struct{}) (err error) {
 	return s.Plugin.AfterInstance(state)
 }
 
