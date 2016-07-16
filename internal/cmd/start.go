@@ -225,6 +225,12 @@ func getPluginConfig(cmd *cobra.Command, pluginsToActivate []string, version str
 				environment = append(environment, env...)
 			}
 
+			if cps, err := starter.Copies(version, flagValues); err != nil {
+				return app.NewPluginError(id, "Copies", pluginPath, err)
+			} else if cps != nil {
+				cps = append(copies, cps...)
+			}
+
 			if vols, err := starter.Volumes(version, flagValues); err != nil {
 				return app.NewPluginError(id, "Volumes", pluginPath, err)
 			} else if vols != nil {

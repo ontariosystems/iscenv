@@ -38,6 +38,9 @@ type Starter interface {
 	// Returns an array of docker API formatted environment variables (ENV_VAR=value) which will be added to the instance
 	Environment(version string, flagValues map[string]interface{}) ([]string, error)
 
+	// Returns an array of items to copy to the container in the format "src:dest"
+	Copies(version string, flagValues map[string]interface{}) ([]string, error)
+
 	// Returns an array of volumes to add where the string is a standard docker volume format "src:dest:flag"
 	Volumes(version string, flagValues map[string]interface{}) ([]string, error)
 
@@ -72,6 +75,12 @@ type HostOpts struct {
 func (s StarterRPC) Environment(version string, flagValues map[string]interface{}) ([]string, error) {
 	var resp []string
 	err := s.client.Call("Plugin.Environment", HostOpts{Version: version, FlagValues: flagValues}, &resp)
+	return resp, err
+}
+
+func (s StarterRPC) Copies(version string, flagValues map[string]interface{}) ([]string, error) {
+	var resp []string
+	err := s.client.Call("Plugin.Copies", HostOpts{Version: version, FlagValues: flagValues}, &resp)
 	return resp, err
 }
 
@@ -115,6 +124,11 @@ func (s *StarterRPCServer) Flags(args interface{}, resp *PluginFlags) (err error
 
 func (s *StarterRPCServer) Environment(opts HostOpts, resp *[]string) (err error) {
 	*resp, err = s.Plugin.Environment(opts.Version, opts.FlagValues)
+	return err
+}
+
+func (s *StarterRPCServer) Copies(opts HostOpts, resp *[]string) (err error) {
+	*resp, err = s.Plugin.Volumes(opts.Version, opts.FlagValues)
 	return err
 }
 
