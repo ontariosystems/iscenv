@@ -53,6 +53,10 @@ func (*Plugin) Environment(_ string, _ map[string]interface{}) ([]string, error)
 	}, nil
 }
 
+func (*Plugin) Copies(_ string, _ map[string]interface{}) ([]string, error) {
+	return nil, nil
+}
+
 func (*Plugin) Volumes(_ string, _ map[string]interface{}) ([]string, error) {
 	home, err := getUserHome()
 	if err != nil {

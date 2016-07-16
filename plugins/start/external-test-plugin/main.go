@@ -40,6 +40,10 @@ func (*Plugin) Environment(version string, flags map[string]interface{}) ([]stri
 	return nil, nil
 }
 
+func (*Plugin) Copies(_ string, _ map[string]interface{}) ([]string, error) {
+	return nil, nil
+}
+
 func (*Plugin) Volumes(_ string, _ map[string]interface{}) ([]string, error) {
 	plog.Info("Volumes")
 	return nil, nil

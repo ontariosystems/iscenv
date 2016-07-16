@@ -48,6 +48,10 @@ func (*Plugin) Environment(_ string, _ map[string]interface{}) ([]string, error)
 	return nil, nil
 }
 
+func (*Plugin) Copies(_ string, _ map[string]interface{}) ([]string, error) {
+	return nil, nil
+}
+
 func (*Plugin) Volumes(_ string, _ map[string]interface{}) ([]string, error) {
 	return nil, nil
 }

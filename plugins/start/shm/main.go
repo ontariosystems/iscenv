@@ -59,6 +59,10 @@ func (*Plugin) Environment(_ string, flags map[string]interface{}) ([]string, er
 	return []string{fmt.Sprintf("%s=%d", envName, shmsize)}, nil
 }
 
+func (*Plugin) Copies(_ string, _ map[string]interface{}) ([]string, error) {
+	return nil, nil
+}
+
 func (*Plugin) Volumes(_ string, _ map[string]interface{}) ([]string, error) {
 	return nil, nil
 }
