@@ -24,12 +24,10 @@ type PluginArgs struct {
 func (pa PluginArgs) ToArgs() []string {
 	args := []string{}
 	if pa.LogLevel != "" {
-		args = append(args, pa.LogLevel)
+		args = append(args, "--log-level="+pa.LogLevel)
 
 		if pa.LogJSON {
-			args = append(args, "json")
-		} else {
-			args = append(args, "text")
+			args = append(args, "--log-json=true")
 		}
 	}
 

@@ -22,6 +22,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/hashicorp/go-plugin"
+	"github.com/spf13/pflag"
 )
 
 func ServeStartPlugin(impl Starter) {
@@ -65,16 +66,18 @@ func configureLogger(oldOut io.Writer) {
 	}
 
 	log.SetOutput(os.Stdout)
-	log.SetFormatter(&log.TextFormatter{ForceColors: true})
 
-	args := os.Args[1:]
-	if len(args) == 2 {
-		if level, err := log.ParseLevel(args[0]); err == nil {
-			log.SetLevel(level)
-		}
+	var l *string = pflag.String("log-level", "", "")
+	var j *bool = pflag.Bool("log-json", false, "")
+	pflag.Parse()
 
-		if args[1] == "json" {
-			log.SetFormatter(new(log.JSONFormatter))
-		}
+	if *j {
+		log.SetFormatter(new(log.JSONFormatter))
+	} else {
+		log.SetFormatter(&log.TextFormatter{ForceColors: true})
+	}
+
+	if level, err := log.ParseLevel(*l); err == nil {
+		log.SetLevel(level)
 	}
 }

@@ -17,7 +17,7 @@ limitations under the License.
 package cmd
 
 import (
-	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -123,7 +123,7 @@ func start(cmd *cobra.Command, args []string) {
 				fmt.Sprintf("--ccontrol-path=%s", flags.GetString(cmd, "ccontrol-path")),
 				fmt.Sprintf("--plugins=%s", flags.GetString(cmd, "plugins")),
 				fmt.Sprintf("--log-level=%s", flags.GetString(rootCmd, "log-level")),
-				fmt.Sprintf("--log-json=%t", flags.GetBool(rootCmd, "log-json")),
+				"--log-json=true", // Always log JSON because we're going to proxy and parse it
 			},
 			VolumesFrom:    flags.GetStringSlice(cmd, "volumes-from"),
 			ContainerLinks: flags.GetStringSlice(cmd, "link"),
@@ -140,29 +140,30 @@ func start(cmd *cobra.Command, args []string) {
 		}
 
 		r, w := io.Pipe()
-		defer w.Close()
-
-		go func() {
-			scanner := bufio.NewScanner(r)
-			for scanner.Scan() {
-				fmt.Println(scanner.Text())
-			}
-
-			if err := scanner.Err(); err != nil {
-				log.WithError(err).Error("Error while outputting container logs")
-			}
-		}()
-
 		go func() {
 			if err := app.DockerLogs(instance, w); err != nil {
-				log.WithError(err).Error("Error while retrieving container logs")
+				app.ErrorLogger(ilog, err).Error("Error while retrieving container logs")
 			}
 		}()
 
-		if err := app.WaitForInstance(instance, time.Duration(flags.GetInt64(cmd, "timeout"))*time.Second); err != nil {
-			app.ErrorLogger(ilog, err).Fatal("Failed to start instance")
-		}
+		go func() {
+			if err := app.WaitForInstance(instance, time.Duration(flags.GetInt64(cmd, "timeout"))*time.Second); err != nil {
+				app.ErrorLogger(ilog, err).Fatal("Failed to start instance")
+			}
+			w.Close()
+		}()
 
+		decoder := json.NewDecoder(r)
+		for {
+			var rlog map[string]interface{}
+			if err := decoder.Decode(&rlog); err == nil {
+				relog(ilog, rlog)
+			} else if err == io.EOF {
+				break
+			} else {
+				app.ErrorLogger(ilog, err).Warn("Failed to parse remote json log")
+			}
+		}
 		ilog.Info("Started instance")
 	}
 }
@@ -258,4 +259,37 @@ func getPluginFlagValues(cmd *cobra.Command, plugin string) map[string]interface
 
 	flog.Debug("Retrieved plugin flags")
 	return flagValues
+}
+
+func relog(l *log.Entry, rlog map[string]interface{}) {
+	for key, value := range rlog {
+		if key != "level" && key != "msg" && key == "time" {
+			l = l.WithField(key, value)
+		}
+	}
+
+	level, ok := rlog["level"].(string)
+	if !ok {
+		l.WithField("level", rlog["level"]).Warn("Remote log level was not a string, using info")
+		level = "info"
+	}
+
+	msg, ok := rlog["msg"].(string)
+	if !ok {
+		log.WithField("msg", msg).Error("Remote log message was not a string, skipping")
+		return
+	}
+
+	switch level {
+	case "debug":
+		l.Debug(msg)
+	case "info":
+		l.Info(msg)
+	case "warning":
+		l.Warn(msg)
+	case "error":
+		l.Error(msg)
+	default:
+		l.WithField("origMsg", msg).Warn("Remote log with unknown level")
+	}
 }
