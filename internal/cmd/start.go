@@ -269,7 +269,7 @@ func getPluginFlagValues(cmd *cobra.Command, plugin string) map[string]interface
 
 func relog(l *log.Entry, rlog map[string]interface{}) {
 	for key, value := range rlog {
-		if key != "level" && key != "msg" && key == "time" {
+		if key != "level" && key != "msg" && key != "time" {
 			l = l.WithField(key, value)
 		}
 	}
