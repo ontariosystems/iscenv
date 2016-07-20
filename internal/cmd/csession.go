@@ -34,6 +34,7 @@ var csessionCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(csessionCmd)
 	flags.AddConfigFlagP(csessionCmd, "namespace", "n", "%SYS", "Use a specific starting namespace")
+	flags.AddFlag(csessionCmd, "exec", "", "Execute the following command with csession")
 }
 
 func csession(cmd *cobra.Command, args []string) {
@@ -46,6 +47,11 @@ func csession(cmd *cobra.Command, args []string) {
 	if ns != "" {
 		cmdArgs = append(cmdArgs, "-U")
 		cmdArgs = append(cmdArgs, ns)
+	}
+
+	exec := flags.GetString(cmd, "exec")
+	if exec != "" {
+		cmdArgs = append(cmdArgs, exec)
 	}
 
 	instance, ilog := app.FindInstanceAndLogger(args[0])
