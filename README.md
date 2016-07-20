@@ -11,16 +11,8 @@ Below are some items that we wish (or may wish) to do in the future.  Those in t
 only if they will not complicate the intentionally simple design of this project.
 
 ## Needed
-- Versions plugins
-  - Should have required config
-		- plugins
-			- Quay
-			- AWS
-		- non-default plugins run in order until the *first* successful image discovery, then it's compared to local to decide if it needs to be downloaded
-
 
 ## Maybe
-- Add the ability to run a command with `iscenv csession`
 - Add the ability to pass a command to execute to internal start
   - if this command is provided, run it after the "with instance" plugins and then immediately stop the instance cleanly
 	- Another option would be to add an exit immediately flag and use a plugin to execute the arbitrary commands
