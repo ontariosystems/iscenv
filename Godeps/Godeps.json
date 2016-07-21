@@ -190,6 +190,10 @@
 			"Rev": "d52711f8d6bea8dc01efafdb68ad95a4e2606630"
 		},
 		{
+			"ImportPath": "github.com/mgutz/ansi",
+			"Rev": "c286dcecd19ff979eeb73ea444e479b903f2cfcb"
+		},
+		{
 			"ImportPath": "github.com/mitchellh/mapstructure",
 			"Rev": "d2dd0262208475919e1a362f675cfc0e7c10e905"
 		},
@@ -212,6 +216,10 @@
 		{
 			"ImportPath": "github.com/spf13/viper",
 			"Rev": "c975dc1b4eacf4ec7fdbf0873638de5d090ba323"
+		},
+		{
+			"ImportPath": "github.com/x-cray/logrus-prefixed-formatter",
+			"Rev": "78e945f7d6bfe5a81ce6121d92d8118e44303e58"
 		},
 		{
 			"ImportPath": "github.com/ontariosystems/isclib",

@@ -17,7 +17,6 @@ limitations under the License.
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -122,8 +121,11 @@ func start(cmd *cobra.Command, args []string) {
 				fmt.Sprintf("--instance=%s", flags.GetString(cmd, "internal-instance")),
 				fmt.Sprintf("--ccontrol-path=%s", flags.GetString(cmd, "ccontrol-path")),
 				fmt.Sprintf("--plugins=%s", flags.GetString(cmd, "plugins")),
-				fmt.Sprintf("--log-level=%s", flags.GetString(rootCmd, "log-level")),
-				"--log-json=true", // Always log JSON because we're going to proxy and parse it
+				// Always using debug & json because we're going to proxy, parse and relog on the server side
+				// and we don't want a one time decision at creation to limit the kind of log information we
+				// can get later
+				"--log-level=debug",
+				"--log-json=true",
 			},
 			VolumesFrom:    flags.GetStringSlice(cmd, "volumes-from"),
 			ContainerLinks: flags.GetStringSlice(cmd, "link"),
@@ -139,9 +141,14 @@ func start(cmd *cobra.Command, args []string) {
 			ilog.Fatal("Failed to find newly created instance")
 		}
 
+		start, err := app.GetInstanceStartTime(instance)
+		if err != nil {
+			ilog.Fatal("Failed to determine instance start time")
+		}
+
 		r, w := io.Pipe()
 		go func() {
-			if err := app.DockerLogs(instance, w); err != nil {
+			if err := app.DockerLogs(instance, start.Unix(), "all", true, w); err != nil {
 				app.ErrorLogger(ilog, err).Error("Error while retrieving container logs")
 			}
 		}()
@@ -153,17 +160,7 @@ func start(cmd *cobra.Command, args []string) {
 			w.Close()
 		}()
 
-		decoder := json.NewDecoder(r)
-		for {
-			var rlog map[string]interface{}
-			if err := decoder.Decode(&rlog); err == nil {
-				relog(ilog, rlog)
-			} else if err == io.EOF {
-				break
-			} else {
-				app.ErrorLogger(ilog, err).Warn("Failed to parse remote json log")
-			}
-		}
+		app.RelogStream(ilog.Data, false, r)
 		ilog.Info("Started instance")
 	}
 }
@@ -265,37 +262,4 @@ func getPluginFlagValues(cmd *cobra.Command, plugin string) map[string]interface
 
 	flog.Debug("Retrieved plugin flags")
 	return flagValues
-}
-
-func relog(l *log.Entry, rlog map[string]interface{}) {
-	for key, value := range rlog {
-		if key != "level" && key != "msg" && key != "time" {
-			l = l.WithField(key, value)
-		}
-	}
-
-	level, ok := rlog["level"].(string)
-	if !ok {
-		l.WithField("level", rlog["level"]).Warn("Remote log level was not a string, using info")
-		level = "info"
-	}
-
-	msg, ok := rlog["msg"].(string)
-	if !ok {
-		log.WithField("msg", msg).Error("Remote log message was not a string, skipping")
-		return
-	}
-
-	switch level {
-	case "debug":
-		l.Debug(msg)
-	case "info":
-		l.Info(msg)
-	case "warning":
-		l.Warn(msg)
-	case "error":
-		l.Error(msg)
-	default:
-		l.WithField("origMsg", msg).Warn("Remote log with unknown level")
-	}
 }
