@@ -20,11 +20,13 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
 const (
@@ -64,7 +66,7 @@ func initLogs() {
 	if flags.GetBool(rootCmd, "log-json") {
 		log.SetFormatter(new(log.JSONFormatter))
 	} else {
-		log.SetFormatter(&log.TextFormatter{ForceColors: true})
+		log.SetFormatter(&prefixed.TextFormatter{})
 	}
 
 	levelString := flags.GetString(rootCmd, "log-level")
@@ -74,6 +76,8 @@ func initLogs() {
 	} else {
 		log.WithField("logLevel", levelString).Error("Unknown log level, using default")
 	}
+
+	log.AddHook(app.OverrideTimeLogHook{})
 }
 
 func initConfig() {

@@ -25,18 +25,20 @@ import (
 )
 
 // Retrieve the logs from only this start run
-func DockerLogs(instance *iscenv.ISCInstance, outputStream io.Writer) error {
-	container, err := GetContainerForInstance(instance)
-	if err != nil {
-		return err
-	}
-
+// DockerLogs will retrieve logs from a docker container
+// If follow is true, the logs will be followed
+// since is the unix time from which logs should be retrieved
+// tail is the string value to pass to docker to determine the number of lines to tail. It should be either "all" or a string representation of the number of lines.
+// Will return any error encountered
+func DockerLogs(instance *iscenv.ISCInstance, since int64, tail string, follow bool, outputStream io.Writer) error {
 	opts := docker.LogsOptions{
 		Container:    instance.ID,
 		OutputStream: outputStream,
-		Since:        container.State.StartedAt.Unix(),
-		Follow:       true,
+		Since:        since,
+		Tail:         tail,
+		Follow:       follow,
 		Stdout:       true,
+		Stderr:       true,
 	}
 
 	return DockerClient.Logs(opts)
