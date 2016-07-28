@@ -21,11 +21,11 @@ import (
 	"github.com/ontariosystems/iscenv/internal/app"
 )
 
-type activateStarterFn func(id, pluginPath string, starter iscenv.Starter) error
+type activateLifecyclerFn func(id, pluginPath string, lifecycler iscenv.Lifecycler) error
 
 // if pluginsToActivate is nil (rather than an empty slice, it means all)
-func activateStartersAndClose(pluginsToActivate []string, pluginArgs app.PluginArgs, fn activateStarterFn) error {
-	pm, err := activateStarters(pluginsToActivate, pluginArgs, fn)
+func activateLifecyclersAndClose(pluginsToActivate []string, pluginArgs app.PluginArgs, fn activateLifecyclerFn) error {
+	pm, err := activateLifecyclers(pluginsToActivate, pluginArgs, fn)
 	if pm != nil {
 		defer pm.Close()
 	}
@@ -34,8 +34,8 @@ func activateStartersAndClose(pluginsToActivate []string, pluginArgs app.PluginA
 
 // if pluginsToActivate is nil (rather than an empty slice, it means all)
 // You must check to see if pm is nil and call close *even* if there is an error
-func activateStarters(pluginsToActivate []string, pluginArgs app.PluginArgs, fn activateStarterFn) (pm *app.PluginManager, err error) {
-	pm, err = app.NewPluginManager(iscenv.ApplicationName, iscenv.StarterKey, iscenv.StarterPlugin{}, pluginArgs)
+func activateLifecyclers(pluginsToActivate []string, pluginArgs app.PluginArgs, fn activateLifecyclerFn) (pm *app.PluginManager, err error) {
+	pm, err = app.NewPluginManager(iscenv.ApplicationName, iscenv.LifecyclerKey, iscenv.LifecyclerPlugin{}, pluginArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -45,8 +45,8 @@ func activateStarters(pluginsToActivate []string, pluginArgs app.PluginArgs, fn 
 	}
 
 	err = pm.ActivatePlugins(pluginsToActivate, func(id, pluginPath string, raw interface{}) error {
-		starter := raw.(iscenv.Starter)
-		return fn(id, pluginPath, starter)
+		lifecycler := raw.(iscenv.Lifecycler)
+		return fn(id, pluginPath, lifecycler)
 	})
 
 	return pm, err
