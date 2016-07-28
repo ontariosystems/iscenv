@@ -17,10 +17,11 @@ limitations under the License.
 package app
 
 import (
-	"github.com/ontariosystems/iscenv/plugins/start/license-key"
-	"github.com/ontariosystems/iscenv/plugins/start/homedir"
-	"github.com/ontariosystems/iscenv/plugins/start/service-bindings"
-	"github.com/ontariosystems/iscenv/plugins/start/shm"
+	"github.com/ontariosystems/iscenv/iscenv"
+	"github.com/ontariosystems/iscenv/plugins/lifecycle/license-key"
+	"github.com/ontariosystems/iscenv/plugins/lifecycle/homedir"
+	"github.com/ontariosystems/iscenv/plugins/lifecycle/service-bindings"
+	"github.com/ontariosystems/iscenv/plugins/lifecycle/shm"
 	"github.com/ontariosystems/iscenv/plugins/versions/local"
 	"github.com/ontariosystems/iscenv/plugins/versions/quay"
 )
@@ -33,7 +34,7 @@ type InternalPlugin interface {
 }
 
 // A structure containing internally packaged plugins
-// The first key is the "type" of plugin (versions, start, etc.)
+// The first key is the "type" of plugin (versions, lifecycle, etc.)
 // The second key is the suffix of the binary after (iscenv-<type>-) if the plugin were not compiled in
 // The value is the implementation of the plugin itself
 type internalPluginMapping map[string]map[string]InternalPlugin
@@ -43,13 +44,15 @@ var InternalPlugins internalPluginMapping
 func init() {
 	InternalPlugins = make(internalPluginMapping)
 
-	addPlugin("versions", new(localversionsplugin.Plugin))
-	addPlugin("versions", new(quayversionsplugin.Plugin))
+	addPlugin(iscenv.VersionerKey, new(localversionsplugin.Plugin))
+	addPlugin(iscenv.VersionerKey, new(quayversionsplugin.Plugin))
 
-	addPlugin("start", new(licensekeyplugin.Plugin))
-	addPlugin("start", new(homedirplugin.Plugin))
-	addPlugin("start", new(servicebindingsplugin.Plugin))
-	addPlugin("start", new(shmplugin.Plugin))
+	addPlugin(iscenv.LifecyclerKey, new(licensekeyplugin.Plugin))
+	addPlugin(iscenv.LifecyclerKey, new(hgcacheplugin.Plugin))
+	addPlugin(iscenv.LifecyclerKey, new(homedirplugin.Plugin))
+	addPlugin(iscenv.LifecyclerKey, new(servicebindingsplugin.Plugin))
+	addPlugin(iscenv.LifecyclerKey, new(shmplugin.Plugin))
+	addPlugin(iscenv.LifecyclerKey, new(statlerkeyplugin.Plugin))
 }
 
 func addPlugin(pluginType string, plugin InternalPlugin) {

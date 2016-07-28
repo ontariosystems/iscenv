@@ -25,7 +25,7 @@ import (
 	"github.com/spf13/pflag"
 )
 
-func ServeStartPlugin(impl Lifecycler) {
+func ServeLifecyclePlugin(impl Lifecycler) {
 	pluginMap := map[string]plugin.Plugin{
 		LifecyclerKey: LifecyclerPlugin{Plugin: impl},
 	}

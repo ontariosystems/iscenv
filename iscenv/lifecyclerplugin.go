@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	LifecyclerKey = "start"
+	LifecyclerKey = "lifecycle"
 )
 
 // A plugin that is executed during instance starts
