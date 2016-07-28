@@ -37,7 +37,7 @@ const (
 type Plugin struct{}
 
 func (plugin *Plugin) Main() {
-	iscenv.ServeStartPlugin(plugin)
+	iscenv.ServeLifecyclePlugin(plugin)
 }
 
 func (*Plugin) Key() string {

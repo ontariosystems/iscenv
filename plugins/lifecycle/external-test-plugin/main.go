@@ -27,7 +27,7 @@ var plog = log.WithField("plugin", "external-test-plugin")
 type Plugin struct{}
 
 func main() {
-	iscenv.ServeStartPlugin(new(Plugin))
+	iscenv.ServeLifecyclePlugin(new(Plugin))
 }
 
 func (*Plugin) Flags() (iscenv.PluginFlags, error) {
