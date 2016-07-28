@@ -71,6 +71,18 @@ func (*Plugin) Ports(_ string, _ map[string]interface{}) ([]string, error) {
 	return nil, nil
 }
 
+func (*Plugin) AfterStart(version string, flagValues map[string]interface{}) error {
+	return nil
+}
+
+func (*Plugin) AfterStop(version string, flagValues map[string]interface{}) error {
+	return nil
+}
+
+func (*Plugin) AfterRemove(version string, flagValues map[string]interface{}) error {
+	return nil
+}
+
 func (*Plugin) BeforeInstance(state *isclib.Instance) error {
 	sizeStr := os.Getenv(envName)
 	if sizeStr == "" {
