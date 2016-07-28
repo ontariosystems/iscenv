@@ -41,7 +41,7 @@ var startCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(startCmd)
-	if err := addStarterFlagsIfNotPluginCall(startCmd); err != nil {
+	if err := addLifecyclerFlagsIfNotPluginCall(startCmd); err != nil {
 		app.ErrorLogger(nil, err).Fatal(app.ErrFailedToAddPluginFlags)
 	}
 
@@ -204,37 +204,37 @@ func getPluginConfig(cmd *cobra.Command, pluginsToActivate []string, version str
 	volumes = make([]string, 0)
 	ports = make([]string, 0)
 
-	if err := activateStartersAndClose(pluginsToActivate,
+	if err := activateLifecyclersAndClose(pluginsToActivate,
 		app.PluginArgs{
 			LogLevel: flags.GetString(rootCmd, "log-level"),
 			LogJSON:  flags.GetBool(rootCmd, "log-json"),
 		},
-		func(id, pluginPath string, starter iscenv.Starter) error {
+		func(id, pluginPath string, lifecycler iscenv.Lifecycler) error {
 			flagValues := getPluginFlagValues(cmd, id)
 			// Copy external plugin binaries to the /bin directory
 			if pluginPath != "" {
 				copies = append(copies, fmt.Sprintf("%s:%s/%s", pluginPath, iscenv.InternalISCEnvBinaryDir, filepath.Base(pluginPath)))
 			}
 
-			if env, err := starter.Environment(version, flagValues); err != nil {
+			if env, err := lifecycler.Environment(version, flagValues); err != nil {
 				return app.NewPluginError(id, "Environment", pluginPath, err)
 			} else if env != nil {
 				environment = append(environment, env...)
 			}
 
-			if cps, err := starter.Copies(version, flagValues); err != nil {
+			if cps, err := lifecycler.Copies(version, flagValues); err != nil {
 				return app.NewPluginError(id, "Copies", pluginPath, err)
 			} else if cps != nil {
 				cps = append(copies, cps...)
 			}
 
-			if vols, err := starter.Volumes(version, flagValues); err != nil {
+			if vols, err := lifecycler.Volumes(version, flagValues); err != nil {
 				return app.NewPluginError(id, "Volumes", pluginPath, err)
 			} else if vols != nil {
 				volumes = append(volumes, vols...)
 			}
 
-			if pts, err := starter.Ports(version, flagValues); err != nil {
+			if pts, err := lifecycler.Ports(version, flagValues); err != nil {
 				return app.NewPluginError(id, "Ports", pluginPath, err)
 			} else if pts != nil {
 				ports = append(ports, pts...)

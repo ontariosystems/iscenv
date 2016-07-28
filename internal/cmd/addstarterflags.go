@@ -25,22 +25,22 @@ import (
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 )
 
-// Adding starter flags when doing plugin calls causes an infinite loop
-func addStarterFlagsIfNotPluginCall(cmd *cobra.Command) error {
+// Adding lifecycler flags when doing plugin calls causes an infinite loop
+func addLifecyclerFlagsIfNotPluginCall(cmd *cobra.Command) error {
 	if isPluginCall() {
 		return nil
 	}
 
-	return addStarterFlags(cmd)
+	return addLifecyclerFlags(cmd)
 }
 
-// Add the flags from the available starter plugins to the provided command
-func addStarterFlags(cmd *cobra.Command) error {
+// Add the flags from the available lifecycler plugins to the provided command
+func addLifecyclerFlags(cmd *cobra.Command) error {
 	available := make([]string, 0)
 	// Logging can't have been configured yet, so we're using an empty PluginArgs
-	if err := activateStartersAndClose(nil, app.PluginArgs{}, func(id, path string, starter iscenv.Starter) error {
+	if err := activateLifecyclersAndClose(nil, app.PluginArgs{}, func(id, path string, lifecycler iscenv.Lifecycler) error {
 		available = append(available, id)
-		pluginFlags, err := starter.Flags()
+		pluginFlags, err := lifecycler.Flags()
 		if err != nil {
 			return app.NewPluginError(id, "Flags", path, err)
 		}
