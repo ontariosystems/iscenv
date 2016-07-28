@@ -47,7 +47,10 @@ type Lifecycler interface {
 	// Additional ports to map in the format <optional hostIP>:hostPort:containerPort.  You may also prefix the host port with a + to indicate it should be shifted by the port offset
 	Ports(version string, flagValues map[string]interface{}) ([]string, error)
 
-	// Will run within the container before the instance starts
+	// Will run on the host after the container instance starts
+	AfterStart(version string, flagValues map[string]interface{}) error
+
+	// Will run within the container before the instance successfully starts
 	BeforeInstance(state *isclib.Instance) error
 
 	// Will run within the container after the instance starts
@@ -55,6 +58,12 @@ type Lifecycler interface {
 
 	// Will run within the container after the instance stops
 	AfterInstance(state *isclib.Instance) error
+
+	// Will run on the host after the instance stops
+	AfterStop(verison string, flagValues map[string]interface{}) error
+
+	// Will run on the host after the instance is removed
+	AfterRemove(version string, flagValues map[string]interface{}) error
 }
 
 // The client (primary executable) RPC-based implementation of the interface
