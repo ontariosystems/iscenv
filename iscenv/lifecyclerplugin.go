@@ -105,6 +105,24 @@ func (s LifecyclerRPC) Ports(version string, flagValues map[string]interface{}) 
 	return resp, err
 }
 
+func (s LifecyclerRPC) AfterStart(version string, flagValues map[string]interface{}) error {
+	var resp struct{}
+	err := s.client.Call("Plugin.AfterStart", HostOpts{Version: version, FlagValues: flagValues}, &resp)
+	return err
+}
+
+func (s LifecyclerRPC) AfterStop(version string, flagValues map[string]interface{}) error {
+	var resp struct{}
+	err := s.client.Call("Plugin.AfterStop", HostOpts{Version: version, FlagValues: flagValues}, &resp)
+	return err
+}
+
+func (s LifecyclerRPC) AfterRemove(version string, flagValues map[string]interface{}) error {
+	var resp struct{}
+	err := s.client.Call("Plugin.AfterRemove", HostOpts{Version: version, FlagValues: flagValues}, &resp)
+	return err
+}
+
 func (s LifecyclerRPC) BeforeInstance(state *isclib.Instance) error {
 	var resp struct{}
 	err := s.client.Call("Plugin.BeforeInstance", state, &resp)
@@ -148,6 +166,21 @@ func (s *LifecyclerRPCServer) Volumes(opts HostOpts, resp *[]string) (err error)
 
 func (s *LifecyclerRPCServer) Ports(opts HostOpts, resp *[]string) (err error) {
 	*resp, err = s.Plugin.Ports(opts.Version, opts.FlagValues)
+	return err
+}
+
+func (s *LifecyclerRPCServer) AfterStart(opts HostOpts, resp *struct{}) (err error) {
+	err = s.Plugin.AfterStart(opts.Version, opts.FlagValues)
+	return err
+}
+
+func (s *LifecyclerRPCServer) AfterStop(opts HostOpts, resp *struct{}) (err error) {
+	err = s.Plugin.AfterStop(opts.Version, opts.FlagValues)
+	return err
+}
+
+func (s *LifecyclerRPCServer) AfterRemove(opts HostOpts, resp *struct{}) (err error) {
+	err = s.Plugin.AfterRemove(opts.Version, opts.FlagValues)
 	return err
 }
 
