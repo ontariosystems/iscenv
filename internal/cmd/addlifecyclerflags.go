@@ -17,8 +17,6 @@ limitations under the License.
 package cmd
 
 import (
-	"strings"
-
 	"github.com/spf13/cobra"
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
@@ -57,8 +55,6 @@ func addLifecyclerFlags(cmd *cobra.Command) error {
 		}
 
 	}
-
-	flags.AddConfigFlag(cmd, "plugins", "", "An ordered comma-separated list of plugins you wish to activate. available plugins: "+strings.Join(available, ","))
 
 	return nil
 }

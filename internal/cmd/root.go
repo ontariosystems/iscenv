@@ -19,6 +19,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
@@ -57,9 +58,22 @@ func init() {
 	flags.AddFlagComplex(rootCmd, true, true, "log-level", "", defaultLogLevel.String(), "log level")
 	flags.AddFlagComplex(rootCmd, true, true, "log-json", "", false, "use JSON formatted logs")
 
+	// The following flags are not used by every command but are used by multiple commands and do not make sense to differ between those commands (in fact, it would be detrimental).
+
 	// This flag is the image which will be used by default when creating new containers or listing versions.
-	// Technically, very few commands actually need this flag but I did not want the config to have to have it specified multiple places when it doesn't make sense for it to differ between commands (and would actually be detrimental)
 	flags.AddFlagComplex(rootCmd, true, true, "image", "", "", "the image to use when creating ISC product containers.  You will want to set a default for this in your configuration file (eg. mycompany/ensemble)")
+
+	// This allows us to set lifecycle plugins across the multiple commands to which they belong will still allowing versioners to use their own set of plugins
+	if !isPluginCall() {
+		// Logging can't have been configured yet, so we're using an empty PluginArgs
+		var lcs []*app.ActivatedLifecycler
+		defer getActivatedLifecyclers(nil, app.PluginArgs{}, &lcs)()
+		available := make([]string, len(lcs))
+		for i, lc := range lcs {
+			available[i] = lc.Id
+		}
+		flags.AddFlagComplex(rootCmd, true, true, "plugins", "", "", "An ordered comma-separated list of lifecycle plugins you wish to activate. available plugins: "+strings.Join(available, ","))
+	}
 }
 
 func initLogs() {
