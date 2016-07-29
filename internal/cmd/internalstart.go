@@ -30,12 +30,6 @@ import (
 	"github.com/ontariosystems/isclib"
 )
 
-type lifecyclerInfo struct {
-	ID         string
-	Path       string
-	Lifecycler iscenv.Lifecycler
-}
-
 var internalStartCmd = &cobra.Command{
 	Use:   "_start",
 	Short: "start/manage ISC product ",
@@ -69,32 +63,11 @@ func internalStart(cmd *cobra.Command, _ []string) {
 	pluginsToActivate := strings.Split(flags.GetString(cmd, "plugins"), ",")
 	startStatus.ActivePlugins = pluginsToActivate
 	startStatus.Update(app.StartPhaseInitPlugins, nil, "")
-	lifecyclers := make([]*lifecyclerInfo, len(pluginsToActivate))
 
-	i := 0
-	pm, err := activateLifecyclers(
-		pluginsToActivate,
-		app.PluginArgs{
-			LogLevel: flags.GetString(rootCmd, "log-level"),
-			LogJSON:  flags.GetBool(rootCmd, "log-json"),
-		},
-		func(id, pluginPath string, lifecycler iscenv.Lifecycler) error {
-			startStatus.Update(app.StartPhaseInitPlugins, nil, id)
-			lifecyclers[i] = &lifecyclerInfo{
-				ID:         id,
-				Path:       pluginPath,
-				Lifecycler: lifecycler,
-			}
-			i++
-			return nil
-		})
-
-	if pm != nil {
-		defer pm.Close()
-	}
-
-	if err != nil {
-		app.ErrorLogger(nil, err).Fatal("Failed to activate plugins")
+	var lcs []*app.ActivatedLifecycler
+	defer getActivatedLifecyclers(pluginsToActivate, getPluginArgs(), &lcs)()
+	for _, lc := range lcs {
+		startStatus.Update(app.StartPhaseInitPlugins, nil, lc.Id)
 	}
 
 	startStatus.Update(app.StartPhaseInitManager, nil, "")
@@ -108,22 +81,22 @@ func internalStart(cmd *cobra.Command, _ []string) {
 	}
 
 	startStatus.Update(app.StartPhaseEventBeforeInstance, manager.Instance, "")
-	for _, lifecycler := range lifecyclers {
-		plog := lifecyclerLogger(lifecycler, "BeforeInstance")
+	for _, lc := range lcs {
+		plog := lifecyclerLogger(lc, "BeforeInstance")
 		plog.Info("Executing plugin")
-		startStatus.Update(app.StartPhaseEventBeforeInstance, nil, lifecycler.ID)
-		if err := lifecycler.Lifecycler.BeforeInstance(manager.Instance); err != nil {
+		startStatus.Update(app.StartPhaseEventBeforeInstance, nil, lc.Id)
+		if err := lc.Lifecycler.BeforeInstance(manager.Instance); err != nil {
 			app.ErrorLogger(plog, err).Fatal(app.ErrFailedEventPlugin)
 		}
 	}
 
 	manager.InstanceRunningHandler = func(*isclib.Instance) {
 		startStatus.Update(app.StartPhaseEventWithInstance, manager.Instance, "")
-		for _, lifecycler := range lifecyclers {
-			plog := lifecyclerLogger(lifecycler, "WithInstance")
+		for _, lc := range lcs {
+			plog := lifecyclerLogger(lc, "WithInstance")
 			plog.Info("Executing plugin")
-			startStatus.Update(app.StartPhaseEventWithInstance, nil, lifecycler.ID)
-			if err := lifecycler.Lifecycler.WithInstance(manager.Instance); err != nil {
+			startStatus.Update(app.StartPhaseEventWithInstance, nil, lc.Id)
+			if err := lc.Lifecycler.WithInstance(manager.Instance); err != nil {
 				app.ErrorLogger(plog, err).Fatal(app.ErrFailedEventPlugin)
 			}
 		}
@@ -136,11 +109,11 @@ func internalStart(cmd *cobra.Command, _ []string) {
 	}
 
 	startStatus.Update(app.StartPhaseEventAfterInstance, manager.Instance, "")
-	for _, lifecycler := range lifecyclers {
-		plog := lifecyclerLogger(lifecycler, "AfterInstance")
+	for _, lc := range lcs {
+		plog := lifecyclerLogger(lc, "AfterInstance")
 		plog.Info("Executing plugin")
-		startStatus.Update(app.StartPhaseEventAfterInstance, nil, lifecycler.ID)
-		if err := lifecycler.Lifecycler.AfterInstance(manager.Instance); err != nil {
+		startStatus.Update(app.StartPhaseEventAfterInstance, nil, lc.Id)
+		if err := lc.Lifecycler.AfterInstance(manager.Instance); err != nil {
 			app.ErrorLogger(plog, err).Fatal(app.ErrFailedEventPlugin)
 		}
 	}
@@ -160,6 +133,6 @@ func startHealthCheck() {
 	http.ListenAndServe(fmt.Sprintf(":%d", iscenv.PortInternalHC), nil)
 }
 
-func lifecyclerLogger(si *lifecyclerInfo, method string) *log.Entry {
-	return app.PluginLogger(si.ID, method, si.Path)
+func lifecyclerLogger(lc *app.ActivatedLifecycler, method string) *log.Entry {
+	return app.PluginLogger(lc.Id, method, lc.Path)
 }
