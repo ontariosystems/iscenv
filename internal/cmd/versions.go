@@ -43,13 +43,17 @@ var versionsCmd = &cobra.Command{
 
 func init() {
 	// We are making a pm just to get a listing of the plugins in init, we will not activate it here
-	pm := getVersionerPM()
+	vm, err := app.NewVersionerManager(app.PluginArgs{})
+	if err != nil {
+		log.WithError(err).Fatal("Failed to load version plugin manager during init")
+	}
+	defer vm.Close()
 
 	rootCmd.AddCommand(versionsCmd)
 
 	flags.AddFlag(versionsCmd, "no-trunc", false, "Don't truncate output")
 	flags.AddFlagP(versionsCmd, "quiet", "q", false, "Only display numeric IDs")
-	flags.AddConfigFlag(versionsCmd, "plugins", "", `An ordered comma-separated list of plugins you wish to activate.  The "local" versions plugin will always be active as as the baseline. available plugins: `+strings.Join(pm.AvailablePlugins(), ","))
+	flags.AddConfigFlag(versionsCmd, "plugins", "", `An ordered comma-separated list of plugins you wish to activate.  The "local" versions plugin will always be active as as the baseline. available plugins: `+strings.Join(vm.AvailablePlugins(), ","))
 }
 
 func versions(cmd *cobra.Command, _ []string) {
@@ -91,45 +95,40 @@ func versions(cmd *cobra.Command, _ []string) {
 
 // Acquire all of the versions for the provided image using the appropriate plugin stack
 func getVersions(image string, plugins []string) (iscenv.ISCVersions, error) {
-	pm := getVersionerPM()
-	defer pm.Close()
-
 	// Get the baseline set of versions that are considered "local"
 	var versions iscenv.ISCVersions
+	var versioners []*app.ActivatedVersioner
+	var err error
 
-	// No need for error handling as we'll always log fatal within the loop in the event of an error
 	log.WithField("plugin", baseVersionPlugin).Debug("Executing default version plugin")
-	if err := pm.ActivatePlugins([]string{baseVersionPlugin}, func(id, path string, raw interface{}) error {
-		var err error
-		plog := app.PluginLogger(id, "Versions", path)
-		versioner := raw.(iscenv.Versioner)
-
-		plog.Debug("Retrieving versions")
-		versions, err = versioner.Versions(image)
-		if err != nil {
-			plog.Fatal("Failed to load versions from plugin")
-		}
-
-		plog.WithField("count", len(versions)).Debug("Retrieved versions")
-		return nil
-	}); err != nil {
-		log.WithError(err).Error("Execution of default version plugin failed")
+	defer getActivatedVersioners([]string{baseVersionPlugin}, getPluginArgs(), &versioners)()
+	if len(versioners) != 1 {
+		log.WithField("plugin", baseVersionPlugin).Fatal("Got more than 1 plugin entry for base version plugin, this should be impossible")
 	}
+	base := versioners[0]
+	plog := app.PluginLogger(base.Id, "Versions", base.Path)
+	plog.Debug("Retrieving versions")
 
-	// No need for error handling as we'll always log fatal within the loop in the event of an error
-	log.Debugf("Executing %d additional version plugin(s)", len(plugins))
-	if err := pm.ActivatePlugins(plugins, func(id, path string, raw interface{}) error {
+	versions, err = base.Versioner.Versions(image)
+	if err != nil {
+		plog.WithError(err).Fatal("Failed to load versions from plugin")
+	}
+	plog.WithField("count", len(versions)).Debug("Retrieved versions")
+
+	log.WithField("count", len(plugins)).Debug("Executing additional version plugin(s)")
+	defer getActivatedVersioners(plugins, getPluginArgs(), &versioners)()
+
+	for _, v := range versioners {
 		// Local was added to the plugins list which makes no sense but isn't worthy of an error (and we don't want to log because it will corrupt the table output of versions)
-		if strings.EqualFold(id, baseVersionPlugin) {
+		if strings.EqualFold(v.Id, baseVersionPlugin) {
 			log.WithField("plugin", baseVersionPlugin).Debug("Skipping default version plugin (it was already executed)")
-			return nil
+			continue
 		}
 
-		plog := app.PluginLogger(id, "Versions", path)
-		versioner := raw.(iscenv.Versioner)
+		plog = app.PluginLogger(v.Id, "Versions", v.Path)
 
 		plog.Debug("Retrieving versions")
-		plugVers, err := versioner.Versions(image)
+		plugVers, err := v.Versioner.Versions(image)
 		if err != nil {
 			plog.Fatal("Failed to load versions from plugin")
 		}
@@ -139,28 +138,7 @@ func getVersions(image string, plugins []string) (iscenv.ISCVersions, error) {
 		for _, version := range plugVers {
 			versions.AddIfMissing(version)
 		}
-
-		return nil
-	}); err != nil {
-		log.WithError(err).Error("Execution of additional version plugins failed")
 	}
-
 	versions.Sort()
 	return versions, nil
-}
-
-func getVersionerPM() *app.PluginManager {
-	pm, err := app.NewPluginManager(
-		iscenv.ApplicationName,
-		iscenv.VersionerKey,
-		iscenv.VersionerPlugin{},
-		app.PluginArgs{
-			LogLevel: flags.GetString(rootCmd, "log-level"),
-			LogJSON:  flags.GetBool(rootCmd, "log-json"),
-		},
-	)
-	if err != nil {
-		log.WithError(err).Fatal("Failed to create plugin manager")
-	}
-	return pm
 }

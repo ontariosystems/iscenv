@@ -204,44 +204,38 @@ func getPluginConfig(cmd *cobra.Command, pluginsToActivate []string, version str
 	volumes = make([]string, 0)
 	ports = make([]string, 0)
 
-	if err := activateLifecyclersAndClose(pluginsToActivate,
-		app.PluginArgs{
-			LogLevel: flags.GetString(rootCmd, "log-level"),
-			LogJSON:  flags.GetBool(rootCmd, "log-json"),
-		},
-		func(id, pluginPath string, lifecycler iscenv.Lifecycler) error {
-			flagValues := getPluginFlagValues(cmd, id)
-			// Copy external plugin binaries to the /bin directory
-			if pluginPath != "" {
-				copies = append(copies, fmt.Sprintf("%s:%s/%s", pluginPath, iscenv.InternalISCEnvBinaryDir, filepath.Base(pluginPath)))
-			}
+	var lcs []*app.ActivatedLifecycler
+	defer getActivatedLifecyclers(pluginsToActivate, getPluginArgs(), &lcs)()
+	for _, lc := range lcs {
+		flagValues := getPluginFlagValues(cmd, lc.Id)
+		// Copy external plugin binaries to the /bin directory
+		if lc.Path != "" {
+			copies = append(copies, fmt.Sprintf("%s:%s/%s", lc.Path, iscenv.InternalISCEnvBinaryDir, filepath.Base(lc.Path)))
+		}
 
-			if env, err := lifecycler.Environment(version, flagValues); err != nil {
-				return app.NewPluginError(id, "Environment", pluginPath, err)
-			} else if env != nil {
-				environment = append(environment, env...)
-			}
+		if env, err := lc.Lifecycler.Environment(version, flagValues); err != nil {
+			return nil, nil, nil, nil, app.NewPluginError(lc.Id, "Environment", lc.Path, err)
+		} else if env != nil {
+			environment = append(environment, env...)
+		}
 
-			if cps, err := lifecycler.Copies(version, flagValues); err != nil {
-				return app.NewPluginError(id, "Copies", pluginPath, err)
-			} else if cps != nil {
-				cps = append(copies, cps...)
-			}
+		if cps, err := lc.Lifecycler.Copies(version, flagValues); err != nil {
+			return nil, nil, nil, nil, app.NewPluginError(lc.Id, "Copies", lc.Path, err)
+		} else if cps != nil {
+			cps = append(copies, cps...)
+		}
 
-			if vols, err := lifecycler.Volumes(version, flagValues); err != nil {
-				return app.NewPluginError(id, "Volumes", pluginPath, err)
-			} else if vols != nil {
-				volumes = append(volumes, vols...)
-			}
+		if vols, err := lc.Lifecycler.Volumes(version, flagValues); err != nil {
+			return nil, nil, nil, nil, app.NewPluginError(lc.Id, "Volumes", lc.Path, err)
+		} else if vols != nil {
+			volumes = append(volumes, vols...)
+		}
 
-			if pts, err := lifecycler.Ports(version, flagValues); err != nil {
-				return app.NewPluginError(id, "Ports", pluginPath, err)
-			} else if pts != nil {
-				ports = append(ports, pts...)
-			}
-			return nil
-		}); err != nil {
-		return nil, nil, nil, nil, err
+		if pts, err := lc.Lifecycler.Ports(version, flagValues); err != nil {
+			return nil, nil, nil, nil, app.NewPluginError(lc.Id, "Ports", lc.Path, err)
+		} else if pts != nil {
+			ports = append(ports, pts...)
+		}
 	}
 
 	return environment, copies, volumes, ports, nil
