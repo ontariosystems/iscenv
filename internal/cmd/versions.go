@@ -60,9 +60,8 @@ func versions(cmd *cobra.Command, _ []string) {
 	ensureImage()
 
 	// Only debug or fatal logging so we don't corrupt the table output
-	plugins := strings.Split(flags.GetString(cmd, "plugins"), ",")
 	image := flags.GetString(rootCmd, "image")
-	versions, err := getVersions(image, plugins)
+	versions, err := getVersions(image, getPluginsToActivate(cmd))
 	if err != nil {
 		log.WithError(err).Fatal("Failed to retrieve versions")
 	}

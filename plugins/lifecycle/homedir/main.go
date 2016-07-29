@@ -72,15 +72,15 @@ func (*Plugin) Ports(_ string, _ map[string]interface{}) ([]string, error) {
 	return []string{}, nil
 }
 
-func (*Plugin) AfterStart(version string, flagValues map[string]interface{}) error {
+func (*Plugin) AfterStart(instance *iscenv.ISCInstance) error {
 	return nil
 }
 
-func (*Plugin) AfterStop(version string, flagValues map[string]interface{}) error {
+func (*Plugin) AfterStop(instance *iscenv.ISCInstance) error {
 	return nil
 }
 
-func (*Plugin) AfterRemove(version string, flagValues map[string]interface{}) error {
+func (*Plugin) BeforeRemove(instance *iscenv.ISCInstance) error {
 	return nil
 }
 

@@ -65,6 +65,9 @@ type DockerStartOptions struct {
 	// Port mappings in standard <IP>:host:container format
 	Ports []string
 
+	// Labels to add to the container
+	Labels map[string]string
+
 	// Should the container be deleted if it already exists?
 	Recreate bool
 }
@@ -80,6 +83,7 @@ func (opts *DockerStartOptions) ToCreateContainerOptions() *docker.CreateContain
 			ExposedPorts: opts.ToExposedPorts(),
 			Entrypoint:   opts.Entrypoint,
 			Cmd:          opts.Command,
+			Labels:       opts.Labels,
 		},
 		HostConfig: opts.ToHostConfig(),
 	}

@@ -14,8 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package iscenv
+package cmd
 
-// A plugin used to configure the docker container before it is started
-type ContainerConfigurator interface {
+import (
+	"strings"
+
+	"github.com/spf13/cobra"
+	"github.com/ontariosystems/iscenv/internal/cmd/flags"
+)
+
+func getPluginsToActivate(cmd *cobra.Command) []string {
+	s := flags.GetString(cmd, "plugins")
+	if strings.TrimSpace(s) == "" {
+		return []string{}
+	}
+
+	return strings.Split(s, ",")
 }

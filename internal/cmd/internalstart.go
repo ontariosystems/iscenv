@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -60,7 +59,7 @@ func internalStart(cmd *cobra.Command, _ []string) {
 	go startHealthCheck()
 
 	// We can't use the closing activator because we need the plugins to keep running the whole time that _start runs
-	pluginsToActivate := strings.Split(flags.GetString(cmd, "plugins"), ",")
+	pluginsToActivate := getPluginsToActivate(rootCmd)
 	startStatus.ActivePlugins = pluginsToActivate
 	startStatus.Update(app.StartPhaseInitPlugins, nil, "")
 

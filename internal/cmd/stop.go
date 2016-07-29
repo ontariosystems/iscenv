@@ -32,12 +32,14 @@ var stopCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(stopCmd)
-
 	addMultiInstanceFlags(stopCmd, "stop")
 	flags.AddFlagP(stopCmd, "time", "t", uint(60), "The number of seconds to wait for the instance to stop cleanly before killing it.")
 }
 
 func stop(cmd *cobra.Command, args []string) {
+	var lcs []*app.ActivatedLifecycler
+	defer getActivatedLifecyclers(getPluginsToActivate(rootCmd), getPluginArgs(), &lcs)()
+
 	instances := getMultipleInstances(cmd, args)
 	for _, instanceName := range instances {
 		instance, ilog := app.FindInstanceAndLogger(instanceName)
@@ -51,5 +53,14 @@ func stop(cmd *cobra.Command, args []string) {
 		}
 
 		ilog.Info("Stopped instance")
+
+		ilog.WithField("count", len(lcs)).Info("Executing AfterStop hook(s) from plugins")
+		for _, lc := range lcs {
+			plog := app.PluginLogger(lc.Id, "AfterStop", lc.Path)
+			plog.Debug("Executing AfterStop hook")
+			if err := lc.Lifecycler.AfterStop(instance); err != nil {
+				plog.WithError(err).Fatal("Failed to execute AfterStop hook")
+			}
+		}
 	}
 }
