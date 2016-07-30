@@ -29,6 +29,10 @@ type DockerStartOptions struct {
 	// The name of the instance
 	Name string
 
+	// The full name of the container, if this is populated, it will not be calculated
+	// TODO: This is fairly hacky and should be reworked in a future refactoring phase
+	FullName string
+
 	// The image repository from which the container will be created
 	Repository string
 
@@ -40,6 +44,10 @@ type DockerStartOptions struct {
 
 	// Search for the next available port offset?
 	PortOffsetSearch bool
+
+	// Disable the port offset checks, only do this if you are creating additional supplementary containers that use an existing containers offset to offset a different port/set of ports
+	// TODO: This is fairly hacky and should be reworked in a future refactoring phase
+	DisablePortOffsetConflictCheck bool
 
 	// The entrypoint for the container
 	Entrypoint []string
@@ -127,6 +135,9 @@ func (opts *DockerStartOptions) VolumeBinds() []string {
 }
 
 func (opts *DockerStartOptions) ContainerName() string {
+	if opts.FullName != "" {
+		return opts.FullName
+	}
 	return iscenv.ContainerPrefix + opts.Name
 }
 

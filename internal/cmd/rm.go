@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"github.com/ontariosystems/iscenv/internal/app"
+	"github.com/ontariosystems/iscenv/internal/plugins"
 
 	"github.com/spf13/cobra"
 )
@@ -35,7 +36,7 @@ func init() {
 }
 
 func rm(cmd *cobra.Command, args []string) {
-	var lcs []*app.ActivatedLifecycler
+	var lcs []*plugins.ActivatedLifecycler
 	defer getActivatedLifecyclers(getPluginsToActivate(rootCmd), getPluginArgs(), &lcs)()
 
 	instances := getMultipleInstances(cmd, args)

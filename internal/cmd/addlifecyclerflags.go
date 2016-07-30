@@ -20,6 +20,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
+	"github.com/ontariosystems/iscenv/internal/plugins"
 )
 
 // Adding lifecycler flags when doing plugin calls causes an infinite loop
@@ -34,8 +35,8 @@ func addLifecyclerFlagsIfNotPluginCall(cmd *cobra.Command) error {
 // Add the flags from the available lifecycler plugins to the provided command
 func addLifecyclerFlags(cmd *cobra.Command) error {
 	// Logging can't have been configured yet, so we're using an empty PluginArgs
-	var lcs []*app.ActivatedLifecycler
-	defer getActivatedLifecyclers(nil, app.PluginArgs{}, &lcs)()
+	var lcs []*plugins.ActivatedLifecycler
+	defer getActivatedLifecyclers(nil, plugins.PluginArgs{}, &lcs)()
 
 	available := make([]string, len(lcs))
 	for i, lc := range lcs {

@@ -23,6 +23,7 @@ import (
 
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
+	"github.com/ontariosystems/iscenv/internal/plugins"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -66,8 +67,8 @@ func init() {
 	// This allows us to set lifecycle plugins across the multiple commands to which they belong will still allowing versioners to use their own set of plugins
 	if !isPluginCall() {
 		// Logging can't have been configured yet, so we're using an empty PluginArgs
-		var lcs []*app.ActivatedLifecycler
-		defer getActivatedLifecyclers(nil, app.PluginArgs{}, &lcs)()
+		var lcs []*plugins.ActivatedLifecycler
+		defer getActivatedLifecyclers(nil, plugins.PluginArgs{}, &lcs)()
 		available := make([]string, len(lcs))
 		for i, lc := range lcs {
 			available[i] = lc.Id

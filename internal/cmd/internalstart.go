@@ -26,6 +26,7 @@ import (
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
+	"github.com/ontariosystems/iscenv/internal/plugins"
 	"github.com/ontariosystems/isclib"
 )
 
@@ -63,7 +64,7 @@ func internalStart(cmd *cobra.Command, _ []string) {
 	startStatus.ActivePlugins = pluginsToActivate
 	startStatus.Update(app.StartPhaseInitPlugins, nil, "")
 
-	var lcs []*app.ActivatedLifecycler
+	var lcs []*plugins.ActivatedLifecycler
 	defer getActivatedLifecyclers(pluginsToActivate, getPluginArgs(), &lcs)()
 	for _, lc := range lcs {
 		startStatus.Update(app.StartPhaseInitPlugins, nil, lc.Id)
@@ -132,6 +133,6 @@ func startHealthCheck() {
 	http.ListenAndServe(fmt.Sprintf(":%d", iscenv.PortInternalHC), nil)
 }
 
-func lifecyclerLogger(lc *app.ActivatedLifecycler, method string) *log.Entry {
+func lifecyclerLogger(lc *plugins.ActivatedLifecycler, method string) *log.Entry {
 	return app.PluginLogger(lc.Id, method, lc.Path)
 }
