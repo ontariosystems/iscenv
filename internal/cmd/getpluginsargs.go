@@ -17,12 +17,12 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
+	"github.com/ontariosystems/iscenv/internal/plugins"
 )
 
-func getPluginArgs() app.PluginArgs {
-	return app.PluginArgs{
+func getPluginArgs() plugins.PluginArgs {
+	return plugins.PluginArgs{
 		LogLevel: flags.GetString(rootCmd, "log-level"),
 		LogJSON:  flags.GetBool(rootCmd, "log-json"),
 	}

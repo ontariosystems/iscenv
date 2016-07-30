@@ -16,13 +16,16 @@ limitations under the License.
 
 package cmd
 
-import "github.com/ontariosystems/iscenv/internal/app"
+import (
+	"github.com/ontariosystems/iscenv/internal/app"
+	"github.com/ontariosystems/iscenv/internal/plugins"
+)
 
 // getActivatedLifecyclers will populate lifecyclers with activated lifecyclers plugins based on the provided list.
 // It returns the close function from the manager so you can easily defer the return.  It will log fatally on any errors
-func getActivatedLifecyclers(pluginsToActivate []string, args app.PluginArgs, lifecyclers *[]*app.ActivatedLifecycler) func() {
+func getActivatedLifecyclers(pluginsToActivate []string, args plugins.PluginArgs, lifecyclers *[]*plugins.ActivatedLifecycler) func() {
 	var err error
-	lcm, err := app.NewLifecyclerManager(args)
+	lcm, err := plugins.NewLifecyclerManager(args)
 	if err != nil {
 		app.ErrorLogger(nil, err).Fatal("Failed to create lifecycle plugin manager")
 	}

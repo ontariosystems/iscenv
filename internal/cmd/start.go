@@ -27,6 +27,7 @@ import (
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
+	"github.com/ontariosystems/iscenv/internal/plugins"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/kardianos/osext"
@@ -68,7 +69,7 @@ func start(cmd *cobra.Command, args []string) {
 	image := flags.GetString(rootCmd, "image")
 	version := getVersion(image, flags.GetString(cmd, "version"))
 
-	var lcs []*app.ActivatedLifecycler
+	var lcs []*plugins.ActivatedLifecycler
 	defer getActivatedLifecyclers(getPluginsToActivate(rootCmd), getPluginArgs(), &lcs)()
 
 	environment, copies, volumes, ports, labels, err := getPluginConfig(lcs, cmd, version)
@@ -209,7 +210,7 @@ func getVersion(image, requestedVersion string) string {
 	return version
 }
 
-func getPluginConfig(lcs []*app.ActivatedLifecycler, cmd *cobra.Command, version string) (environment, copies, volumes, ports []string, labels map[string]string, err error) {
+func getPluginConfig(lcs []*plugins.ActivatedLifecycler, cmd *cobra.Command, version string) (environment, copies, volumes, ports []string, labels map[string]string, err error) {
 
 	log.WithField("count", len(lcs)).Debug("Getting configuration from plugins")
 	environment = make([]string, 0)

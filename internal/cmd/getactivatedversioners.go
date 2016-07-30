@@ -16,13 +16,16 @@ limitations under the License.
 
 package cmd
 
-import "github.com/ontariosystems/iscenv/internal/app"
+import (
+	"github.com/ontariosystems/iscenv/internal/app"
+	"github.com/ontariosystems/iscenv/internal/plugins"
+)
 
 // getActivatedVersioners will populate versioners with activated versioners plugins based on the provided list.
 // It returns the close function from the manager so you can easily defer the return.  It will log fatally on any errors
-func getActivatedVersioners(pluginsToActivate []string, args app.PluginArgs, versioners *[]*app.ActivatedVersioner) func() {
+func getActivatedVersioners(pluginsToActivate []string, args plugins.PluginArgs, versioners *[]*plugins.ActivatedVersioner) func() {
 	var err error
-	vm, err := app.NewVersionerManager(getPluginArgs())
+	vm, err := plugins.NewVersionerManager(getPluginArgs())
 	if err != nil {
 		app.ErrorLogger(nil, err).Fatal("Failed to create lifecycle plugin manager")
 	}

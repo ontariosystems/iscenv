@@ -28,6 +28,7 @@ import (
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
+	"github.com/ontariosystems/iscenv/internal/plugins"
 )
 
 const (
@@ -43,7 +44,7 @@ var versionsCmd = &cobra.Command{
 
 func init() {
 	// We are making a pm just to get a listing of the plugins in init, we will not activate it here
-	vm, err := app.NewVersionerManager(app.PluginArgs{})
+	vm, err := plugins.NewVersionerManager(plugins.PluginArgs{})
 	if err != nil {
 		log.WithError(err).Fatal("Failed to load version plugin manager during init")
 	}
@@ -93,10 +94,10 @@ func versions(cmd *cobra.Command, _ []string) {
 }
 
 // Acquire all of the versions for the provided image using the appropriate plugin stack
-func getVersions(image string, plugins []string) (iscenv.ISCVersions, error) {
+func getVersions(image string, verPlugins []string) (iscenv.ISCVersions, error) {
 	// Get the baseline set of versions that are considered "local"
 	var versions iscenv.ISCVersions
-	var versioners []*app.ActivatedVersioner
+	var versioners []*plugins.ActivatedVersioner
 	var err error
 
 	log.WithField("plugin", baseVersionPlugin).Debug("Executing default version plugin")
@@ -114,8 +115,8 @@ func getVersions(image string, plugins []string) (iscenv.ISCVersions, error) {
 	}
 	plog.WithField("count", len(versions)).Debug("Retrieved versions")
 
-	log.WithField("count", len(plugins)).Debug("Executing additional version plugin(s)")
-	defer getActivatedVersioners(plugins, getPluginArgs(), &versioners)()
+	log.WithField("count", len(verPlugins)).Debug("Executing additional version plugin(s)")
+	defer getActivatedVersioners(verPlugins, getPluginArgs(), &versioners)()
 
 	for _, v := range versioners {
 		// Local was added to the plugins list which makes no sense but isn't worthy of an error (and we don't want to log because it will corrupt the table output of versions)
