@@ -155,7 +155,7 @@ func (s *LifecyclerRPCServer) Environment(opts HostOpts, resp *[]string) (err er
 }
 
 func (s *LifecyclerRPCServer) Copies(opts HostOpts, resp *[]string) (err error) {
-	*resp, err = s.Plugin.Volumes(opts.Version, opts.FlagValues)
+	*resp, err = s.Plugin.Copies(opts.Version, opts.FlagValues)
 	return err
 }
 
