@@ -25,6 +25,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	docker "github.com/fsouza/go-dockerclient"
+	version "github.com/hashicorp/go-version"
 )
 
 // Ensure that a container exists and is started.  Returns the ID of the started container or an error
@@ -91,11 +92,37 @@ func DockerStart(opts DockerStartOptions) (id string, err error) {
 	}
 
 	ilog.Debug("Starting container")
-	if err = DockerClient.StartContainer(container.ID, opts.ToHostConfig()); err != nil {
+	hostConfig, err := getStartHostConfig(opts)
+	if err != nil {
+		return "", err
+	}
+	if err = DockerClient.StartContainer(container.ID, hostConfig); err != nil {
 		return "", err
 	}
 
 	return container.ID, nil
+}
+
+// Passing HostConfig is deprecated after 1.10 and removed at 1.12 but prior to that we had problems if we didn't pass it.
+// As such, we will return a nil on newer versions but the actual hostconfig on older ones.
+func getStartHostConfig(opts DockerStartOptions) (*docker.HostConfig, error) {
+	cutoff, _ := version.NewVersion("1.10.0")
+
+	env, err := DockerClient.Version()
+	if err != nil {
+		return nil, err
+	}
+
+	ver, err := version.NewVersion(env.Get("Version"))
+	if err != nil {
+		return nil, err
+	}
+
+	if ver.LessThan(cutoff) {
+		return opts.ToHostConfig(), nil
+	}
+
+	return nil, nil
 }
 
 func performCopies(id string, copies []string) error {
