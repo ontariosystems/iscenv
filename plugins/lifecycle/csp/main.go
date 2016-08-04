@@ -120,7 +120,7 @@ func (p *Plugin) AfterStart(instance *iscenv.ISCInstance) error {
 		Copies:                         nil,
 		VolumesFrom:                    nil,
 		ContainerLinks:                 []string{"iscenv-" + instance.Name + ":" + "iscenv"},
-		Ports:                          []string{strconv.FormatInt(flags.Port, 10) + ":443"},
+		Ports:                          []string{strconv.FormatInt(flags.Port+po, 10) + ":443"},
 		Labels:                         nil,
 		Recreate:                       false,
 	})
