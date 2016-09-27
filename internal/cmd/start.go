@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -26,6 +27,7 @@ import (
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
+	"github.com/ontariosystems/iscenv/internal/plugins"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/kardianos/osext"
@@ -41,7 +43,7 @@ var startCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(startCmd)
-	if err := addStarterFlagsIfNotPluginCall(startCmd); err != nil {
+	if err := addLifecyclerFlagsIfNotPluginCall(startCmd); err != nil {
 		app.ErrorLogger(nil, err).Fatal(app.ErrFailedToAddPluginFlags)
 	}
 
@@ -67,8 +69,10 @@ func start(cmd *cobra.Command, args []string) {
 	image := flags.GetString(rootCmd, "image")
 	version := getVersion(image, flags.GetString(cmd, "version"))
 
-	pluginsToActivate := strings.Split(flags.GetString(cmd, "plugins"), ",")
-	environment, copies, volumes, ports, err := getPluginConfig(cmd, pluginsToActivate, version)
+	var lcs []*plugins.ActivatedLifecycler
+	defer getActivatedLifecyclers(getPluginsToActivate(rootCmd), getPluginArgs(), &lcs)()
+
+	environment, copies, volumes, ports, labels, err := getPluginConfig(lcs, cmd, version)
 	if err != nil {
 		app.ErrorLogger(nil, err).Fatal("Failed to load container settings from plugin")
 	}
@@ -115,12 +119,13 @@ func start(cmd *cobra.Command, args []string) {
 			Volumes:          volumes,
 			Copies:           copies,
 			Ports:            ports,
+			Labels:           labels,
 			Entrypoint:       []string{"/bin/iscenv", "_start"},
 			Command: []string{
 				// TODO: Plugin parameters and additional parameters passed from start itself (maybe)
 				fmt.Sprintf("--instance=%s", flags.GetString(cmd, "internal-instance")),
 				fmt.Sprintf("--ccontrol-path=%s", flags.GetString(cmd, "ccontrol-path")),
-				fmt.Sprintf("--plugins=%s", flags.GetString(cmd, "plugins")),
+				fmt.Sprintf("--plugins=%s", flags.GetString(rootCmd, "plugins")),
 				// Always using debug & json because we're going to proxy, parse and relog on the server side
 				// and we don't want a one time decision at creation to limit the kind of log information we
 				// can get later
@@ -162,6 +167,15 @@ func start(cmd *cobra.Command, args []string) {
 
 		app.RelogStream(ilog.Data, false, r)
 		ilog.Info("Started instance")
+
+		ilog.WithField("count", len(lcs)).Info("Executing AfterStart hook(s) from plugins")
+		for _, lc := range lcs {
+			plog := app.PluginLogger(lc.Id, "AfterStart", lc.Path)
+			plog.Debug("Executing AfterStart hook")
+			if err := lc.Lifecycler.AfterStart(instance); err != nil {
+				plog.WithError(err).Fatal("Failed to execute AfterStart hook")
+			}
+		}
 	}
 }
 
@@ -196,55 +210,55 @@ func getVersion(image, requestedVersion string) string {
 	return version
 }
 
-func getPluginConfig(cmd *cobra.Command, pluginsToActivate []string, version string) (environment, copies, volumes, ports []string, err error) {
+func getPluginConfig(lcs []*plugins.ActivatedLifecycler, cmd *cobra.Command, version string) (environment, copies, volumes, ports []string, labels map[string]string, err error) {
 
-	log.Debugf("Getting configuration from plugins: %v", len(pluginsToActivate))
+	log.WithField("count", len(lcs)).Debug("Getting configuration from plugins")
 	environment = make([]string, 0)
 	copies = make([]string, 0)
 	volumes = make([]string, 0)
 	ports = make([]string, 0)
+	labels = make(map[string]string)
 
-	if err := activateStartersAndClose(pluginsToActivate,
-		app.PluginArgs{
-			LogLevel: flags.GetString(rootCmd, "log-level"),
-			LogJSON:  flags.GetBool(rootCmd, "log-json"),
-		},
-		func(id, pluginPath string, starter iscenv.Starter) error {
-			flagValues := getPluginFlagValues(cmd, id)
-			// Copy external plugin binaries to the /bin directory
-			if pluginPath != "" {
-				copies = append(copies, fmt.Sprintf("%s:%s/%s", pluginPath, iscenv.InternalISCEnvBinaryDir, filepath.Base(pluginPath)))
-			}
+	for _, lc := range lcs {
+		flagValues := getPluginFlagValues(cmd, lc.Id)
+		// Copy external plugin binaries to the /bin directory
+		if lc.Path != "" {
+			copies = append(copies, fmt.Sprintf("%s:%s/%s", lc.Path, iscenv.InternalISCEnvBinaryDir, filepath.Base(lc.Path)))
+		}
 
-			if env, err := starter.Environment(version, flagValues); err != nil {
-				return app.NewPluginError(id, "Environment", pluginPath, err)
-			} else if env != nil {
-				environment = append(environment, env...)
-			}
+		if env, err := lc.Lifecycler.Environment(version, flagValues); err != nil {
+			return nil, nil, nil, nil, nil, app.NewPluginError(lc.Id, "Environment", lc.Path, err)
+		} else if env != nil {
+			environment = append(environment, env...)
+		}
 
-			if cps, err := starter.Copies(version, flagValues); err != nil {
-				return app.NewPluginError(id, "Copies", pluginPath, err)
-			} else if cps != nil {
-				cps = append(copies, cps...)
-			}
+		if cps, err := lc.Lifecycler.Copies(version, flagValues); err != nil {
+			return nil, nil, nil, nil, nil, app.NewPluginError(lc.Id, "Copies", lc.Path, err)
+		} else if cps != nil {
+			cps = append(copies, cps...)
+		}
 
-			if vols, err := starter.Volumes(version, flagValues); err != nil {
-				return app.NewPluginError(id, "Volumes", pluginPath, err)
-			} else if vols != nil {
-				volumes = append(volumes, vols...)
-			}
+		if vols, err := lc.Lifecycler.Volumes(version, flagValues); err != nil {
+			return nil, nil, nil, nil, nil, app.NewPluginError(lc.Id, "Volumes", lc.Path, err)
+		} else if vols != nil {
+			volumes = append(volumes, vols...)
+		}
 
-			if pts, err := starter.Ports(version, flagValues); err != nil {
-				return app.NewPluginError(id, "Ports", pluginPath, err)
-			} else if pts != nil {
-				ports = append(ports, pts...)
-			}
-			return nil
-		}); err != nil {
-		return nil, nil, nil, nil, err
+		if pts, err := lc.Lifecycler.Ports(version, flagValues); err != nil {
+			return nil, nil, nil, nil, nil, app.NewPluginError(lc.Id, "Ports", lc.Path, err)
+		} else if pts != nil {
+			ports = append(ports, pts...)
+		}
+
+		flagsJSON, err := json.Marshal(flagValues)
+		if err != nil {
+			return nil, nil, nil, nil, nil, app.NewPluginError(lc.Id, "Labels", lc.Path, err)
+		}
+
+		labels["iscenv.lifecycler."+lc.Id+".flags"] = string(flagsJSON)
 	}
 
-	return environment, copies, volumes, ports, nil
+	return environment, copies, volumes, ports, labels, nil
 }
 
 func getPluginFlagValues(cmd *cobra.Command, plugin string) map[string]interface{} {

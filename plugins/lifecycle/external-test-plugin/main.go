@@ -14,37 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package servicebindingsplugin
+package main
 
 import (
-	"bytes"
-
 	log "github.com/Sirupsen/logrus"
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/isclib"
 )
 
-const (
-	pluginKey = "service-bindings"
-)
-
-var plog = log.WithField("plugin", pluginKey)
+var plog = log.WithField("plugin", "external-test-plugin")
 
 type Plugin struct{}
 
-func (plugin *Plugin) Main() {
-	iscenv.ServeStartPlugin(plugin)
-}
-
-func (*Plugin) Key() string {
-	return pluginKey
+func main() {
+	iscenv.ServeLifecyclePlugin(new(Plugin))
 }
 
 func (*Plugin) Flags() (iscenv.PluginFlags, error) {
+	plog.Info("Flags")
 	return iscenv.NewPluginFlags(), nil
 }
 
-func (*Plugin) Environment(_ string, _ map[string]interface{}) ([]string, error) {
+func (*Plugin) Environment(version string, flags map[string]interface{}) ([]string, error) {
+	plog.Info("Environment")
 	return nil, nil
 }
 
@@ -53,46 +45,38 @@ func (*Plugin) Copies(_ string, _ map[string]interface{}) ([]string, error) {
 }
 
 func (*Plugin) Volumes(_ string, _ map[string]interface{}) ([]string, error) {
+	plog.Info("Volumes")
 	return nil, nil
 }
 
 func (*Plugin) Ports(_ string, _ map[string]interface{}) ([]string, error) {
+	plog.Info("Ports")
 	return nil, nil
 }
 
-func (*Plugin) BeforeInstance(instance *isclib.Instance) error {
+func (*Plugin) AfterStart(instance *iscenv.ISCInstance) error {
 	return nil
 }
 
-func (*Plugin) WithInstance(instance *isclib.Instance) error {
-	plog.Debug("Enabling ISC service bindings")
-	if err := instance.ExecuteAsManager(); err != nil {
-		return err
-	}
-
-	code := `MAIN
- new
- set p("Enabled")=1
- set s=##class(Security.Services).Modify("%Service_Bindings", .p)
- if $system.Status.IsError(s) {
-   do $system.Status.DisplayStatus(s)
-   do $zutil(4,$job,2)
- }
- quit
-
-`
-	r := bytes.NewReader([]byte(code))
-	out, err := instance.Execute("%SYS", r)
-	elog := plog.WithField("output", out)
-	if err != nil {
-		elog.WithError(err).Error("Failed to enable %Service_Bindings")
-		return err
-	}
-
-	elog.Debug("Enabled service bindings")
+func (*Plugin) AfterStop(instance *iscenv.ISCInstance) error {
 	return nil
 }
 
-func (*Plugin) AfterInstance(instance *isclib.Instance) error {
+func (*Plugin) BeforeRemove(instance *iscenv.ISCInstance) error {
+	return nil
+}
+
+func (*Plugin) BeforeInstance(state *isclib.Instance) error {
+	plog.Info("BeforeInstance")
+	return nil
+}
+
+func (*Plugin) WithInstance(state *isclib.Instance) error {
+	plog.Info("WithInstance")
+	return nil
+}
+
+func (*Plugin) AfterInstance(state *isclib.Instance) error {
+	plog.Info("AfterInstance")
 	return nil
 }

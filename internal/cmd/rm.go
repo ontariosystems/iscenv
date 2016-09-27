@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"github.com/ontariosystems/iscenv/internal/app"
+	"github.com/ontariosystems/iscenv/internal/plugins"
 
 	"github.com/spf13/cobra"
 )
@@ -31,11 +32,13 @@ var rmCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(rmCmd)
-
 	addMultiInstanceFlags(rmCmd, "rm")
 }
 
 func rm(cmd *cobra.Command, args []string) {
+	var lcs []*plugins.ActivatedLifecycler
+	defer getActivatedLifecyclers(getPluginsToActivate(rootCmd), getPluginArgs(), &lcs)()
+
 	instances := getMultipleInstances(cmd, args)
 	for _, instanceName := range instances {
 		instance, ilog := app.FindInstanceAndLogger(instanceName)
@@ -44,10 +47,20 @@ func rm(cmd *cobra.Command, args []string) {
 			continue
 		}
 
+		ilog.WithField("count", len(lcs)).Info("Executing BeforeRemove hook(s) from plugins")
+		for _, lc := range lcs {
+			plog := app.PluginLogger(lc.Id, "BeforeRemove", lc.Path)
+			plog.Debug("Executing BeforeRemove hook")
+			if err := lc.Lifecycler.BeforeRemove(instance); err != nil {
+				plog.WithError(err).Fatal("Failed to execute BeforeRemove hook")
+			}
+		}
+
 		if err := app.DockerRemove(instance); err != nil {
 			app.ErrorLogger(ilog, err).Fatal("Failed to remove instance")
 		}
 
 		ilog.Info("Removed instance")
+
 	}
 }

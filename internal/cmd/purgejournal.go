@@ -33,7 +33,7 @@ var purgeJournalCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(purgeJournalCmd)
 
-	addMultiInstanceFlags(purgeJournalCmd, "start")
+	addMultiInstanceFlags(purgeJournalCmd, "purgejournal")
 }
 
 func purgeJournal(cmd *cobra.Command, args []string) {

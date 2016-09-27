@@ -70,7 +70,7 @@ func DockerStart(opts DockerStartOptions) (id string, err error) {
 		} else {
 			if upo, err := instances.UsedPortOffset(opts.PortOffset); err != nil {
 				return "", err
-			} else if upo {
+			} else if upo && !opts.DisablePortOffsetConflictCheck {
 				return "", fmt.Errorf("Port offset conflict, offset: %d", opts.PortOffset)
 			}
 		}
