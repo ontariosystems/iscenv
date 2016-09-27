@@ -17,36 +17,37 @@ limitations under the License.
 package cmd
 
 import (
-	"strings"
-
 	"github.com/spf13/cobra"
-	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
+	"github.com/ontariosystems/iscenv/internal/plugins"
 )
 
-// Adding starter flags when doing plugin calls causes an infinite loop
-func addStarterFlagsIfNotPluginCall(cmd *cobra.Command) error {
+// Adding lifecycler flags when doing plugin calls causes an infinite loop
+func addLifecyclerFlagsIfNotPluginCall(cmd *cobra.Command) error {
 	if isPluginCall() {
 		return nil
 	}
 
-	return addStarterFlags(cmd)
+	return addLifecyclerFlags(cmd)
 }
 
-// Add the flags from the available starter plugins to the provided command
-func addStarterFlags(cmd *cobra.Command) error {
-	available := make([]string, 0)
+// Add the flags from the available lifecycler plugins to the provided command
+func addLifecyclerFlags(cmd *cobra.Command) error {
 	// Logging can't have been configured yet, so we're using an empty PluginArgs
-	if err := activateStartersAndClose(nil, app.PluginArgs{}, func(id, path string, starter iscenv.Starter) error {
-		available = append(available, id)
-		pluginFlags, err := starter.Flags()
+	var lcs []*plugins.ActivatedLifecycler
+	defer getActivatedLifecyclers(nil, plugins.PluginArgs{}, &lcs)()
+
+	available := make([]string, len(lcs))
+	for i, lc := range lcs {
+		available[i] = lc.Id
+		pluginFlags, err := lc.Lifecycler.Flags()
 		if err != nil {
-			return app.NewPluginError(id, "Flags", path, err)
+			return app.NewPluginError(lc.Id, "Flags", lc.Path, err)
 		}
 
 		for _, pluginFlag := range pluginFlags.Flags {
-			flagName := id + "-" + pluginFlag.Flag
+			flagName := lc.Id + "-" + pluginFlag.Flag
 			if pluginFlag.HasConfig {
 				flags.AddConfigFlag(cmd, flagName, pluginFlag.DefaultValue, pluginFlag.Usage)
 			} else {
@@ -54,12 +55,7 @@ func addStarterFlags(cmd *cobra.Command) error {
 			}
 		}
 
-		return nil
-	}); err != nil {
-		return err
 	}
-
-	flags.AddConfigFlag(cmd, "plugins", "", "An ordered comma-separated list of plugins you wish to activate. available plugins: "+strings.Join(available, ","))
 
 	return nil
 }

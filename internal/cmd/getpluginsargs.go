@@ -14,22 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package app
+package cmd
 
-type PluginArgs struct {
-	LogLevel string
-	LogJSON  bool
-}
+import (
+	"github.com/ontariosystems/iscenv/internal/cmd/flags"
+	"github.com/ontariosystems/iscenv/internal/plugins"
+)
 
-func (pa PluginArgs) ToArgs() []string {
-	args := []string{}
-	if pa.LogLevel != "" {
-		args = append(args, "--log-level="+pa.LogLevel)
-
-		if pa.LogJSON {
-			args = append(args, "--log-json=true")
-		}
+func getPluginArgs() plugins.PluginArgs {
+	return plugins.PluginArgs{
+		LogLevel: flags.GetString(rootCmd, "log-level"),
+		LogJSON:  flags.GetBool(rootCmd, "log-json"),
 	}
-
-	return args
 }

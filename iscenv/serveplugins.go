@@ -23,11 +23,12 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/hashicorp/go-plugin"
 	"github.com/spf13/pflag"
+	"github.com/x-cray/logrus-prefixed-formatter"
 )
 
-func ServeStartPlugin(impl Starter) {
+func ServeLifecyclePlugin(impl Lifecycler) {
 	pluginMap := map[string]plugin.Plugin{
-		StarterKey: StarterPlugin{Plugin: impl},
+		LifecyclerKey: LifecyclerPlugin{Plugin: impl},
 	}
 
 	// See configureLogger comments
@@ -74,7 +75,7 @@ func configureLogger(oldOut io.Writer) {
 	if *j {
 		log.SetFormatter(new(log.JSONFormatter))
 	} else {
-		log.SetFormatter(&log.TextFormatter{ForceColors: true})
+		log.SetFormatter(&prefixed.TextFormatter{ForceColors: true})
 	}
 
 	if level, err := log.ParseLevel(*l); err == nil {

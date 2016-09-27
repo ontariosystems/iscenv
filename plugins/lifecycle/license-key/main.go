@@ -40,7 +40,7 @@ const (
 type Plugin struct{}
 
 func (plugin *Plugin) Main() {
-	iscenv.ServeStartPlugin(plugin)
+	iscenv.ServeLifecyclePlugin(plugin)
 }
 
 func (*Plugin) Key() string {
@@ -72,6 +72,18 @@ func (*Plugin) Volumes(_ string, _ map[string]interface{}) ([]string, error) {
 
 func (*Plugin) Ports(_ string, _ map[string]interface{}) ([]string, error) {
 	return nil, nil
+}
+
+func (*Plugin) AfterStart(instance *iscenv.ISCInstance) error {
+	return nil
+}
+
+func (*Plugin) AfterStop(instance *iscenv.ISCInstance) error {
+	return nil
+}
+
+func (*Plugin) BeforeRemove(instance *iscenv.ISCInstance) error {
+	return nil
 }
 
 func (*Plugin) BeforeInstance(state *isclib.Instance) error {

@@ -20,21 +20,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
+	"github.com/ontariosystems/iscenv/internal/plugins"
 	"github.com/ontariosystems/isclib"
 )
-
-type starterInfo struct {
-	ID      string
-	Path    string
-	Starter iscenv.Starter
-}
 
 var internalStartCmd = &cobra.Command{
 	Use:   "_start",
@@ -52,7 +46,7 @@ func init() {
 
 	rootCmd.AddCommand(internalStartCmd)
 
-	if err := addStarterFlagsIfNotPluginCall(internalStartCmd); err != nil {
+	if err := addLifecyclerFlagsIfNotPluginCall(internalStartCmd); err != nil {
 		app.ErrorLogger(nil, err).Fatal(app.ErrFailedToAddPluginFlags)
 	}
 
@@ -66,35 +60,14 @@ func internalStart(cmd *cobra.Command, _ []string) {
 	go startHealthCheck()
 
 	// We can't use the closing activator because we need the plugins to keep running the whole time that _start runs
-	pluginsToActivate := strings.Split(flags.GetString(cmd, "plugins"), ",")
+	pluginsToActivate := getPluginsToActivate(rootCmd)
 	startStatus.ActivePlugins = pluginsToActivate
 	startStatus.Update(app.StartPhaseInitPlugins, nil, "")
-	starters := make([]*starterInfo, len(pluginsToActivate))
 
-	i := 0
-	pm, err := activateStarters(
-		pluginsToActivate,
-		app.PluginArgs{
-			LogLevel: flags.GetString(rootCmd, "log-level"),
-			LogJSON:  flags.GetBool(rootCmd, "log-json"),
-		},
-		func(id, pluginPath string, starter iscenv.Starter) error {
-			startStatus.Update(app.StartPhaseInitPlugins, nil, id)
-			starters[i] = &starterInfo{
-				ID:      id,
-				Path:    pluginPath,
-				Starter: starter,
-			}
-			i++
-			return nil
-		})
-
-	if pm != nil {
-		defer pm.Close()
-	}
-
-	if err != nil {
-		app.ErrorLogger(nil, err).Fatal("Failed to activate plugins")
+	var lcs []*plugins.ActivatedLifecycler
+	defer getActivatedLifecyclers(pluginsToActivate, getPluginArgs(), &lcs)()
+	for _, lc := range lcs {
+		startStatus.Update(app.StartPhaseInitPlugins, nil, lc.Id)
 	}
 
 	startStatus.Update(app.StartPhaseInitManager, nil, "")
@@ -108,22 +81,22 @@ func internalStart(cmd *cobra.Command, _ []string) {
 	}
 
 	startStatus.Update(app.StartPhaseEventBeforeInstance, manager.Instance, "")
-	for _, starter := range starters {
-		plog := starterLogger(starter, "BeforeInstance")
+	for _, lc := range lcs {
+		plog := lifecyclerLogger(lc, "BeforeInstance")
 		plog.Info("Executing plugin")
-		startStatus.Update(app.StartPhaseEventBeforeInstance, nil, starter.ID)
-		if err := starter.Starter.BeforeInstance(manager.Instance); err != nil {
+		startStatus.Update(app.StartPhaseEventBeforeInstance, nil, lc.Id)
+		if err := lc.Lifecycler.BeforeInstance(manager.Instance); err != nil {
 			app.ErrorLogger(plog, err).Fatal(app.ErrFailedEventPlugin)
 		}
 	}
 
 	manager.InstanceRunningHandler = func(*isclib.Instance) {
 		startStatus.Update(app.StartPhaseEventWithInstance, manager.Instance, "")
-		for _, starter := range starters {
-			plog := starterLogger(starter, "WithInstance")
+		for _, lc := range lcs {
+			plog := lifecyclerLogger(lc, "WithInstance")
 			plog.Info("Executing plugin")
-			startStatus.Update(app.StartPhaseEventWithInstance, nil, starter.ID)
-			if err := starter.Starter.WithInstance(manager.Instance); err != nil {
+			startStatus.Update(app.StartPhaseEventWithInstance, nil, lc.Id)
+			if err := lc.Lifecycler.WithInstance(manager.Instance); err != nil {
 				app.ErrorLogger(plog, err).Fatal(app.ErrFailedEventPlugin)
 			}
 		}
@@ -136,11 +109,11 @@ func internalStart(cmd *cobra.Command, _ []string) {
 	}
 
 	startStatus.Update(app.StartPhaseEventAfterInstance, manager.Instance, "")
-	for _, starter := range starters {
-		plog := starterLogger(starter, "AfterInstance")
+	for _, lc := range lcs {
+		plog := lifecyclerLogger(lc, "AfterInstance")
 		plog.Info("Executing plugin")
-		startStatus.Update(app.StartPhaseEventAfterInstance, nil, starter.ID)
-		if err := starter.Starter.AfterInstance(manager.Instance); err != nil {
+		startStatus.Update(app.StartPhaseEventAfterInstance, nil, lc.Id)
+		if err := lc.Lifecycler.AfterInstance(manager.Instance); err != nil {
 			app.ErrorLogger(plog, err).Fatal(app.ErrFailedEventPlugin)
 		}
 	}
@@ -160,6 +133,6 @@ func startHealthCheck() {
 	http.ListenAndServe(fmt.Sprintf(":%d", iscenv.PortInternalHC), nil)
 }
 
-func starterLogger(si *starterInfo, method string) *log.Entry {
-	return app.PluginLogger(si.ID, method, si.Path)
+func lifecyclerLogger(lc *plugins.ActivatedLifecycler, method string) *log.Entry {
+	return app.PluginLogger(lc.Id, method, lc.Path)
 }

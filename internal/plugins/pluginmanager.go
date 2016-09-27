@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package app
+package plugins
 
 import (
 	"fmt"
@@ -31,14 +31,12 @@ import (
 	"github.com/ontariosystems/iscenv/iscenv"
 )
 
-type activatePluginFn func(id, pluginPath string, raw interface{}) error
-
 func init() {
 	// Throw away the logs from go-plugin
 	golog.SetOutput(ioutil.Discard)
 }
 
-func NewPluginManager(applicationName, pluginType string, iscenvPlugin plugin.Plugin, args PluginArgs) (*PluginManager, error) {
+func NewPluginManager(pluginType string, iscenvPlugin plugin.Plugin, args PluginArgs) (*PluginManager, error) {
 	exeDir, err := osext.ExecutableFolder()
 	if err != nil {
 		return nil, err
@@ -59,7 +57,7 @@ func NewPluginManager(applicationName, pluginType string, iscenvPlugin plugin.Pl
 	log.Debugf("Found %d internal %s plugin(s)", len(InternalPlugins[pluginType]), pluginType)
 
 	log.Debugf("Searching %s for external %s plugins", pluginType, exeDir)
-	exes, err := filepath.Glob(filepath.Join(exeDir, fmt.Sprintf("%s-%s-*", applicationName, pluginType)))
+	exes, err := filepath.Glob(filepath.Join(exeDir, fmt.Sprintf("%s-%s-*", iscenv.ApplicationName, pluginType)))
 	if err != nil {
 		return nil, err
 	}
@@ -111,6 +109,12 @@ type PluginClient struct {
 	*plugin.Client
 }
 
+type ActivatedPlugin struct {
+	Id     string
+	Path   string
+	Plugin interface{}
+}
+
 // Needed because the embedded struct is Client and it has a function called Client so it's client.Client() is ambiguous
 func (pc *PluginClient) RPCClient() (*plugin.RPCClient, error) {
 	return pc.Client.Client()
@@ -127,33 +131,41 @@ func (pm *PluginManager) AvailablePlugins() []string {
 	return plugins
 }
 
-// This will traverse all of the plugins dispensing them to the rpc client and then returning the raw interface{} returns, the caller will want to type cast it to the appropriate interface
-func (pm *PluginManager) ActivatePlugins(pluginsToActivate []string, fn activatePluginFn) error {
-	for _, key := range pluginsToActivate {
+// ActivatePlugins will activate the provided list of plugins.  If the list is nil, it will activate all of the plugins.
+// It does this by traversing all of the plugins dispensing them to the rpc client and then returning an object containing the Id of the plugin, the path to the executable (if not internal) and the raw plugin interface{} which the caller will likely want to typecast into something more useful.
+// It will return the ActivatedPlugins in the same order as the pluginsToActivate and any error encountered
+func (pm *PluginManager) ActivatePlugins(pluginsToActivate []string) ([]*ActivatedPlugin, error) {
+	if pluginsToActivate == nil {
+		pluginsToActivate = pm.AvailablePlugins()
+	}
+
+	activatedPlugins := make([]*ActivatedPlugin, len(pluginsToActivate))
+	for i, key := range pluginsToActivate {
 		key = strings.ToLower(key)
 
 		client, ok := pm.clients[key]
 		if !ok {
-			return fmt.Errorf("No such plugin, name: %s", key)
+			return nil, fmt.Errorf("No such plugin, name: %s", key)
 		}
 
 		rpcClient, err := client.RPCClient()
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		raw, err := rpcClient.Dispense(pm.pluginType)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		err = fn(key, client.ExecutablePath, raw)
-		if err != nil {
-			return err
+		activatedPlugins[i] = &ActivatedPlugin{
+			Id:     key,
+			Path:   client.ExecutablePath,
+			Plugin: raw,
 		}
 	}
 
-	return nil
+	return activatedPlugins, nil
 }
 
 func (pm *PluginManager) Close() {

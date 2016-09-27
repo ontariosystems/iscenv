@@ -19,13 +19,14 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/ontariosystems/iscenv/internal/plugins"
+
 	"github.com/spf13/cobra"
-	"github.com/ontariosystems/iscenv/internal/app"
 )
 
 func init() {
 	rootCmd.AddCommand(pluginCmd)
-	for ptype, plugins := range app.InternalPlugins {
+	for ptype, plugins := range plugins.InternalPlugins {
 		typeCmd := &cobra.Command{
 			Use:    ptype,
 			Short:  fmt.Sprintf("Start a %s plugin", ptype),

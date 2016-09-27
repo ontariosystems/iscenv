@@ -30,13 +30,13 @@ const (
 	pluginKey = "local"
 )
 
-var DockerClient *docker.Client
+var dockerClient *docker.Client
 
 type Plugin struct{}
 
 func (plugin *Plugin) Main() {
 	var err error
-	if DockerClient, err = docker.NewClient(iscenv.DockerSocket); err != nil {
+	if dockerClient, err = docker.NewClient(iscenv.DockerSocket); err != nil {
 		log.WithError(err).Fatal("Failed to create docker client")
 	}
 	iscenv.ServeVersionsPlugin(plugin)
@@ -47,7 +47,7 @@ func (*Plugin) Key() string {
 }
 
 func (*Plugin) Versions(image string) (iscenv.ISCVersions, error) {
-	localImages, err := DockerClient.ListImages(docker.ListImagesOptions{All: false})
+	localImages, err := dockerClient.ListImages(docker.ListImagesOptions{All: false})
 	if err != nil {
 		return nil, err
 	}
