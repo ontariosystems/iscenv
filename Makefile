@@ -21,9 +21,3 @@ build: version
 
 build-external-test-plugin:
 	$(call compile_plugin,linux,amd64,start,external-test-plugin)
-
-# This is a temporary target until we sort out a good single Travis-like build system
-build	@curl -Ss -o /usr/local/share/ca-certificates/os_root_ca.crt http://statler.ontsys.com/v2/OS%20Certificate%20Bundle/1.0/os_root_ca.crt
-	@update-ca-certificates
-	# On the build server, this will add the "jenkins" user to the mercurial trust, since the container is running as root and the mapped repo is owned by the "jenkins" user. 
-	@echo "[trusted]\nusers = $(shell stat -c "%u" .)\n" > /etc/mercurial/hgrc.d/trust.rc
