@@ -3,7 +3,7 @@ CACHEDIR=cache
 compile=GO15VENDOREXPERIMENT=1 GOOS=$(1) GOARCH=$(2) go build -ldflags "-X github.com/ontariosystems/iscenv/iscenv.Version=$(VERSION)" -o=$(PKGDIR)/iscenv
 compile_plugin=GO15VENDOREXPERIMENT=1 GOOS=$(1) GOARCH=$(2) go build -o=$(PKGDIR)/iscenv-$(3)-$(4) plugins/$(3)/$(4)/*.go
 
-.PHONY: all clean version build build-external-test-plugin publish
+.PHONY: all clean version build build-external-test-plugin
 
 all: clean build
 
