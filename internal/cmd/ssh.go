@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"os"
 	"strings"
 	"unicode"
 
@@ -59,7 +60,12 @@ func ssh(cmd *cobra.Command, args []string) {
 	}
 
 	if err := app.DockerExec(instance, true, cmdArgs...); err != nil {
-		app.ErrorLogger(ilog, err).Fatal("Failed to run docker exec")
+		if deerr, ok := err.(app.DockerExecError); ok {
+			app.ErrorLogger(ilog, err).Error("Failed to run docker exec")
+			os.Exit(deerr.ExitCode)
+		} else {
+			app.ErrorLogger(ilog, err).Fatal("Failed to run docker exec")
+		}
 	}
 }
 
