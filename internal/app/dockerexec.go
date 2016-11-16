@@ -17,12 +17,21 @@ limitations under the License.
 package app
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/ontariosystems/iscenv/iscenv"
 
 	"github.com/fsouza/go-dockerclient"
 )
+
+type DockerExecError struct {
+	ExitCode int
+}
+
+func (dee DockerExecError) Error() string {
+	return fmt.Sprintf("Failing exit code returned from exec, exit code: %d", dee.ExitCode)
+}
 
 func DockerExec(instance *iscenv.ISCInstance, interactive bool, commandAndArgs ...string) error {
 	createOpts := docker.CreateExecOptions{
@@ -71,5 +80,18 @@ func DockerExec(instance *iscenv.ISCInstance, interactive bool, commandAndArgs .
 		})
 	}
 
-	return cw.Wait()
+	if err := cw.Wait(); err != nil {
+		return err
+	}
+
+	ei, err := DockerClient.InspectExec(exec.ID)
+	if err != nil {
+		return err
+	}
+
+	if ei.ExitCode > 0 {
+		return DockerExecError{ExitCode: ei.ExitCode}
+	}
+
+	return nil
 }
