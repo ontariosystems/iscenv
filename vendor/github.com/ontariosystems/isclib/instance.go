@@ -17,6 +17,7 @@ limitations under the License.
 package isclib
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
@@ -26,6 +27,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
@@ -106,6 +108,73 @@ func (i *Instance) UpdateFromQList(qlist string) (err error) {
 	i.State = qs[8]
 
 	return nil
+}
+
+type CacheDat struct {
+	Path       string
+	Permission string
+	Owner      string
+	Group      string
+	Exists     bool
+}
+
+//  DetermineCacheDatInfo will parse the ensemble instance's CPF file for its databases (CACHE.DAT).
+//  It will get the path of the CACHE.DAT file, the permissions on it, and its owning user / group.
+//  The function returns a map of cacheDat structs containing the above information using the name of the database as its key.
+func (i *Instance) DetermineCacheDatInfo() (map[string]CacheDat, error) {
+	cpfPath := filepath.Join(i.Directory, i.CPFFileName)
+	file, err := os.Open(cpfPath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	var inDbSection bool
+	var cacheDats = make(map[string]CacheDat)
+	//regex to remove the [ ,1,,, etc. ] configuration on CACHE.DAT lines
+	re := regexp.MustCompile("(1+|,+)")
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := re.ReplaceAllString(scanner.Text(), "")
+
+		if inDbSection {
+			if strings.TrimSpace(line) == "" {
+				break
+			}
+			splitLine := strings.Split(line, "=")
+			cacheDatPath := splitLine[1] + "CACHE.DAT"
+			cacheDat := CacheDat{Path: splitLine[1], Exists: true}
+			datFileInfo, err := os.Stat(cacheDatPath)
+			if err != nil {
+				if os.IsNotExist(err) {
+					cacheDat.Exists = false
+				} else {
+					return nil, err
+				}
+			} else {
+				fileOwner, err := user.LookupId(fmt.Sprint(datFileInfo.Sys().(*syscall.Stat_t).Uid))
+				if err != nil {
+					return nil, err
+				}
+				cacheDat.Owner = fileOwner.Username
+				fileGroup, err := user.LookupGroupId(fmt.Sprint(datFileInfo.Sys().(*syscall.Stat_t).Gid))
+				if err != nil {
+					return nil, err
+				}
+				cacheDat.Group = fileGroup.Name
+				cacheDat.Permission = datFileInfo.Mode().String()
+			}
+			cacheDats[splitLine[0]] = cacheDat
+		} else if line == "[Databases]" {
+			inDbSection = true
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return cacheDats, nil
 }
 
 // DetermineManager will determine the manager of an instance by reading the parameters file associated with this instance.
@@ -271,13 +340,18 @@ func (i *Instance) ImportSource(namespace, sourcePathGlob string, qualifiers ...
 //   - You must have a single blank line at the end of the script
 // It returns any output of the execution and any error encountered.
 func (i *Instance) Execute(namespace string, codeReader io.Reader) (string, error) {
-	// TODO: Async standard out from csession
+	var out bytes.Buffer
+	err := i.ExecuteWithOutput(namespace, codeReader, &out)
+	return out.String(), err
+}
+
+func (i *Instance) ExecuteWithOutput(namespace string, codeReader io.Reader, out io.Writer) error {
 	elog := log.WithField("namespace", namespace)
 	elog.Debug("Attempting to execute INT code")
 
 	codePath, err := i.genExecutorTmpFile(codeReader)
 	if err != nil {
-		return "", err
+		return err
 	}
 	elog.WithField("path", codePath).Debug("Acquired temporary file")
 
@@ -287,15 +361,14 @@ func (i *Instance) Execute(namespace string, codeReader io.Reader) (string, erro
 	cmd := i.getCSessionCommand("", "")
 	in, err := cmd.StdinPipe()
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	var out bytes.Buffer
-	cmd.Stdout = &out
+	cmd.Stdout = out
 
 	if err := cmd.Start(); err != nil {
 		log.WithError(err).Debug("Failed to start csession")
-		return "", err
+		return err
 	}
 
 	importString := fmt.Sprintf(codeImportString, namespace, codePath)
@@ -303,14 +376,13 @@ func (i *Instance) Execute(namespace string, codeReader io.Reader) (string, erro
 	elog.WithField("importCode", importString).Debug("Attempting to load INT code into buffer")
 	if count, err := in.Write([]byte(importString)); err != nil {
 		log.WithError(err).WithField("count", count).Debug("Attempted to write to csession stdin and failed")
-		return "", err
+		return err
 	}
 	// TODO: Add the required blank line at the end of the int code if it is missing
 	in.Close()
 
 	elog.Debug("Waiting on csession to exit")
-	err = cmd.Wait()
-	return out.String(), err
+	return cmd.Wait()
 }
 
 func (i *Instance) getCSessionCommand(namespace, command string) *exec.Cmd {
