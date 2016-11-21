@@ -17,8 +17,8 @@ limitations under the License.
 package app
 
 import (
-	log "github.com/Sirupsen/logrus"
 	"github.com/ontariosystems/iscenv/iscenv"
+	log "github.com/Sirupsen/logrus"
 )
 
 func InstanceLogger(instance *iscenv.ISCInstance) *log.Entry {
@@ -45,12 +45,8 @@ func DockerRepoLogger(repo string) *log.Entry {
 	return log.WithField("dockerRepository", repo)
 }
 
-// Will evaluate an error for known error types and return a logger with the appropriate fields pulled from that type of error.  If logger is nil, a new Entry will be created from the StandardLogger.
-func ErrorLogger(logger *log.Entry, err error) *log.Entry {
-	if logger == nil {
-		logger = log.NewEntry(log.StandardLogger())
-	}
-
+// Will evaluate an error for known error types and return a logger with the appropriate fields pulled from that type of error.
+func ErrorLogger(logger log.FieldLogger, err error) *log.Entry {
 	switch e := err.(type) {
 	case *PluginError:
 		logger = logger.WithFields(log.Fields{

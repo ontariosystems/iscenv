@@ -14,31 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package app
+package cmd
 
 import (
-	"time"
+	"os"
 
 	log "github.com/Sirupsen/logrus"
 )
 
-type OverrideTimeLogHook struct{}
-
-func (OverrideTimeLogHook) Levels() []log.Level {
-	return log.AllLevels
-}
-
-func (OverrideTimeLogHook) Fire(entry *log.Entry) error {
-	oti, ok := entry.Data["overrideTime"]
-	if !ok {
-		return nil
-	}
-
-	ot, ok := oti.(time.Time)
-	if !ok {
-		return nil
-	}
-
-	entry.Time = ot
-	return nil
+func logAndExit(l log.FieldLogger, format string, args ...interface{}) {
+	l.Errorf(format, args...)
+	os.Exit(1)
 }

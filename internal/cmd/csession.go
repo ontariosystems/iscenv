@@ -17,11 +17,10 @@ limitations under the License.
 package cmd
 
 import (
-	"log"
-
 	"github.com/spf13/cobra"
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
+	log "github.com/Sirupsen/logrus"
 )
 
 var csessionCmd = &cobra.Command{
@@ -39,7 +38,7 @@ func init() {
 
 func csession(cmd *cobra.Command, args []string) {
 	if len(args) != 1 {
-		log.Fatal(app.ErrSingleInstanceArg)
+		logAndExit(log.WithError(app.ErrSingleInstanceArg), "Invalid arguments")
 	}
 
 	cmdArgs := []string{"csession", "docker"}
@@ -56,10 +55,10 @@ func csession(cmd *cobra.Command, args []string) {
 
 	instance, ilog := app.FindInstanceAndLogger(args[0])
 	if instance == nil {
-		ilog.Fatal(app.ErrNoSuchInstance)
+		logAndExit(ilog.WithError(app.ErrNoSuchInstance), "Invalid arguments")
 	}
 
 	if err := app.DockerExec(instance, true, cmdArgs...); err != nil {
-		app.ErrorLogger(ilog, err).Fatal("Failed to run docker exec")
+		logAndExit(app.ErrorLogger(ilog, err), "Failed to run docker exec")
 	}
 }

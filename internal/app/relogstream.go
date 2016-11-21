@@ -28,16 +28,16 @@ import (
 // RelogStream will given a JSON log stream, relog all of the message into the current process
 // extraFields contains additional fields you wish to add to the log output.  These will overwrite any fields from the original log message.
 // preserveTimestamps will use the timestamps from the original log messages instead of the current time
-func RelogStream(extraFields log.Fields, preserveTimestamp bool, r io.Reader) {
+func RelogStream(plog log.FieldLogger, preserveTimestamp bool, r io.Reader) {
 	decoder := json.NewDecoder(r)
 	for {
 		var rlog map[string]interface{}
 		if err := decoder.Decode(&rlog); err == nil {
-			Relog(extraFields, preserveTimestamp, rlog)
+			Relog(plog, preserveTimestamp, rlog)
 		} else if err == io.EOF {
 			return
 		} else {
-			ErrorLogger(log.WithFields(extraFields), err).Warn("Failed to parse streamed log message")
+			ErrorLogger(plog, err).Warn("Failed to parse streamed log message")
 		}
 	}
 }
@@ -45,22 +45,21 @@ func RelogStream(extraFields log.Fields, preserveTimestamp bool, r io.Reader) {
 // Relog will relog a single log message that has been Unmarshaled into a map[string]interface{}
 // extraFields contains additional fields you wish to add to the log output.  These will overwrite any fields from the original log message.
 // preserveTimestamps will use the timestamps from the original log messages instead of the current time
-func Relog(extraFields log.Fields, preserveTimestamp bool, rlog map[string]interface{}) {
-	l := log.NewEntry(log.StandardLogger())
+func Relog(plog log.FieldLogger, preserveTimestamp bool, rlog map[string]interface{}) {
 	for key, value := range rlog {
 		switch key {
 		case "time":
 			if preserveTimestamp {
 				if ts, err := parseTime(value); err == nil {
-					l = l.WithField("overrideTime", ts)
+					plog = plog.WithField("overrideTime", ts)
 				} else {
-					log.WithError(err).Warn("Could not parse time, not preserving timestamp")
+					plog.WithError(err).Warn("Could not parse time, not preserving timestamp")
 				}
 			}
 		case "level", "msg":
 			// Skip
 		default:
-			l = l.WithField(key, value)
+			plog = plog.WithField(key, value)
 		}
 	}
 
@@ -69,11 +68,11 @@ func Relog(extraFields log.Fields, preserveTimestamp bool, rlog map[string]inter
 	if levelStr, ok := rlog["level"].(string); ok {
 		if level, err = log.ParseLevel(levelStr); err != nil {
 			level = log.InfoLevel
-			l.WithField("origLevel", levelStr).Warn("Unknown log level, using info")
+			plog.WithField("level", levelStr).Warn("Unknown log level, using info")
 		}
 	} else {
 		level = log.InfoLevel
-		l.WithField("origLevel", rlog["level"]).Warn("Remote log level was not a string, using info")
+		plog.WithField("level", rlog["level"]).Warn("Remote log level was not a string, using info")
 	}
 
 	msg, ok := rlog["msg"].(string)
@@ -82,21 +81,18 @@ func Relog(extraFields log.Fields, preserveTimestamp bool, rlog map[string]inter
 		return
 	}
 
-	// Ensure that these fields overwrite any from the message
-	l.WithFields(extraFields)
-
 	switch level {
 	case log.DebugLevel:
-		l.Debug(msg)
+		plog.Debug(msg)
 	case log.InfoLevel:
-		l.Info(msg)
+		plog.Info(msg)
 	case log.WarnLevel:
-		l.Warn(msg)
+		plog.Warn(msg)
 	case log.ErrorLevel:
-		l.Error(msg)
+		plog.Error(msg)
 	default:
 		// At this point it means we are Fatal or Panic, we don't really want to log either of those levels as their are side effects
-		l.WithField("origLevel", level.String()).Error(msg)
+		plog.WithField("level", level.String()).Error(msg)
 	}
 }
 

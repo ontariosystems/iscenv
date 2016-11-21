@@ -22,8 +22,8 @@ import (
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
+	log "github.com/Sirupsen/logrus"
 )
 
 func validateMultiInstanceFlags(cmd *cobra.Command, args []string) {
@@ -45,7 +45,7 @@ func validateMultiInstanceFlags(cmd *cobra.Command, args []string) {
 	}
 
 	if len(used) > 1 {
-		log.WithField("flags", strings.Join(used, ",")).Fatal("Conflicting arguments provided")
+		logAndExit(log.WithField("flags", strings.Join(used, ",")), "Conflicting arguments provided")
 	}
 }
 

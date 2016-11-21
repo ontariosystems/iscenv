@@ -21,13 +21,13 @@ import (
 	"fmt"
 	"net/http"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 	"github.com/ontariosystems/iscenv/internal/plugins"
 	"github.com/ontariosystems/isclib"
+	log "github.com/Sirupsen/logrus"
 )
 
 var internalStartCmd = &cobra.Command{
@@ -47,7 +47,7 @@ func init() {
 	rootCmd.AddCommand(internalStartCmd)
 
 	if err := addLifecyclerFlagsIfNotPluginCall(internalStartCmd); err != nil {
-		app.ErrorLogger(nil, err).Fatal(app.ErrFailedToAddPluginFlags)
+		logAndExit(app.ErrorLogger(log.StandardLogger(), err), app.ErrFailedToAddPluginFlags.Error())
 	}
 
 	flags.AddConfigFlagP(internalStartCmd, "instance", "i", "", "The instance to manage")
@@ -77,7 +77,7 @@ func internalStart(cmd *cobra.Command, _ []string) {
 		flags.GetString(cmd, "csession-path"),
 	)
 	if err != nil {
-		app.ErrorLogger(nil, err).Fatal("Failed to create instance manager")
+		logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to create instance manager")
 	}
 
 	startStatus.Update(app.StartPhaseEventBeforeInstance, manager.Instance, "")
@@ -86,7 +86,7 @@ func internalStart(cmd *cobra.Command, _ []string) {
 		plog.Info("Executing plugin")
 		startStatus.Update(app.StartPhaseEventBeforeInstance, nil, lc.Id)
 		if err := lc.Lifecycler.BeforeInstance(manager.Instance); err != nil {
-			app.ErrorLogger(plog, err).Fatal(app.ErrFailedEventPlugin)
+			logAndExit(app.ErrorLogger(plog, err), app.ErrFailedEventPlugin.Error())
 		}
 	}
 
@@ -97,7 +97,7 @@ func internalStart(cmd *cobra.Command, _ []string) {
 			plog.Info("Executing plugin")
 			startStatus.Update(app.StartPhaseEventWithInstance, nil, lc.Id)
 			if err := lc.Lifecycler.WithInstance(manager.Instance); err != nil {
-				app.ErrorLogger(plog, err).Fatal(app.ErrFailedEventPlugin)
+				logAndExit(app.ErrorLogger(plog, err), app.ErrFailedEventPlugin.Error())
 			}
 		}
 
@@ -105,7 +105,7 @@ func internalStart(cmd *cobra.Command, _ []string) {
 	}
 
 	if err := manager.Manage(); err != nil {
-		app.ErrorLogger(nil, err).Fatal("Failed to manage instance")
+		logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to manage instance")
 	}
 
 	startStatus.Update(app.StartPhaseEventAfterInstance, manager.Instance, "")
@@ -114,7 +114,7 @@ func internalStart(cmd *cobra.Command, _ []string) {
 		plog.Info("Executing plugin")
 		startStatus.Update(app.StartPhaseEventAfterInstance, nil, lc.Id)
 		if err := lc.Lifecycler.AfterInstance(manager.Instance); err != nil {
-			app.ErrorLogger(plog, err).Fatal(app.ErrFailedEventPlugin)
+			logAndExit(app.ErrorLogger(plog, err), app.ErrFailedEventPlugin.Error())
 		}
 	}
 
@@ -126,7 +126,7 @@ func startHealthCheck() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(startStatus); err != nil {
-			app.ErrorLogger(nil, err).Fatal("Failed to encode JSON")
+			logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to encode JSON")
 		}
 	})
 

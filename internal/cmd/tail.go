@@ -17,10 +17,10 @@ limitations under the License.
 package cmd
 
 import (
-	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
+	log "github.com/Sirupsen/logrus"
 )
 
 var tailCmd = &cobra.Command{
@@ -44,16 +44,16 @@ func init() {
 
 func tail(cmd *cobra.Command, args []string) {
 	if len(args) != 1 {
-		log.Fatal(app.ErrSingleInstanceArg)
+		logAndExit(log.WithError(app.ErrSingleInstanceArg), "Invalid arguments")
 	}
 
 	instance, ilog := app.FindInstanceAndLogger(args[0])
 	if instance == nil {
-		ilog.Fatal(app.ErrNoSuchInstance)
+		logAndExit(ilog.WithError(app.ErrNoSuchInstance), "Invalid arguments")
 	}
 
 	if err := app.DockerExec(instance, false, buildTailArgs(cmd, args)...); err != nil {
-		app.ErrorLogger(ilog.WithField("tailFile", flags.GetString(cmd, "file")), err).Fatal("Failed to tail file")
+		logAndExit(app.ErrorLogger(ilog.WithField("tailFile", flags.GetString(cmd, "file")), err), "Failed to tail file")
 	}
 }
 

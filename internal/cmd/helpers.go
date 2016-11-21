@@ -29,7 +29,7 @@ type withInstanceFn func(instance *iscenv.ISCInstance) error
 
 func ensure(fn ensurableFn) {
 	if err := fn(); err != nil {
-		log.Fatal(err)
+		logAndExit(log.WithError(err), "Execution failed")
 	}
 }
 

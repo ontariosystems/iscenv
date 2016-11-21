@@ -20,9 +20,9 @@ import (
 	"strconv"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/ontariosystems/iscenv/iscenv"
+	log "github.com/Sirupsen/logrus"
 )
 
 type DockerStartOptions struct {
@@ -167,14 +167,14 @@ func (opts *DockerStartOptions) ToDockerPortBindings() map[docker.Port][]docker.
 				hostPort = s[1]
 				containerPort = s[2]
 			default:
-				log.WithField("portString", bindString).Warning("Single port mappings are not supported")
+				log.WithField("portString", bindString).Warn("Single port mappings are not supported")
 			}
 
 			if strings.HasPrefix(hostPort, "+") {
 				strings.TrimPrefix(hostPort, "+")
 				i, err := strconv.ParseInt(hostPort, 10, 64)
 				if err != nil {
-					log.WithField("port", hostPort).Warning("Could not parse host port")
+					log.WithField("port", hostPort).Warn("Could not parse host port")
 					continue
 				}
 				hostPort = strconv.FormatInt(i+opts.PortOffset, 10)

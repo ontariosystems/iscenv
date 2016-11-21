@@ -40,7 +40,7 @@ func init() {
 
 func dockerExec(_ *cobra.Command, args []string) {
 	if len(args) < 1 {
-		log.Fatal(app.ErrSingleInstanceArg)
+		logAndExit(log.WithError(app.ErrSingleInstanceArg), "Invalid arguments")
 	}
 
 	var cmdArgs []string
@@ -52,10 +52,10 @@ func dockerExec(_ *cobra.Command, args []string) {
 
 	instance, ilog := app.FindInstanceAndLogger(args[0])
 	if instance == nil {
-		ilog.Fatal(app.ErrNoSuchInstance)
+		logAndExit(ilog.WithError(app.ErrNoSuchInstance), "Invalid arguments")
 	}
 
 	if err := app.DockerExec(instance, true, cmdArgs...); err != nil {
-		app.ErrorLogger(ilog, err).Fatal("Failed to run docker exec")
+		logAndExit(app.ErrorLogger(ilog, err), "Failed to run docker exec")
 	}
 }
