@@ -46,7 +46,7 @@ func kill(cmd *cobra.Command, args []string) {
 		}
 
 		if err := app.DockerClient.KillContainer(docker.KillContainerOptions{ID: instance.ID}); err != nil {
-			app.ErrorLogger(ilog, err).Fatal("Failed to kill instance")
+			logAndExit(app.ErrorLogger(ilog, err), "Failed to kill instance")
 		}
 
 		ilog.Info("Killed instance")

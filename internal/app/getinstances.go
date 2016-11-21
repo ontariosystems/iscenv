@@ -26,12 +26,13 @@ import (
 )
 
 // GetInstances will return a list of available ISC product Instances.
-// This function will perform an os.Exit in the case that it cannot list the containers from Docker.  Normally, these kinds of abrupt exits should be avoided outside of the actual executable command portions of the code.  However, in this case the extreme nature of the failure, the rarity of occurrence, and the large amount of error handling that would need to be added throughout the code without the exit seems to justify its existence.
+// This function will panic in the case that it cannot list the containers from Docker.  Normally, these kinds of abrupt exits should be avoided outside of the actual executable command portions of the code.  However, in this case the extreme nature of the failure, the rarity of occurrence, and the large amount of error handling that would need to be added throughout the code without the exit seems to justify its existence.
 func GetInstances() iscenv.ISCInstances {
 	containers, err := DockerClient.ListContainers(docker.ListContainersOptions{All: true})
 	if err != nil {
-		// NOTE: Fatal early exit
-		ErrorLogger(nil, err).Fatal("Failed to list containers")
+		// This should never happen on a normal working system.  As such, we will panic rather than forcing an error return that
+		// is pointless under normal circumstances.
+		ErrorLogger(nil, err).Panic("Failed to list containers")
 	}
 
 	instances := make(iscenv.ISCInstances, 0)
@@ -49,7 +50,7 @@ func GetInstances() iscenv.ISCInstances {
 		if name != "" {
 			container, err := DockerClient.InspectContainer(apiContainer.ID)
 			if err != nil {
-				ErrorLogger(nil, err).WithField("containerID", apiContainer.ID).Warning("Failed to inspect container")
+				ErrorLogger(nil, err).WithField("containerID", apiContainer.ID).Warn("Failed to inspect container")
 				continue
 			}
 

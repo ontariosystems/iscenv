@@ -44,12 +44,12 @@ func init() {
 
 func ssh(cmd *cobra.Command, args []string) {
 	if len(args) != 1 {
-		log.Fatal(app.ErrSingleInstanceArg)
+		logAndExit(log.WithError(app.ErrSingleInstanceArg), "Invalid arguments")
 	}
 
 	instance, ilog := app.FindInstanceAndLogger(args[0])
 	if instance == nil {
-		ilog.Fatal(app.ErrNoSuchInstance)
+		logAndExit(ilog.WithError(app.ErrNoSuchInstance), "Invalid arguments")
 	}
 
 	var cmdArgs []string
@@ -61,10 +61,10 @@ func ssh(cmd *cobra.Command, args []string) {
 
 	if err := app.DockerExec(instance, true, cmdArgs...); err != nil {
 		if deerr, ok := err.(app.DockerExecError); ok {
-			app.ErrorLogger(ilog, err).Error("Failed to run docker exec")
+			logAndExit(app.ErrorLogger(ilog, err), "Failed to run docker exec")
 			os.Exit(deerr.ExitCode)
 		} else {
-			app.ErrorLogger(ilog, err).Fatal("Failed to run docker exec")
+			logAndExit(app.ErrorLogger(ilog, err), "Failed to run docker exec")
 		}
 	}
 }

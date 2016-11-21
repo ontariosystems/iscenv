@@ -336,8 +336,8 @@
 		},
 		{
 			"ImportPath": "github.com/Sirupsen/logrus",
-			"Comment": "2.1.2-3",
-			"Rev": "'f7103c045f9d572913dc64d84d359d318f0d95fb'"
+			"Comment": "2.3.0-1",
+			"Rev": "'0e66c64add536a31d95608616834e75de836853e'"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/curve25519",

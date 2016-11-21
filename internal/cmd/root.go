@@ -21,14 +21,13 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 	"github.com/ontariosystems/iscenv/internal/plugins"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
+	log "github.com/Sirupsen/logrus"
 )
 
 const (
@@ -45,7 +44,7 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		log.Fatal(err)
+		logAndExit(log.WithError(err), "Failed to execute iscenv command")
 	}
 }
 
@@ -78,21 +77,16 @@ func init() {
 }
 
 func initLogs() {
-	if flags.GetBool(rootCmd, "log-json") {
-		log.SetFormatter(new(log.JSONFormatter))
-	} else {
+	// Unfortunately, we cannot log in this function or it breaks plugins by sending non-plugin api messages across the pipe
+	// The default formatter is JSON
+	if !flags.GetBool(rootCmd, "log-json") {
 		log.SetFormatter(&prefixed.TextFormatter{})
 	}
 
 	levelString := flags.GetString(rootCmd, "log-level")
 	if level, err := log.ParseLevel(levelString); err == nil {
 		log.SetLevel(level)
-		log.WithField("logLevel", level.String()).Debug("Switched log level")
-	} else {
-		log.WithField("logLevel", levelString).Error("Unknown log level, using default")
 	}
-
-	log.AddHook(app.OverrideTimeLogHook{})
 }
 
 func initConfig() {

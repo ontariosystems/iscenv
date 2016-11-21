@@ -21,8 +21,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/ontariosystems/isclib"
+	log "github.com/Sirupsen/logrus"
 )
 
 type InstanceStateFn func(instance *isclib.Instance)
@@ -75,7 +75,7 @@ func (eim *ISCInstanceManager) Manage() error {
 	// TODO: Add a stop immediately flag that allows you to just run the instance running handler and then exit
 
 	sig := <-sigchan
-	log.Printf("Got signal: %s\n", sig)
+	log.WithField("signal", sig).Info("Received signal")
 
 	return eim.Stop()
 }

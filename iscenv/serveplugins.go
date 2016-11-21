@@ -20,10 +20,10 @@ import (
 	"io"
 	"os"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/hashicorp/go-plugin"
 	"github.com/spf13/pflag"
 	"github.com/x-cray/logrus-prefixed-formatter"
+	log "github.com/Sirupsen/logrus"
 )
 
 func ServeLifecyclePlugin(impl Lifecycler) {
@@ -68,17 +68,20 @@ func configureLogger(oldOut io.Writer) {
 
 	log.SetOutput(os.Stdout)
 
-	var l *string = pflag.String("log-level", "", "")
+	var l *string = pflag.String("log-level", "info", "")
 	var j *bool = pflag.Bool("log-json", false, "")
 	pflag.Parse()
 
 	if *j {
-		log.SetFormatter(new(log.JSONFormatter))
+		log.SetFormatter(&log.JSONFormatter{})
 	} else {
 		log.SetFormatter(&prefixed.TextFormatter{ForceColors: true})
 	}
 
 	if level, err := log.ParseLevel(*l); err == nil {
 		log.SetLevel(level)
+	} else {
+		log.SetLevel(log.InfoLevel)
+		log.WithError(err).Error("Could not set log level")
 	}
 }
