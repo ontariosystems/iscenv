@@ -17,12 +17,12 @@ limitations under the License.
 package cmd
 
 import (
-	log "github.com/Sirupsen/logrus"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
+	log "github.com/Sirupsen/logrus"
 )
 
 func ensureImage() {
 	if flags.GetString(rootCmd, "image") == "" {
-		log.Fatal("You must provide an image to use when creating containers either using the --image switch or by setting a value in your configuration file (recommended)")
+		logAndExit(log.StandardLogger(), "You must provide an image to use when creating containers either using the --image switch or by setting a value in your configuration file (recommended)")
 	}
 }

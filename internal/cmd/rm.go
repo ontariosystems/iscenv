@@ -52,12 +52,12 @@ func rm(cmd *cobra.Command, args []string) {
 			plog := app.PluginLogger(lc.Id, "BeforeRemove", lc.Path)
 			plog.Debug("Executing BeforeRemove hook")
 			if err := lc.Lifecycler.BeforeRemove(instance); err != nil {
-				plog.WithError(err).Fatal("Failed to execute BeforeRemove hook")
+				logAndExit(plog.WithError(err), "Failed to execute BeforeRemove hook")
 			}
 		}
 
 		if err := app.DockerRemove(instance); err != nil {
-			app.ErrorLogger(ilog, err).Fatal("Failed to remove instance")
+			logAndExit(app.ErrorLogger(ilog, err), "Failed to remove instance")
 		}
 
 		ilog.Info("Removed instance")

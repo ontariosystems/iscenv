@@ -18,13 +18,14 @@ package cspplugin
 
 import (
 	"encoding/json"
+	"os"
 	"strconv"
 
-	log "github.com/Sirupsen/logrus"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/isclib"
+	log "github.com/Sirupsen/logrus"
 )
 
 const (
@@ -51,7 +52,8 @@ func (plugin *Plugin) Main() {
 func (*Plugin) Key() string {
 	var err error
 	if dockerClient, err = docker.NewClient(iscenv.DockerSocket); err != nil {
-		plog.WithError(err).Fatal("Failed to create docker client")
+		plog.WithError(err).Error("Failed to create docker client")
+		os.Exit(1)
 	}
 	return pluginKey
 }

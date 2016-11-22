@@ -23,8 +23,8 @@ import (
 
 	"github.com/ontariosystems/iscenv/internal/app"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
+	log "github.com/Sirupsen/logrus"
 )
 
 var internalPurgeJournalCmd = &cobra.Command{
@@ -45,7 +45,7 @@ func init() {
 func internalPurgeJournal(_ *cobra.Command, _ []string) {
 	journals, err := filepath.Glob("/data/journal/[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].[0-9][0-9][0-9]")
 	if err != nil {
-		app.ErrorLogger(nil, err).Fatal("Failed to list journal files")
+		logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to list journal files")
 	}
 
 	if len(journals) < 2 {
@@ -59,16 +59,16 @@ func internalPurgeJournal(_ *cobra.Command, _ []string) {
 
 		f, err := os.Open(journal)
 		if err != nil {
-			app.ErrorLogger(jlog, err).Fatal("Failed to open journal file")
+			logAndExit(app.ErrorLogger(jlog, err), "Failed to open journal file")
 		}
 
 		fi, err := f.Stat()
 		if err != nil {
-			app.ErrorLogger(jlog, err).Fatal("Failed to stat journal file")
+			logAndExit(app.ErrorLogger(jlog, err), "Failed to stat journal file")
 		}
 
 		if err := os.Remove(journal); err != nil {
-			app.ErrorLogger(jlog, err).Fatal("Failed to remove journal file")
+			logAndExit(app.ErrorLogger(jlog, err), "Failed to remove journal file")
 		}
 
 		jlog.WithField("journalSize", fi.Size()/1024/1024).Info("Deleted journal file")

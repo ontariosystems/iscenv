@@ -23,12 +23,12 @@ import (
 	"text/tabwriter"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 	"github.com/ontariosystems/iscenv/internal/plugins"
+	log "github.com/Sirupsen/logrus"
 )
 
 const (
@@ -46,7 +46,7 @@ func init() {
 	// We are making a pm just to get a listing of the plugins in init, we will not activate it here
 	vm, err := plugins.NewVersionerManager(plugins.PluginArgs{})
 	if err != nil {
-		log.WithError(err).Fatal("Failed to load version plugin manager during init")
+		logAndExit(log.WithError(err), "Failed to load version plugin manager during init")
 	}
 	defer vm.Close()
 
@@ -64,7 +64,7 @@ func versions(cmd *cobra.Command, _ []string) {
 	image := flags.GetString(rootCmd, "image")
 	versions, err := getVersions(image, getPluginsToActivate(cmd))
 	if err != nil {
-		log.WithError(err).Fatal("Failed to retrieve versions")
+		logAndExit(log.WithError(err), "Failed to retrieve versions")
 	}
 
 	// No more logging at this point
@@ -103,7 +103,7 @@ func getVersions(image string, verPlugins []string) (iscenv.ISCVersions, error) 
 	log.WithField("plugin", baseVersionPlugin).Debug("Executing default version plugin")
 	defer getActivatedVersioners([]string{baseVersionPlugin}, getPluginArgs(), &versioners)()
 	if len(versioners) != 1 {
-		log.WithField("plugin", baseVersionPlugin).Fatal("Got more than 1 plugin entry for base version plugin, this should be impossible")
+		logAndExit(log.WithField("plugin", baseVersionPlugin), "Got more than 1 plugin entry for base version plugin, this should be impossible")
 	}
 	base := versioners[0]
 	plog := app.PluginLogger(base.Id, "Versions", base.Path)
@@ -111,7 +111,7 @@ func getVersions(image string, verPlugins []string) (iscenv.ISCVersions, error) 
 
 	versions, err = base.Versioner.Versions(image)
 	if err != nil {
-		plog.WithError(err).Fatal("Failed to load versions from plugin")
+		logAndExit(plog.WithError(err), "Failed to load versions from plugin")
 	}
 	plog.WithField("count", len(versions)).Debug("Retrieved versions")
 
@@ -130,7 +130,7 @@ func getVersions(image string, verPlugins []string) (iscenv.ISCVersions, error) 
 		plog.Debug("Retrieving versions")
 		plugVers, err := v.Versioner.Versions(image)
 		if err != nil {
-			plog.Fatal("Failed to load versions from plugin")
+			logAndExit(plog, "Failed to load versions from plugin")
 		}
 
 		plog.WithField("count", len(plugVers)).Debug("Retrieved versions")

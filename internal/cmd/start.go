@@ -29,9 +29,9 @@ import (
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 	"github.com/ontariosystems/iscenv/internal/plugins"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/kardianos/osext"
 	"github.com/spf13/cobra"
+	log "github.com/Sirupsen/logrus"
 )
 
 var startCmd = &cobra.Command{
@@ -44,7 +44,7 @@ var startCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(startCmd)
 	if err := addLifecyclerFlagsIfNotPluginCall(startCmd); err != nil {
-		app.ErrorLogger(nil, err).Fatal(app.ErrFailedToAddPluginFlags)
+		logAndExit(app.ErrorLogger(log.StandardLogger(), err), app.ErrFailedToAddPluginFlags.Error())
 	}
 
 	addMultiInstanceFlags(startCmd, "start")
@@ -74,12 +74,12 @@ func start(cmd *cobra.Command, args []string) {
 
 	environment, copies, volumes, ports, labels, err := getPluginConfig(lcs, cmd, version)
 	if err != nil {
-		app.ErrorLogger(nil, err).Fatal("Failed to load container settings from plugin")
+		logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to load container settings from plugin")
 	}
 
 	exe, err := osext.Executable()
 	if err != nil {
-		app.ErrorLogger(nil, err).Fatal("Failed to determine iscenv executable path for bind mount")
+		logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to determine iscenv executable path for bind mount")
 	}
 
 	// Add the iscenv executable itself as an item to copy into the container
@@ -138,17 +138,17 @@ func start(cmd *cobra.Command, args []string) {
 		})
 
 		if err != nil {
-			app.ErrorLogger(ilog, err).Fatal("Failed to create instance")
+			logAndExit(app.ErrorLogger(ilog, err), "Failed to create instance")
 		}
 
 		instance, ilog := app.FindInstanceAndLogger(instanceName)
 		if instance == nil {
-			ilog.Fatal("Failed to find newly created instance")
+			logAndExit(ilog, "Failed to find newly created instance")
 		}
 
 		start, err := app.GetInstanceStartTime(instance)
 		if err != nil {
-			ilog.Fatal("Failed to determine instance start time")
+			logAndExit(ilog, "Failed to determine instance start time")
 		}
 
 		r, w := io.Pipe()
@@ -160,12 +160,12 @@ func start(cmd *cobra.Command, args []string) {
 
 		go func() {
 			if err := app.WaitForInstance(instance, time.Duration(flags.GetInt64(cmd, "timeout"))*time.Second); err != nil {
-				app.ErrorLogger(ilog, err).Fatal("Failed to start instance")
+				logAndExit(app.ErrorLogger(ilog, err), "Failed to start instance")
 			}
 			w.Close()
 		}()
 
-		app.RelogStream(ilog.Data, false, r)
+		app.RelogStream(ilog, false, r)
 		ilog.Info("Started instance")
 
 		ilog.WithField("count", len(lcs)).Info("Executing AfterStart hook(s) from plugins")
@@ -173,7 +173,7 @@ func start(cmd *cobra.Command, args []string) {
 			plog := app.PluginLogger(lc.Id, "AfterStart", lc.Path)
 			plog.Debug("Executing AfterStart hook")
 			if err := lc.Lifecycler.AfterStart(instance); err != nil {
-				plog.WithError(err).Fatal("Failed to execute AfterStart hook")
+				logAndExit(plog.WithError(err), "Failed to execute AfterStart hook")
 			}
 		}
 	}
@@ -187,14 +187,14 @@ func getVersion(image, requestedVersion string) string {
 	// Get the local versions (passing an empty plugins list means *only* local)
 	versions, err := getVersions(image, []string{})
 	if err != nil {
-		app.ErrorLogger(nil, err).Fatal("Failed to retrieve local versions")
+		logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to retrieve local versions")
 	}
 
 	// If no version was passed we will use the latest already downloaded image.  This gives some level of predictability to this feature.  You won't suddenly end up with a brand new field test version when you recreate an instance.
 	version := requestedVersion
 	if version == "" {
 		if len(versions) == 0 {
-			log.Fatal("No local versions from which to choose latest, must provide version with --version flag")
+			logAndExit(log.StandardLogger(), "No local versions from which to choose latest, must provide version with --version flag")
 		}
 		version = versions.Latest().Version
 	}
@@ -203,7 +203,7 @@ func getVersion(image, requestedVersion string) string {
 		vlog := app.DockerRepoLogger(image).WithField("version", version)
 		vlog.Info("Unable to find version locally, attempting to download.  This may take some time.")
 		if err := app.DockerPull(image, version); err != nil {
-			vlog.WithError(err).Fatal("Failed to pull image")
+			logAndExit(vlog.WithError(err), "Failed to pull image")
 		}
 	}
 

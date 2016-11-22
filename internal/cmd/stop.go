@@ -50,7 +50,7 @@ func stop(cmd *cobra.Command, args []string) {
 		}
 
 		if err := app.DockerClient.StopContainer(instance.ID, flags.GetUint(cmd, "time")); err != nil {
-			app.ErrorLogger(ilog, err).Fatal("Failed to stop instance")
+			logAndExit(app.ErrorLogger(ilog, err), "Failed to stop instance")
 		}
 
 		ilog.Info("Stopped instance")
@@ -60,7 +60,7 @@ func stop(cmd *cobra.Command, args []string) {
 			plog := app.PluginLogger(lc.Id, "AfterStop", lc.Path)
 			plog.Debug("Executing AfterStop hook")
 			if err := lc.Lifecycler.AfterStop(instance); err != nil {
-				plog.WithError(err).Fatal("Failed to execute AfterStop hook")
+				logAndExit(plog.WithError(err), "Failed to execute AfterStop hook")
 			}
 		}
 	}
