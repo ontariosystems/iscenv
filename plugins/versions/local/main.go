@@ -17,13 +17,14 @@ limitations under the License.
 package localversionsplugin
 
 import (
+	"os"
 	"regexp"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/mcuadros/go-version"
 	"github.com/ontariosystems/iscenv/iscenv"
+	log "github.com/Sirupsen/logrus"
 )
 
 const (
@@ -37,7 +38,8 @@ type Plugin struct{}
 func (plugin *Plugin) Main() {
 	var err error
 	if dockerClient, err = docker.NewClient(iscenv.DockerSocket); err != nil {
-		log.WithError(err).Fatal("Failed to create docker client")
+		log.WithError(err).Error("Failed to create docker client")
+		os.Exit(1)
 	}
 	iscenv.ServeVersionsPlugin(plugin)
 }

@@ -19,6 +19,7 @@ package cmd
 import (
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/plugins"
+	log "github.com/Sirupsen/logrus"
 )
 
 // getActivatedLifecyclers will populate lifecyclers with activated lifecyclers plugins based on the provided list.
@@ -27,12 +28,12 @@ func getActivatedLifecyclers(pluginsToActivate []string, args plugins.PluginArgs
 	var err error
 	lcm, err := plugins.NewLifecyclerManager(args)
 	if err != nil {
-		app.ErrorLogger(nil, err).Fatal("Failed to create lifecycle plugin manager")
+		logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to create lifecycle plugin manager")
 	}
 
 	*lifecyclers, err = lcm.ActivatePlugins(pluginsToActivate)
 	if err != nil {
-		app.ErrorLogger(nil, err).Fatal("Failed to activate lifecycle plugins")
+		logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to activate lifecycle plugins")
 	}
 
 	return lcm.Close

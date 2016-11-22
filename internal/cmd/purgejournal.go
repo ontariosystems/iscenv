@@ -46,7 +46,7 @@ func purgeJournal(cmd *cobra.Command, args []string) {
 		}
 
 		if err := app.DockerExec(instance, false, iscenv.InternalISCEnvPath, "_purgejournal"); err != nil {
-			app.ErrorLogger(ilog, err).Fatal("Failed to purge journals")
+			logAndExit(app.ErrorLogger(ilog, err), "Failed to purge journals")
 		}
 	}
 }

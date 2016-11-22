@@ -23,12 +23,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/ontariosystems/iscenv/iscenv"
+	log "github.com/Sirupsen/logrus"
 )
 
-var plog = logrus.WithField("plugin", pluginKey)
+var plog = log.WithField("plugin", pluginKey)
 
 const (
 	pluginKey   = "quay"
