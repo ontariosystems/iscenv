@@ -18,9 +18,14 @@ package cmd
 
 import (
 	"os"
+
+	"github.com/ontariosystems/iscenv/iscenv"
 )
 
-func isPluginCall() bool {
-	// The plugin calls come in a fixed order so this is a fairly safe check
+func skipPluginActivation() bool {
+	if _, wrapped := iscenv.CalledAs(); wrapped {
+		return true
+	}
+
 	return len(os.Args) > 1 && os.Args[1] == pluginCmd.Use
 }

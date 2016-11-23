@@ -36,7 +36,6 @@ func NewRawTTYStdin() (tty *rawTTYStdin, err error) {
 		if err != nil {
 			return nil, err
 		}
-
 	}
 
 	return rts, nil
