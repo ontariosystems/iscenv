@@ -46,7 +46,7 @@ func init() {
 
 	rootCmd.AddCommand(internalStartCmd)
 
-	if err := addLifecyclerFlagsIfNotPluginCall(internalStartCmd); err != nil {
+	if err := addLifecyclerFlagsIfNeeded(internalStartCmd); err != nil {
 		logAndExit(app.ErrorLogger(log.StandardLogger(), err), app.ErrFailedToAddPluginFlags.Error())
 	}
 

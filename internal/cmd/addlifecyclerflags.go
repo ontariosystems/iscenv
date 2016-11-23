@@ -23,9 +23,10 @@ import (
 	"github.com/ontariosystems/iscenv/internal/plugins"
 )
 
-// Adding lifecycler flags when doing plugin calls causes an infinite loop
-func addLifecyclerFlagsIfNotPluginCall(cmd *cobra.Command) error {
-	if isPluginCall() {
+func addLifecyclerFlagsIfNeeded(cmd *cobra.Command) error {
+	// If we activate during wrapped commands, it corrupts the output of wrapped commands (and plugins can fail)
+	// If we activate during plugin calls, it infinite loops
+	if skipPluginActivation() {
 		return nil
 	}
 
