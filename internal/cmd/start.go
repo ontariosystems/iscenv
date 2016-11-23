@@ -43,7 +43,7 @@ var startCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(startCmd)
-	if err := addLifecyclerFlagsIfNotPluginCall(startCmd); err != nil {
+	if err := addLifecyclerFlagsIfNeeded(startCmd); err != nil {
 		logAndExit(app.ErrorLogger(log.StandardLogger(), err), app.ErrFailedToAddPluginFlags.Error())
 	}
 

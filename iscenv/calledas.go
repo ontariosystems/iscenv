@@ -14,13 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd
+package iscenv
 
 import (
 	"os"
+	"path/filepath"
 )
 
-func isPluginCall() bool {
-	// The plugin calls come in a fixed order so this is a fairly safe check
-	return len(os.Args) > 1 && os.Args[1] == pluginCmd.Use
+func CalledAs() (executable string, wrapped bool) {
+	executable = filepath.Base(os.Args[0])
+	for _, wrappedExe := range WrappedCommands {
+		if wrappedExe == executable {
+			return executable, true
+		}
+	}
+
+	return executable, false
 }

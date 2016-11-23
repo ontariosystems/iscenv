@@ -64,7 +64,7 @@ func init() {
 	flags.AddFlagComplex(rootCmd, true, true, "image", "", "", "the image to use when creating ISC product containers.  You will want to set a default for this in your configuration file (eg. mycompany/ensemble)")
 
 	// This allows us to set lifecycle plugins across the multiple commands to which they belong will still allowing versioners to use their own set of plugins
-	if !isPluginCall() {
+	if !skipPluginActivation() {
 		// Logging can't have been configured yet, so we're using an empty PluginArgs
 		var lcs []*plugins.ActivatedLifecycler
 		defer getActivatedLifecyclers(nil, plugins.PluginArgs{}, &lcs)()
