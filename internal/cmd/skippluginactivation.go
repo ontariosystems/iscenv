@@ -23,9 +23,11 @@ import (
 )
 
 func skipPluginActivation() bool {
+	// If we activate during wrapped commands, it corrupts the output of wrapped commands (and plugins can fail)
 	if _, wrapped := iscenv.CalledAs(); wrapped {
 		return true
 	}
 
+	// If we activate during plugin calls, it infinite loops
 	return len(os.Args) > 1 && os.Args[1] == pluginCmd.Use
 }

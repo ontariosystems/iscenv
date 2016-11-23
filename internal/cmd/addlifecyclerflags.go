@@ -24,8 +24,6 @@ import (
 )
 
 func addLifecyclerFlagsIfNeeded(cmd *cobra.Command) error {
-	// If we activate during wrapped commands, it corrupts the output of wrapped commands (and plugins can fail)
-	// If we activate during plugin calls, it infinite loops
 	if skipPluginActivation() {
 		return nil
 	}
