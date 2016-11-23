@@ -25,6 +25,11 @@
 			"Rev": "1445b7a38228c041834afc69231b7966b9943397"
 		},
 		{
+			"ImportPath": "github.com/coreos/go-semver/semver",
+			"Comment": "v0.2.0",
+			"Rev": "8ab6407b697782a06568d4b7f1db25550ec2e4c6"
+		},
+		{
 			"ImportPath": "github.com/creack/termios/raw",
 			"Rev": "88d0029e36a108c959d6f8fc63c393f591b0302b"
 		},
@@ -237,6 +242,18 @@
 			"Rev": "d1caa6c97c9fc1cc9e83bbe34d0603f9ff0ce8bd"
 		},
 		{
+			"ImportPath": "github.com/inconshreveable/go-update",
+			"Rev": "8152e7eb6ccf8679a64582a66b78519688d156ad"
+		},
+		{
+			"ImportPath": "github.com/inconshreveable/go-update/internal/binarydist",
+			"Rev": "8152e7eb6ccf8679a64582a66b78519688d156ad"
+		},
+		{
+			"ImportPath": "github.com/inconshreveable/go-update/internal/osext",
+			"Rev": "8152e7eb6ccf8679a64582a66b78519688d156ad"
+		},
+		{
 			"ImportPath": "github.com/inconshreveable/mousetrap",
 			"Rev": "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
 		},
@@ -331,13 +348,18 @@
 		},
 		{
 			"ImportPath": "github.com/ontariosystems/isclib",
-			"Comment": "0.0.6-1",
-			"Rev": "'e63fe4eccf5908da9984c629a4613d7ed8ab3ce8'"
+			"Comment": "0.0.6-2",
+			"Rev": "'f1e4615bd91f340caac64c6a24eb1ee1f38d5886'"
 		},
 		{
 			"ImportPath": "github.com/Sirupsen/logrus",
 			"Comment": "2.3.0-1",
 			"Rev": "'0e66c64add536a31d95608616834e75de836853e'"
+		},
+		{
+			"ImportPath": "github.com/ontariosystems/toolbox-update",
+			"Comment": "1.0.0-1",
+			"Rev": "'9f63026277e571a72606ca7a4808c470b239e4ca'"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/curve25519",
