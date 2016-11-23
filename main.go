@@ -16,8 +16,60 @@ limitations under the License.
 
 package main
 
-import "github.com/ontariosystems/iscenv/internal/cmd"
+import (
+	"fmt"
+	"io/ioutil"
+	"os"
+	"strings"
+
+	"golang.org/x/crypto/ssh/terminal"
+
+	"github.com/ontariosystems/iscenv/iscenv"
+	"github.com/ontariosystems/iscenv/internal/app"
+	"github.com/ontariosystems/iscenv/internal/cmd"
+	log "github.com/Sirupsen/logrus"
+)
 
 func main() {
-	cmd.Execute()
+	exe, wrapped := iscenv.CalledAs()
+	if wrapped {
+		execInContainer(append([]string{exe}, os.Args[1:]...))
+	} else {
+		cmd.Execute()
+	}
+}
+
+func execInContainer(args []string) {
+	name := os.Getenv("ISCENV_INSTANCE")
+	if name == "" {
+		log.Panic("Must provide an instance in ISCENV_INSTANCE environment variable")
+	}
+
+	instance, _ := app.FindInstanceAndLogger(name)
+	if name == "" {
+		log.WithField("instance", name).Panic("Invalid instance")
+	}
+
+	// Since the whole point of faked executables is to trick wrappers, we need the
+	// output to be untainted by additional logs.
+	log.SetOutput(ioutil.Discard)
+
+	var interactive bool
+	switch strings.ToLower(os.Getenv("ISCENV_INTERACTIVE")) {
+	case "true":
+		interactive = true
+	case "false":
+		interactive = false
+	default:
+		interactive = terminal.IsTerminal(int(os.Stdin.Fd()))
+	}
+
+	if err := app.DockerExec(instance, interactive, args...); err != nil {
+		if deerr, ok := err.(app.DockerExecError); ok {
+			os.Exit(deerr.ExitCode)
+		} else {
+			fmt.Println(err)
+			os.Exit(99)
+		}
+	}
 }

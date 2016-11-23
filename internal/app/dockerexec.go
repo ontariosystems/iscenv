@@ -61,6 +61,8 @@ func DockerExec(instance *iscenv.ISCInstance, interactive bool, commandAndArgs .
 		}
 
 		startOpts.InputStream = stdin
+	} else {
+		startOpts.InputStream = os.Stdin
 	}
 
 	startOpts.OutputStream = os.Stdout
