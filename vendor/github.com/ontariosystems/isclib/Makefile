@@ -1,4 +1,4 @@
-.PHONY: lintinstall lint prep test watch viewcover
+.PHONY: lintinstall lint build prep test watch viewcover
 .DEFAULT_GOAL := test
 
 # Not a prerequisite of lint becuase it takes a while
@@ -12,8 +12,12 @@ lint:
 prep:
 	go get github.com/onsi/ginkgo/ginkgo
 	go get github.com/onsi/gomega
+	go get ./...
 
-test: prep
+build:
+	go build
+
+test:
 	mkdir -p test_results
 	GO15VENDOREXPERIMENT=1 ginkgo -r -cover
 
