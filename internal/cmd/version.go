@@ -17,9 +17,8 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/ontariosystems/iscenv/iscenv"
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 )
@@ -36,5 +35,5 @@ func init() {
 }
 
 func iscenvVersion(_ *cobra.Command, _ []string) {
-	fmt.Printf("ISCEnv version: %s\n", iscenv.Version)
+	log.WithField("version", iscenv.Version).Info("ISCEnv")
 }
