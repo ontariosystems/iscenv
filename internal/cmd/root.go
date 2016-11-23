@@ -76,19 +76,6 @@ func init() {
 	}
 }
 
-func initLogs() {
-	// Unfortunately, we cannot log in this function or it breaks plugins by sending non-plugin api messages across the pipe
-	// The default formatter is JSON
-	if !flags.GetBool(rootCmd, "log-json") {
-		log.SetFormatter(&prefixed.TextFormatter{})
-	}
-
-	levelString := flags.GetString(rootCmd, "log-level")
-	if level, err := log.ParseLevel(levelString); err == nil {
-		log.SetLevel(level)
-	}
-}
-
 func initConfig() {
 	if configPath := flags.GetString(rootCmd, "config"); configPath != "" {
 		viper.SetConfigFile(configPath)
@@ -111,4 +98,17 @@ func initConfig() {
 // TODO: Remove this code when https://github.com/spf13/viper/pull/161 is merged and the updated version is vendored
 func unsupportedConfigTypeBlank(err error) bool {
 	return err.Error() == `Unsupported Config Type ""`
+}
+
+func initLogs() {
+	// Unfortunately, we cannot log in this function or it breaks plugins by sending non-plugin api messages across the pipe
+	// The default formatter is JSON
+	if !flags.GetBool(rootCmd, "log-json") {
+		log.SetFormatter(&prefixed.TextFormatter{})
+	}
+
+	levelString := flags.GetString(rootCmd, "log-level")
+	if level, err := log.ParseLevel(levelString); err == nil {
+		log.SetLevel(level)
+	}
 }
