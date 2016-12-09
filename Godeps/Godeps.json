@@ -195,7 +195,7 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/go-plugin",
-			"Rev": "8cf118f7a2f0c7ef1c82f66d4f6ac77c7e27dc12"
+			"Rev": "cccb4a1328abbb89898f3ecf4311a05bddc4de6d"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/go-version",
