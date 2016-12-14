@@ -162,11 +162,12 @@ func writeTmpHosts(ip string) (string, error) {
 	}
 	defer tmp.Close()
 
-	plog.WithField("path", tmp.Name()).Debug("Writing temporary hosts file")
+	l := plog.WithField("tempPath", tmp.Name()).WithField("hostsPath", hostsFile)
+	l.Debug("Writing temporary hosts file")
 
 	hosts, err := os.Open(hostsFile)
 	if err != nil {
-		plog.WithError(err).Error("Failed to create temporary hosts file")
+		l.WithError(err).Error("Failed to create temporary hosts file")
 		return "", err
 	}
 	defer hosts.Close()
@@ -180,13 +181,13 @@ func writeTmpHosts(ip string) (string, error) {
 			continue
 		}
 		if _, err := tmp.WriteString(line + "\n"); err != nil {
-			plog.WithError(err).Error("Failed to write line to temporary hosts file")
+			l.WithError(err).Error("Failed to write line to temporary hosts file")
 			return "", err
 		}
 	}
 
 	if err := scanner.Err(); err != nil {
-		plog.WithError(err).Error("Failed to scan temporary hosts file")
+		l.WithError(err).Error("Failed to scan hosts file")
 		return "", err
 	}
 
@@ -196,24 +197,25 @@ func writeTmpHosts(ip string) (string, error) {
 }
 
 func replaceHosts(path string) error {
+	l := plog.WithField("tempPath", path).WithField("hostsPath", hostsFile)
 	tmp, err := os.Open(path)
 	if err != nil {
-		plog.WithError(err).Error("Failed to open temporary hosts file")
+		l.WithError(err).Error("Failed to open temporary hosts file")
 		return err
 	}
 	defer tmp.Close()
 
-	plog.WithField("path", tmp.Name()).Debug("Writing temporary hosts file")
+	l.Debug("Replacing hosts file with updated version")
 
 	hosts, err := os.Create(hostsFile)
 	if err != nil {
-		plog.WithError(err).Error("Failed to recreate hosts file")
+		l.WithError(err).Error("Failed to recreate hosts file")
 		return err
 	}
 	defer hosts.Close()
 
 	if _, err := io.Copy(hosts, tmp); err != nil {
-		plog.WithField("path", hostsFile).WithError(err).Error("Failed to copy new contents to hosts file; it is likely corrupt")
+		l.WithError(err).Error("Failed to copy new contents to hosts file; it is likely corrupt")
 		return err
 	}
 
