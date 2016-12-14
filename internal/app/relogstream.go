@@ -37,7 +37,10 @@ func RelogStream(plog log.FieldLogger, preserveTimestamp bool, r io.Reader) {
 		} else if err == io.EOF {
 			return
 		} else {
-			ErrorLogger(plog, err).Warn("Failed to parse streamed log message")
+			// If the stream hits an invalid record, it will just perpetually reread that record generating the same error message as fast as it
+			// can attempt to deserialize the stream.  So, just give up.
+			ErrorLogger(plog, err).Error("Stream does not contain properly formatted JSON logs, giving up")
+			return
 		}
 	}
 }
