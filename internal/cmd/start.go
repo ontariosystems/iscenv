@@ -20,6 +20,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -60,6 +62,8 @@ func init() {
 	flags.AddConfigFlag(startCmd, "superserver-port", int(iscenv.PortInternalSS), "The super server port inside the ISC product container")
 	flags.AddConfigFlag(startCmd, "isc-http-port", int(iscenv.PortInternalWeb), "The ISC Web Server port inside the ISC product container")
 	flags.AddConfigFlag(startCmd, "ccontrol-path", "ccontrol", "The path to the ccontrol executable within the container")
+	addPrimaryCommandFlags(startCmd)
+	flags.AddConfigFlag(startCmd, "disable-primary-command", false, "This argument will disable the primary command for a single run.  This allows you to start the container with no primary command for an initialization run (while you load the primary command's source, for example) or to debug a broken primary command.")
 }
 
 func start(cmd *cobra.Command, args []string) {
@@ -99,6 +103,21 @@ func start(cmd *cobra.Command, args []string) {
 	environment = append(environment, fmt.Sprintf("%s=%d", iscenv.EnvInternalWeb, httpPort))
 	environment = append(environment, fmt.Sprintf("%s=%d", iscenv.EnvInternalHC, iscenv.PortInternalHC))
 
+	// Add the file which will temporarily disable the primary command
+	if flags.GetBool(cmd, "disable-primary-command") {
+		// While there is no technical reason to require a file on the file system, by creating an empty temp file we can (ab)use the
+		// existing file copying functionality instead of adding more code branches elsewhere.
+		f, err := ioutil.TempFile("", "iscenv-dpc-")
+		if err != nil {
+			logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to create temp file for disable-primary-command flag")
+		}
+		defer os.Remove(f.Name())
+		if err := f.Close(); err != nil {
+			logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to close temp file for disable-primary-command flag")
+		}
+		copies = append(copies, fmt.Sprintf("%s:%s", f.Name(), disablePrimaryCommandFile))
+	}
+
 	instances := getMultipleInstances(cmd, args)
 	po := flags.GetInt64(cmd, "port-offset")
 	pos := po < 0 || len(instances) > 1
@@ -126,6 +145,8 @@ func start(cmd *cobra.Command, args []string) {
 				fmt.Sprintf("--instance=%s", flags.GetString(cmd, "internal-instance")),
 				fmt.Sprintf("--ccontrol-path=%s", flags.GetString(cmd, "ccontrol-path")),
 				fmt.Sprintf("--plugins=%s", flags.GetString(rootCmd, "plugins")),
+				fmt.Sprintf("--primary-command=%s", flags.GetString(cmd, "primary-command")),
+				fmt.Sprintf("--primary-command-ns=%s", flags.GetString(cmd, "primary-command-ns")),
 				// Always using debug & json because we're going to proxy, parse and relog on the server side
 				// and we don't want a one time decision at creation to limit the kind of log information we
 				// can get later
