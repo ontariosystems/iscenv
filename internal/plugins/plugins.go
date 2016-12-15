@@ -19,6 +19,7 @@ package plugins
 
 import (
 	"github.com/ontariosystems/iscenv/iscenv"
+	"github.com/ontariosystems/iscenv/plugins/lifecycle/addhostalias"
 	"github.com/ontariosystems/iscenv/plugins/lifecycle/license-key"
 	"github.com/ontariosystems/iscenv/plugins/lifecycle/csp"
 	"github.com/ontariosystems/iscenv/plugins/lifecycle/homedir"
@@ -49,6 +50,7 @@ func init() {
 	addPlugin(iscenv.VersionerKey, new(localversionsplugin.Plugin))
 	addPlugin(iscenv.VersionerKey, new(quayversionsplugin.Plugin))
 
+	addPlugin(iscenv.LifecyclerKey, new(addhostaliasplugin.Plugin))
 	addPlugin(iscenv.LifecyclerKey, new(licensekeyplugin.Plugin))
 	addPlugin(iscenv.LifecyclerKey, new(homedirplugin.Plugin))
 	addPlugin(iscenv.LifecyclerKey, new(cspplugin.Plugin))
