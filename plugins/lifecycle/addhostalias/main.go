@@ -167,7 +167,7 @@ func writeTmpHosts(ip string) (string, error) {
 
 	hosts, err := os.Open(hostsFile)
 	if err != nil {
-		l.WithError(err).Error("Failed to create temporary hosts file")
+		l.WithError(err).Error("Failed to open hosts file")
 		return "", err
 	}
 	defer hosts.Close()
