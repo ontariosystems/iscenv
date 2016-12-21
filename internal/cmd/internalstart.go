@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/ontariosystems/iscenv/iscenv"
@@ -53,6 +54,7 @@ func init() {
 	flags.AddConfigFlagP(internalStartCmd, "instance", "i", "", "The instance to manage")
 	flags.AddConfigFlag(internalStartCmd, "ccontrol-path", "ccontrol", "The path to the ccontrol executable in the image")
 	flags.AddConfigFlag(internalStartCmd, "csession-path", "csession", "The path to the csession executable in the image")
+	addPrimaryCommandFlags(internalStartCmd)
 }
 
 func internalStart(cmd *cobra.Command, _ []string) {
@@ -70,11 +72,25 @@ func internalStart(cmd *cobra.Command, _ []string) {
 		startStatus.Update(app.StartPhaseInitPlugins, nil, lc.Id)
 	}
 
+	primaryCommand := flags.GetString(cmd, "primary-command")
+	primaryCommandNS := flags.GetString(cmd, "primary-command-ns")
+	if _, err := os.Stat(disablePrimaryCommandFile); err == nil {
+		if err := os.Remove(disablePrimaryCommandFile); err != nil {
+			logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to remove disable primary command file")
+		}
+		log.WithField("command", primaryCommand).WithField("namespace", primaryCommandNS).Warn("Disabling primary command; it will be re-enabled on next restart")
+		primaryCommand = ""
+	} else if !os.IsNotExist(err) {
+		logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to check for existence of disable primary command file")
+	}
+
 	startStatus.Update(app.StartPhaseInitManager, nil, "")
 	manager, err := app.NewISCInstanceManager(
 		flags.GetString(cmd, "instance"),
 		flags.GetString(cmd, "ccontrol-path"),
 		flags.GetString(cmd, "csession-path"),
+		primaryCommand,
+		primaryCommandNS,
 	)
 	if err != nil {
 		logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to create instance manager")

@@ -31,9 +31,10 @@ import (
 )
 
 const (
-	defaultLogLevel   = log.InfoLevel
-	defaultConfigFile = "iscenv"
-	defaultConfigDir  = "$HOME/.config/iscenv/"
+	defaultLogLevel           = log.InfoLevel
+	defaultConfigFile         = "iscenv"
+	defaultConfigDir          = "$HOME/.config/iscenv/"
+	disablePrimaryCommandFile = "/.iscenv-disable-primary-command"
 )
 
 var rootCmd = &cobra.Command{
