@@ -17,6 +17,7 @@ limitations under the License.
 package app
 
 import (
+	"io"
 	"os"
 	"os/signal"
 	"syscall"
@@ -27,7 +28,7 @@ import (
 
 type InstanceStateFn func(instance *isclib.Instance)
 
-func NewISCInstanceManager(instanceName string, ccontrolPath string, csessionPath string) (*ISCInstanceManager, error) {
+func NewISCInstanceManager(instanceName string, ccontrolPath string, csessionPath string, primaryCommand string, primaryCommandNamespace string) (*ISCInstanceManager, error) {
 
 	if ccontrolPath != "" {
 		isclib.SetCControlPath(ccontrolPath)
@@ -43,7 +44,9 @@ func NewISCInstanceManager(instanceName string, ccontrolPath string, csessionPat
 	}
 
 	eim := &ISCInstanceManager{
-		Instance: instance,
+		Instance:                instance,
+		PrimaryCommand:          primaryCommand,
+		PrimaryCommandNamespace: primaryCommandNamespace,
 	}
 
 	return eim, nil
@@ -52,7 +55,9 @@ func NewISCInstanceManager(instanceName string, ccontrolPath string, csessionPat
 // Manages a instance within a container
 type ISCInstanceManager struct {
 	*isclib.Instance
-	InstanceRunningHandler InstanceStateFn
+	InstanceRunningHandler  InstanceStateFn
+	PrimaryCommand          string
+	PrimaryCommandNamespace string
 }
 
 func (eim *ISCInstanceManager) Manage() error {
@@ -72,10 +77,49 @@ func (eim *ISCInstanceManager) Manage() error {
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGABRT, syscall.SIGHUP)
 
-	// TODO: Add a stop immediately flag that allows you to just run the instance running handler and then exit
+	primchan := make(chan error)
+	pclog := ilog.WithField("command", eim.PrimaryCommand).WithField("namespace", eim.PrimaryCommandNamespace)
+	go eim.execPrimaryProcess(pclog, primchan)
 
-	sig := <-sigchan
-	log.WithField("signal", sig).Info("Received signal")
+	select {
+	case sig := <-sigchan:
+		log.WithField("signal", sig).Info("Received signal")
+	case err := <-primchan:
+		if err == nil {
+			pclog.Info("Primary command complete")
+		} else {
+			pclog.WithError(err).Error("Error executing primary command")
+		}
+	}
 
 	return eim.Stop()
+}
+
+func (eim *ISCInstanceManager) execPrimaryProcess(l log.FieldLogger, c chan<- error) {
+	if eim.PrimaryCommand == "" {
+		l.Debug("No primary command provided, skipping execute")
+		return
+	}
+
+	l.Info("Starting primary command")
+
+	cmd := eim.GetCSessionCommand(eim.PrimaryCommandNamespace, eim.PrimaryCommand)
+	r, w := io.Pipe()
+	cmd.Stdout = w
+
+	var err error
+	if err = cmd.Start(); err != nil {
+		l.WithError(err).Error("Failed to start primary command csession")
+		c <- err
+		return
+	}
+
+	go func() {
+		defer w.Close()
+		err = cmd.Wait()
+	}()
+
+	RelogStream(l, true, r)
+
+	c <- err
 }
