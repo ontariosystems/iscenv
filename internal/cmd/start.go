@@ -1,5 +1,5 @@
 /*
-Copyright 2016 Ontario Systems
+Copyright 2017 Ontario Systems
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -54,6 +54,7 @@ func init() {
 	flags.AddFlagP(startCmd, "version", "v", "", "The version of ISC product to start.  By default this will find the latest version on your system.")
 	flags.AddFlag(startCmd, "link", []string(nil), "Add link to another container.  They should be in the format 'iscenv-{iscenvname}', 'iscenv-{iscenvname}:{alias}' or '{containername}:{alias}'")
 	flags.AddFlagP(startCmd, "port-offset", "p", int64(-1), "The port offset for this instance's ports.  -1 means autodetect.  Will increment by 1 if more than 1 instance is specified.")
+	flags.AddFlag(startCmd, "ports", []string(nil), "Map additional ports to the host.  These should be in the format '{basehostport}:{containerport}'.  If the base host port is prefixed with a '+', it will be incremented by the port offset.")
 	flags.AddFlag(startCmd, "timeout", int64(300), "The number of seconds to wait on an instance to start before timing out.")
 	flags.AddFlag(startCmd, "volumes-from", []string(nil), "Mount volumes from the specified container(s)")
 
@@ -89,18 +90,12 @@ func start(cmd *cobra.Command, args []string) {
 	// Add the iscenv executable itself as an item to copy into the container
 	copies = append(copies, fmt.Sprintf("%s:%s", exe, iscenv.InternalISCEnvPath))
 
-	// Add the standard ports
-
-	ssPort := flags.GetInt(cmd, "superserver-port")
-	httpPort := flags.GetInt(cmd, "isc-http-port")
-
-	ports = append(ports, fmt.Sprintf("+%d:%d", iscenv.PortExternalSS, ssPort))
-	ports = append(ports, fmt.Sprintf("+%d:%d", iscenv.PortExternalWeb, httpPort))
-	ports = append(ports, fmt.Sprintf("+%d:%d", iscenv.PortExternalHC, iscenv.PortInternalHC))
+	// Combine the standard ports, plugin supplied ports and ports from the command line switch
+	ports = combinePorts(cmd, ports)
 
 	// Add environment variables for the internal ports
-	environment = append(environment, fmt.Sprintf("%s=%d", iscenv.EnvInternalSS, ssPort))
-	environment = append(environment, fmt.Sprintf("%s=%d", iscenv.EnvInternalWeb, httpPort))
+	environment = append(environment, fmt.Sprintf("%s=%d", iscenv.EnvInternalSS, flags.GetInt(cmd, "superserver-port")))
+	environment = append(environment, fmt.Sprintf("%s=%d", iscenv.EnvInternalWeb, flags.GetInt(cmd, "isc-http-port")))
 	environment = append(environment, fmt.Sprintf("%s=%d", iscenv.EnvInternalHC, iscenv.PortInternalHC))
 
 	// Add the file which will temporarily disable the primary command
@@ -198,6 +193,60 @@ func start(cmd *cobra.Command, args []string) {
 			}
 		}
 	}
+}
+
+// combinePorts will return the calculated slice of all port mappings from host to container
+func combinePorts(cmd *cobra.Command, initialPorts []string) []string {
+	ports := make([]string, 0)
+	portMap := make(map[string]string)
+
+	// Add the existing ports from plugins, etc. to the map
+	for _, mapping := range initialPorts {
+		p, h, c := getPortPieces(mapping)
+		ports = addPortMapping(portMap, ports, p, h, c)
+	}
+
+	// Add the standard ports
+	ports = addPortMapping(portMap, ports, "+", fmt.Sprintf("%d", iscenv.PortExternalSS), fmt.Sprintf("%d", flags.GetInt(cmd, "superserver-port")))
+	ports = addPortMapping(portMap, ports, "+", fmt.Sprintf("%d", iscenv.PortExternalWeb), fmt.Sprintf("%d", flags.GetInt(cmd, "isc-http-port")))
+	ports = addPortMapping(portMap, ports, "+", fmt.Sprintf("%d", iscenv.PortExternalHC), fmt.Sprintf("%d", iscenv.PortInternalHC))
+
+	// Add custom ports
+	for _, mapping := range flags.GetStringSlice(cmd, "ports") {
+		p, h, c := getPortPieces(mapping)
+		ports = addPortMapping(portMap, ports, p, h, c)
+	}
+
+	return ports
+}
+
+func getPortPieces(mapping string) (prefix, host, container string) {
+	s := strings.Split(mapping, ":")
+	if len(s) != 2 {
+		logAndExit(log.WithField("mapping", mapping), "Invalid port mapping, must be in the format '{basehostport}:{containerport}'")
+	}
+
+	if strings.HasPrefix(s[0], "+") {
+		prefix = "+"
+	}
+
+	return prefix, strings.TrimPrefix(s[0], "+"), s[1]
+}
+
+func addPortMapping(portMap map[string]string, ports []string, prefix, host, container string) []string {
+	l := log.WithField("mapping", prefix+host+":"+container)
+	if existing, ok := portMap[host]; ok {
+		// This check isn't perfect but it's good enough.  We consider mappings with + or without to collide if they contain the same port.
+		if existing == container {
+			l.Warn("Duplicate port mapping, skipping")
+			return ports
+		} else {
+			logAndExit(l, "Overlapping port mapping")
+		}
+	}
+
+	portMap[host] = container
+	return append(ports, fmt.Sprintf("%s%s:%s", prefix, host, container))
 }
 
 // getVersion will determine the appropriate version of the provided docker image to use and download it as needed.
