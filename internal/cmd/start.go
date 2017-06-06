@@ -57,6 +57,7 @@ func init() {
 	flags.AddFlag(startCmd, "ports", []string(nil), "Map additional ports to the host.  These should be in the format '{basehostport}:{containerport}'.  If the base host port is prefixed with a '+', it will be incremented by the port offset.")
 	flags.AddFlag(startCmd, "timeout", int64(300), "The number of seconds to wait on an instance to start before timing out.")
 	flags.AddFlag(startCmd, "volumes-from", []string(nil), "Mount volumes from the specified container(s)")
+	flags.AddFlagP(startCmd, "env", "e", []string(nil), "An environment variable and its value to be passed to the starting container in the form of VAR=value")
 
 	// Flags overriding the default settings *inside* of containers
 	flags.AddConfigFlag(startCmd, "internal-instance", "docker", "The name of the actual ISC product instance within the container")
@@ -80,6 +81,20 @@ func start(cmd *cobra.Command, args []string) {
 	environment, copies, volumes, ports, labels, err := getPluginConfig(lcs, cmd, version)
 	if err != nil {
 		logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to load container settings from plugin")
+	}
+
+	tagError := false
+	for _, envvar := range flags.GetStringSlice(cmd, "env") {
+		s := strings.SplitN(envvar, "=", 2)
+		if len(s) != 2 {
+			tagError = true
+			log.WithError(err).Error(fmt.Errorf("Malformed environment variable: %s", envvar))
+			continue
+		}
+		environment = append(environment, fmt.Sprintf("ISCENV_%s=%s", strings.ToUpper(s[0]), s[1]))
+	}
+	if tagError {
+		logAndExit(log.StandardLogger(), "Malformed environment variables")
 	}
 
 	exe, err := osext.Executable()
