@@ -23,6 +23,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -31,17 +32,22 @@ import (
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 	"github.com/ontariosystems/iscenv/internal/plugins"
 
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/kardianos/osext"
 	"github.com/spf13/cobra"
 	log "github.com/Sirupsen/logrus"
 )
 
-var startCmd = &cobra.Command{
-	Use:   "start INSTANCE [INSTANCE...]",
-	Short: "Start an ISC product container",
-	Long:  "Create or start one or more ISC product containers with the supplied options",
-	Run:   start,
-}
+var (
+	startCmd = &cobra.Command{
+		Use:   "start INSTANCE [INSTANCE...]",
+		Short: "Start an ISC product container",
+		Long:  "Create or start one or more ISC product containers with the supplied options",
+		Run:   start,
+	}
+
+	envRegex = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*=.*$`)
+)
 
 func init() {
 	rootCmd.AddCommand(startCmd)
@@ -83,18 +89,17 @@ func start(cmd *cobra.Command, args []string) {
 		logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to load container settings from plugin")
 	}
 
-	tagError := false
+	var result error
 	for _, envvar := range flags.GetStringSlice(cmd, "env") {
-		s := strings.SplitN(envvar, "=", 2)
-		if len(s) != 2 {
-			tagError = true
-			log.WithError(err).Error(fmt.Errorf("Malformed environment variable: %s", envvar))
-			continue
+		if envRegex.MatchString(envvar) {
+			environment = append(environment, envvar)
+		} else {
+			result = multierror.Append(result, fmt.Errorf("Malformed environment variable: %s", envvar))
 		}
-		environment = append(environment, fmt.Sprintf("ISCENV_%s=%s", strings.ToUpper(s[0]), s[1]))
 	}
-	if tagError {
-		logAndExit(log.StandardLogger(), "Malformed environment variables")
+
+	if result != nil {
+		logAndExit(app.ErrorLogger(log.StandardLogger(), result), "Malformed environment variables")
 	}
 
 	exe, err := osext.Executable()
