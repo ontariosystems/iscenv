@@ -1,5 +1,5 @@
 /*
-Copyright 2016 Ontario Systems
+Copyright 2017 Ontario Systems
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,14 +18,15 @@ package app
 
 import (
 	"archive/tar"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
 	docker "github.com/fsouza/go-dockerclient"
 	version "github.com/hashicorp/go-version"
+	log "github.com/Sirupsen/logrus"
 )
 
 // Ensure that a container exists and is started.  Returns the ID of the started container or an error
@@ -75,8 +76,14 @@ func DockerStart(opts DockerStartOptions) (id string, err error) {
 			}
 		}
 
-		ilog.Debug("Creating container")
-		container, err = DockerClient.CreateContainer(*opts.ToCreateContainerOptions())
+		containerOpts := *opts.ToCreateContainerOptions()
+		b, err := json.Marshal(containerOpts)
+		if err != nil {
+			return "", err
+		}
+
+		ilog.WithField("opts", string(b)).Debug("Creating container")
+		container, err = DockerClient.CreateContainer(containerOpts)
 		if err != nil {
 			return "", err
 		}

@@ -1,5 +1,5 @@
 /*
-Copyright 2016 Ontario Systems
+Copyright 2017 Ontario Systems
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -88,7 +88,7 @@ func (*Plugin) WithInstance(instance *isclib.Instance) error {
  set s=##class(Security.Services).Modify("%Service_Bindings", .p)
  if $system.Status.IsError(s) {
    do $system.Status.DisplayStatus(s)
-   do $zutil(4,$job,2)
+   do $system.Process.Terminate($job,2)
  }
  quit
 

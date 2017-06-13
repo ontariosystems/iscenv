@@ -23,6 +23,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -31,17 +32,22 @@ import (
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 	"github.com/ontariosystems/iscenv/internal/plugins"
 
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/kardianos/osext"
 	"github.com/spf13/cobra"
 	log "github.com/Sirupsen/logrus"
 )
 
-var startCmd = &cobra.Command{
-	Use:   "start INSTANCE [INSTANCE...]",
-	Short: "Start an ISC product container",
-	Long:  "Create or start one or more ISC product containers with the supplied options",
-	Run:   start,
-}
+var (
+	startCmd = &cobra.Command{
+		Use:   "start INSTANCE [INSTANCE...]",
+		Short: "Start an ISC product container",
+		Long:  "Create or start one or more ISC product containers with the supplied options",
+		Run:   start,
+	}
+
+	envRegex = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*=.*$`)
+)
 
 func init() {
 	rootCmd.AddCommand(startCmd)
@@ -57,6 +63,7 @@ func init() {
 	flags.AddFlag(startCmd, "ports", []string(nil), "Map additional ports to the host.  These should be in the format '{basehostport}:{containerport}'.  If the base host port is prefixed with a '+', it will be incremented by the port offset.")
 	flags.AddFlag(startCmd, "timeout", int64(300), "The number of seconds to wait on an instance to start before timing out.")
 	flags.AddFlag(startCmd, "volumes-from", []string(nil), "Mount volumes from the specified container(s)")
+	flags.AddFlagP(startCmd, "env", "e", []string(nil), "An environment variable and its value to be passed to the starting container in the form of VAR=value")
 
 	// Flags overriding the default settings *inside* of containers
 	flags.AddConfigFlag(startCmd, "internal-instance", "docker", "The name of the actual ISC product instance within the container")
@@ -80,6 +87,19 @@ func start(cmd *cobra.Command, args []string) {
 	environment, copies, volumes, ports, labels, err := getPluginConfig(lcs, cmd, version)
 	if err != nil {
 		logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to load container settings from plugin")
+	}
+
+	var result error
+	for _, envvar := range flags.GetStringSlice(cmd, "env") {
+		if envRegex.MatchString(envvar) {
+			environment = append(environment, envvar)
+		} else {
+			result = multierror.Append(result, fmt.Errorf("Malformed environment variable: %s", envvar))
+		}
+	}
+
+	if result != nil {
+		logAndExit(app.ErrorLogger(log.StandardLogger(), result), "Malformed environment variables")
 	}
 
 	exe, err := osext.Executable()
