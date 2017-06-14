@@ -9,6 +9,12 @@ to its help for further documentation on each command.
 ## Caveats
 - Do not add a default namespace to the root user on the instance, this will break features that wrap csession as it can no longer use the -U switch
 
+## Known issues
+- Orphaned plugins are occasionally left running after the primary process exits.  This prevents upgrades.  They can be killed by (after stopping all running iscenv containers) executing `killall iscenv`
+
+## Future changes
+- Rework plugin system to use [go plugins](https://golang.org/pkg/plugin/) ([simple example](https://jeremywho.com/go-1.8---plugins/))
+
 ## Rejected Features
 - _Make all commands return the instance name rather than the container ID_ **We're using full logging now rather than specific items being printed to stdout**
 - _Add Service wrappers for the containers which will restart them on reboot_ **We want iscenv to remain thin, users should do this themselves**
