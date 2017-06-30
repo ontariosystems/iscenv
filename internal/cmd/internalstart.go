@@ -1,5 +1,5 @@
 /*
-Copyright 2016 Ontario Systems
+Copyright 2017 Ontario Systems
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,8 +19,10 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
+	"path"
 
 	"github.com/spf13/cobra"
 	"github.com/ontariosystems/iscenv/iscenv"
@@ -58,8 +60,31 @@ func init() {
 }
 
 func internalStart(cmd *cobra.Command, _ []string) {
+	const zoneInfoPath string = "/usr/share/zoneinfo"
+	const localTimePath string = "/etc/localtime"
+	const timeZonePath string = "/etc/timezone"
 
 	go startHealthCheck()
+
+	if tz := os.Getenv("TZ"); tz != "" {
+		log.WithField("time_zone", tz).Debug("Using provided time zone")
+		if _, err := os.Stat(localTimePath); err == nil {
+			if err := os.Remove(localTimePath); err != nil {
+				logAndExit(app.ErrorLogger(log.StandardLogger().WithField("path", localTimePath), err), "Failed to remove previous time zone")
+			}
+			log.WithField("path", localTimePath).Debug("Removed previous time zone")
+		}
+
+		if err := os.Symlink(path.Join(zoneInfoPath, tz), localTimePath); err != nil {
+			logAndExit(app.ErrorLogger(log.StandardLogger().WithField("path", localTimePath), err), "Failed to set time zone")
+		}
+		log.WithField("path", localTimePath).WithField("time_zone", tz).Debug("Set time zone")
+
+		if err := ioutil.WriteFile(timeZonePath, []byte(tz+"\n"), 0644); err != nil {
+			logAndExit(app.ErrorLogger(log.StandardLogger().WithField("path", timeZonePath), err), "Failed to set time zone")
+		}
+		log.WithField("path", timeZonePath).WithField("time_zone", tz).Debug("Set time zone")
+	}
 
 	// We can't use the closing activator because we need the plugins to keep running the whole time that _start runs
 	pluginsToActivate := getPluginsToActivate(rootCmd)

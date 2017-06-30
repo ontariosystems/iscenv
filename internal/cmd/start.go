@@ -72,6 +72,7 @@ func init() {
 	flags.AddConfigFlag(startCmd, "ccontrol-path", "ccontrol", "The path to the ccontrol executable within the container")
 	addPrimaryCommandFlags(startCmd)
 	flags.AddConfigFlag(startCmd, "disable-primary-command", false, "This argument will disable the primary command for a single run.  This allows you to start the container with no primary command for an initialization run (while you load the primary command's source, for example) or to debug a broken primary command.")
+	flags.AddConfigFlag(startCmd, "time-zone", "UTC", "The time zone to set inside the container. This should be provided as a path relative to /usr/share/zoneinfo (e.g. America/Indianapolis or US/Eastern).")
 }
 
 func start(cmd *cobra.Command, args []string) {
@@ -101,6 +102,8 @@ func start(cmd *cobra.Command, args []string) {
 	if result != nil {
 		logAndExit(app.ErrorLogger(log.StandardLogger(), result), "Malformed environment variables")
 	}
+
+	environment = append(environment, fmt.Sprintf("TZ=%s", flags.GetString(cmd, "time-zone")))
 
 	exe, err := osext.Executable()
 	if err != nil {
