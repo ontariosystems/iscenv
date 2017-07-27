@@ -1,5 +1,5 @@
 /*
-Copyright 2016 Ontario Systems
+Copyright 2017 Ontario Systems
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ func EnsureWithinContainer(commandName string) error {
 
 	// if we have some control groups owned by docker, then we are within a container
 	contents := string(proc1CGroupContents)
-	if !strings.Contains(contents, ":/docker/") && !strings.Contains(contents, ":/system.slice/docker-") {
+	if !strings.Contains(contents, ":/docker/") && !strings.Contains(contents, ":/kubepods/") && !strings.Contains(contents, ":/system.slice/docker-") {
 		return ErrNotInContainer
 	}
 
