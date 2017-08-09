@@ -27,6 +27,7 @@ import (
 	"github.com/ontariosystems/iscenv/plugins/lifecycle/shm"
 	"github.com/ontariosystems/iscenv/plugins/versions/local"
 	"github.com/ontariosystems/iscenv/plugins/versions/quay"
+	"github.com/ontariosystems/iscenv/plugins/lifecycle/isc-overlay"
 )
 
 // An API for starting internal plugins
@@ -51,6 +52,7 @@ func init() {
 	addPlugin(iscenv.VersionerKey, new(quayversionsplugin.Plugin))
 
 	addPlugin(iscenv.LifecyclerKey, new(addhostaliasplugin.Plugin))
+	addPlugin(iscenv.LifecyclerKey, new(iscoverlayplugin.Plugin))
 	addPlugin(iscenv.LifecyclerKey, new(licensekeyplugin.Plugin))
 	addPlugin(iscenv.LifecyclerKey, new(homedirplugin.Plugin))
 	addPlugin(iscenv.LifecyclerKey, new(cspplugin.Plugin))
