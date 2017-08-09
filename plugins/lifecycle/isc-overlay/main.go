@@ -82,7 +82,7 @@ func (*Plugin) BeforeInstance(state *isclib.Instance) error {
 		return err
 	}
 
-	if err := processDatsInDirectory("/db"); err != nil {
+	if err := processDatsInDirectory("/data/db"); err != nil {
 		return err
 	}
 
