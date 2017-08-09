@@ -34,7 +34,6 @@ var (
 
 const (
 	pluginKey = "isc-overlay"
-	envName   = "ISC_KEY_URL"
 )
 
 type Plugin struct{}
@@ -88,7 +87,8 @@ func (*Plugin) BeforeInstance(state *isclib.Instance) error {
 	if info, err := dockerClient.Info(); err != nil {
 		return err
 	} else {
-		if info.Driver == "overlay" {
+		if info.Driver == "overlay" || info.Driver == "overlay2" {
+			plog.Debug("Docker is using an overlay storage driver")
 			return filepath.Walk("/", visit)
 		}
 	}
@@ -113,6 +113,7 @@ func visit(path string, f os.FileInfo, err error) error {
 }
 
 func touchDat(path string) error {
+	plog.WithField("path", path).Info("Touching CACHE.DAT")
 	t := time.Now()
 	return os.Chtimes(path, t, t)
 }
