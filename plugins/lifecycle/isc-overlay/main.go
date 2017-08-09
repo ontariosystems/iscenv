@@ -24,6 +24,7 @@ import (
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/isclib"
 	log "github.com/Sirupsen/logrus"
+	"syscall"
 )
 
 var (
@@ -31,7 +32,8 @@ var (
 )
 
 const (
-	pluginKey = "isc-overlay"
+	pluginKey  = "isc-overlay"
+	searchRoot = "/"
 )
 
 type Plugin struct{}
@@ -77,7 +79,31 @@ func (*Plugin) BeforeRemove(instance *iscenv.ISCInstance) error {
 }
 
 func (*Plugin) BeforeInstance(state *isclib.Instance) error {
-	return filepath.Walk("/", visit)
+	info, err := os.Stat(searchRoot)
+	if err != nil {
+		return err
+	}
+
+	stat := info.Sys().(*syscall.Stat_t)
+	rootDev := stat.Dev
+
+	return filepath.Walk(searchRoot, func(path string, f os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		stat := info.Sys().(*syscall.Stat_t)
+		// We're not on the same mount point any more so skip this directory
+		if stat.Dev != rootDev {
+			return filepath.SkipDir
+		}
+
+		if f.IsDir() || f.Name() != "CACHE.DAT" {
+			plog.WithField("path", path).Debug("Skipping non CACHE.DAT entry")
+			return nil
+		}
+		return touchDat(path)
+	})
 }
 
 func (*Plugin) WithInstance(state *isclib.Instance) error {
@@ -86,14 +112,6 @@ func (*Plugin) WithInstance(state *isclib.Instance) error {
 
 func (*Plugin) AfterInstance(state *isclib.Instance) error {
 	return nil
-}
-
-func visit(path string, f os.FileInfo, err error) error {
-	if f.IsDir() || f.Name() != "CACHE.DAT" {
-		plog.WithField("path", path).Debug("Skipping non CACHE.DAT entry")
-		return nil
-	}
-	return touchDat(path)
 }
 
 func touchDat(path string) error {
