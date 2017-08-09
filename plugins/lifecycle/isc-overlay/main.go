@@ -21,15 +21,13 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/fsouza/go-dockerclient"
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/isclib"
 	log "github.com/Sirupsen/logrus"
 )
 
 var (
-	dockerClient *docker.Client
-	plog         = log.WithField("plugin", pluginKey)
+	plog = log.WithField("plugin", pluginKey)
 )
 
 const (
@@ -43,11 +41,6 @@ func (plugin *Plugin) Main() {
 }
 
 func (*Plugin) Key() string {
-	var err error
-	if dockerClient, err = docker.NewClient(iscenv.DockerSocket); err != nil {
-		plog.WithError(err).Error("Failed to create docker client")
-		os.Exit(1)
-	}
 	return pluginKey
 }
 
@@ -84,16 +77,7 @@ func (*Plugin) BeforeRemove(instance *iscenv.ISCInstance) error {
 }
 
 func (*Plugin) BeforeInstance(state *isclib.Instance) error {
-	if info, err := dockerClient.Info(); err != nil {
-		return err
-	} else {
-		if info.Driver == "overlay" || info.Driver == "overlay2" {
-			plog.Debug("Docker is using an overlay storage driver")
-			return filepath.Walk("/", visit)
-		}
-	}
-
-	return nil
+	return filepath.Walk("/", visit)
 }
 
 func (*Plugin) WithInstance(state *isclib.Instance) error {
