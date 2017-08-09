@@ -32,8 +32,7 @@ var (
 )
 
 const (
-	pluginKey  = "isc-overlay"
-	searchRoot = "/"
+	pluginKey = "isc-overlay"
 )
 
 type Plugin struct{}
@@ -79,7 +78,31 @@ func (*Plugin) BeforeRemove(instance *iscenv.ISCInstance) error {
 }
 
 func (*Plugin) BeforeInstance(state *isclib.Instance) error {
-	info, err := os.Stat(searchRoot)
+	if err := processDatsInDirectory("/ensemble"); err != nil {
+		return err
+	}
+
+	if err := processDatsInDirectory("/db"); err != nil {
+		return err
+	}
+
+	if err := processDatsInDirectory("/routine"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (*Plugin) WithInstance(state *isclib.Instance) error {
+	return nil
+}
+
+func (*Plugin) AfterInstance(state *isclib.Instance) error {
+	return nil
+}
+
+func processDatsInDirectory(directory string) error {
+	info, err := os.Stat(directory)
 	if err != nil {
 		return err
 	}
@@ -87,7 +110,7 @@ func (*Plugin) BeforeInstance(state *isclib.Instance) error {
 	stat := info.Sys().(*syscall.Stat_t)
 	rootDev := stat.Dev
 
-	return filepath.Walk(searchRoot, func(path string, f os.FileInfo, err error) error {
+	return filepath.Walk(directory, func(path string, f os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -104,14 +127,6 @@ func (*Plugin) BeforeInstance(state *isclib.Instance) error {
 		}
 		return touchDat(path)
 	})
-}
-
-func (*Plugin) WithInstance(state *isclib.Instance) error {
-	return nil
-}
-
-func (*Plugin) AfterInstance(state *isclib.Instance) error {
-	return nil
 }
 
 func touchDat(path string) error {
