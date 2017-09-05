@@ -21,13 +21,14 @@ import (
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/iscenv/plugins/lifecycle/addhostalias"
 	"github.com/ontariosystems/iscenv/plugins/lifecycle/license-key"
+	"github.com/ontariosystems/iscenv/plugins/lifecycle/isc-overlay"
+	"github.com/ontariosystems/iscenv/plugins/lifecycle/isc-source"
 	"github.com/ontariosystems/iscenv/plugins/lifecycle/csp"
 	"github.com/ontariosystems/iscenv/plugins/lifecycle/homedir"
 	"github.com/ontariosystems/iscenv/plugins/lifecycle/service-bindings"
 	"github.com/ontariosystems/iscenv/plugins/lifecycle/shm"
 	"github.com/ontariosystems/iscenv/plugins/versions/local"
 	"github.com/ontariosystems/iscenv/plugins/versions/quay"
-	"github.com/ontariosystems/iscenv/plugins/lifecycle/isc-overlay"
 )
 
 // An API for starting internal plugins
@@ -52,8 +53,9 @@ func init() {
 	addPlugin(iscenv.VersionerKey, new(quayversionsplugin.Plugin))
 
 	addPlugin(iscenv.LifecyclerKey, new(addhostaliasplugin.Plugin))
-	addPlugin(iscenv.LifecyclerKey, new(iscoverlayplugin.Plugin))
 	addPlugin(iscenv.LifecyclerKey, new(licensekeyplugin.Plugin))
+	addPlugin(iscenv.LifecyclerKey, new(iscoverlayplugin.Plugin))
+	addPlugin(iscenv.LifecyclerKey, new(iscsourceplugin.Plugin))
 	addPlugin(iscenv.LifecyclerKey, new(homedirplugin.Plugin))
 	addPlugin(iscenv.LifecyclerKey, new(cspplugin.Plugin))
 	addPlugin(iscenv.LifecyclerKey, new(servicebindingsplugin.Plugin))
