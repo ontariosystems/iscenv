@@ -21,8 +21,9 @@ import (
 	"strings"
 
 	"github.com/ontariosystems/iscenv/iscenv"
+	plugin "github.com/ontariosystems/iscenv/internal/plugins/config"
 	"github.com/ontariosystems/isclib"
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 )
 
 const (
@@ -34,24 +35,24 @@ const (
 
 var (
 	plog = log.WithField("plugin", pluginKey)
-	cfg  config
+	cfg  plugin.Config
 )
 
 func init() {
-	cfg = make(config)
-	cfg.Add(cfgentry{
+	cfg = make(plugin.Config)
+	cfg.Add(plugin.Cfgentry{
 		Flag:        srcFlag,
 		Env:         "ISC_SRC_DIR",
 		Description: "The directory containing the distribution files",
 		Value:       "/isc_src",
 	})
-	cfg.Add(cfgentry{
+	cfg.Add(plugin.Cfgentry{
 		Flag:        nsFlag,
 		Env:         "CORE_NAMESPACE",
 		Description: "The existing namespace into which the source will be imported",
 		Value:       "USER",
 	})
-	cfg.Add(cfgentry{
+	cfg.Add(plugin.Cfgentry{
 		Flag:        importFlag,
 		Env:         "IMPORT_OPTIONS",
 		Description: "The options to use for the source being imported",
