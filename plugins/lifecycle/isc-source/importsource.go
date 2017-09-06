@@ -48,11 +48,7 @@ func importSource(l log.FieldLogger, instance *isclib.Instance, srcDir string, n
 		"source-dir": srcDir,
 		"opts":       opts,
 	})
-	l.Info("Ensuring mapping is updated")
-
-	if err := instance.ExecuteAsManager(); err != nil {
-		return err
-	}
+	l.Info("Importing ISC source")
 
 	code, err := tmplstr(isTmpl, map[string]string{
 		"Src":  srcDir,
