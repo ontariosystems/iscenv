@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package iscsourceplugin
+package config
 
 import (
 	"fmt"
@@ -23,23 +23,23 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 )
 
-type config map[string]cfgentry
-type cfgentry struct {
+type Config map[string]Cfgentry
+type Cfgentry struct {
 	Flag        string
 	Env         string
 	Description string
 	Value       string
 }
 
-func (c config) Add(ce cfgentry) {
+func (c Config) Add(ce Cfgentry) {
 	c[ce.Flag] = ce
 }
 
-func (c config) Get(flag string) string {
+func (c Config) Get(flag string) string {
 	return c[flag].Value
 }
 
-func (c config) FromFlags(flags map[string]interface{}) error {
+func (c Config) FromFlags(flags map[string]interface{}) error {
 	var result error
 
 	for flag, ce := range c {
@@ -63,7 +63,7 @@ func (c config) FromFlags(flags map[string]interface{}) error {
 	return result
 }
 
-func (c config) FromEnv() error {
+func (c Config) FromEnv() error {
 	var result error
 
 	for flag, ce := range c {
@@ -79,7 +79,7 @@ func (c config) FromEnv() error {
 	return result
 }
 
-func (c config) ToEnv() []string {
+func (c Config) ToEnv() []string {
 	envs := make([]string, len(c))
 	i := 0
 	for _, ce := range c {
@@ -90,8 +90,8 @@ func (c config) ToEnv() []string {
 	return envs
 }
 
-func (c config) Clone() config {
-	clone := make(config)
+func (c Config) Clone() Config {
+	clone := make(Config)
 	for key := range c {
 		clone[key] = c[key]
 	}
