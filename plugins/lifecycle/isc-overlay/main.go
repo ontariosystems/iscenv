@@ -90,7 +90,7 @@ func (*Plugin) BeforeRemove(instance *iscenv.ISCInstance) error {
 func (*Plugin) BeforeInstance(state *isclib.Instance) error {
 	dirs := os.Getenv(envName)
 	if dirs == "" {
-		plog.Debug("No directories provide for DAT searching")
+		plog.Debug("No directories provided for DAT searching")
 		return nil
 	}
 
