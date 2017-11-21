@@ -21,9 +21,11 @@ import (
 	"path/filepath"
 	"time"
 
+	"fmt"
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/isclib"
 	log "github.com/Sirupsen/logrus"
+	"strings"
 	"syscall"
 )
 
@@ -33,6 +35,7 @@ var (
 
 const (
 	pluginKey = "isc-overlay"
+	envName   = "ISC_DAT_DIRS"
 )
 
 type Plugin struct{}
@@ -46,11 +49,18 @@ func (*Plugin) Key() string {
 }
 
 func (*Plugin) Flags() (iscenv.PluginFlags, error) {
-	return iscenv.NewPluginFlags(), nil
+	fb := iscenv.NewPluginFlagsBuilder()
+	fb.AddFlag("dat-dirs", true, "/ensemble,/data/db,/routine", "A comma separated list of directories in which to look for CACHE.DATs")
+	return fb.Flags()
 }
 
-func (*Plugin) Environment(_ string, _ map[string]interface{}) ([]string, error) {
-	return nil, nil
+func (*Plugin) Environment(_ string, flags map[string]interface{}) ([]string, error) {
+	dirs, ok := flags["dat-dirs"].(string)
+	if !ok || dirs == "" {
+		return nil, nil
+	}
+
+	return []string{fmt.Sprintf("%s=%s", envName, dirs)}, nil
 }
 
 func (*Plugin) Copies(_ string, _ map[string]interface{}) ([]string, error) {
@@ -78,16 +88,17 @@ func (*Plugin) BeforeRemove(instance *iscenv.ISCInstance) error {
 }
 
 func (*Plugin) BeforeInstance(state *isclib.Instance) error {
-	if err := processDatsInDirectory("/ensemble"); err != nil {
-		return err
+	dirs := os.Getenv(envName)
+	if dirs == "" {
+		plog.Debug("No directories provided for DAT searching")
+		return nil
 	}
 
-	if err := processDatsInDirectory("/data/db"); err != nil {
-		return err
-	}
-
-	if err := processDatsInDirectory("/routine"); err != nil {
-		return err
+	for _, dir := range strings.Split(dirs, ",") {
+		plog.WithField("directory", dir).Info("Processing CACHE.DAT files for directory")
+		if err := processDatsInDirectory(dir); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -104,6 +115,10 @@ func (*Plugin) AfterInstance(state *isclib.Instance) error {
 func processDatsInDirectory(directory string) error {
 	info, err := os.Stat(directory)
 	if err != nil {
+		if os.IsNotExist(err) {
+			plog.WithField("directory", directory).Debug("Directory doesn't exist, skipping CACHE.DAT check")
+			return nil
+		}
 		return err
 	}
 
