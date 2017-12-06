@@ -1,7 +1,7 @@
 {
 	"ImportPath": "github.com/ontariosystems/iscenv",
-	"GoVersion": "go1.7",
-	"GodepVersion": "v74",
+	"GoVersion": "go1.9",
+	"GodepVersion": "v79",
 	"Packages": [
 		"./..."
 	],
@@ -348,8 +348,8 @@
 		},
 		{
 			"ImportPath": "github.com/ontariosystems/isclib",
-			"Comment": "1.1.1-1",
-			"Rev": "'e7efea17c0afed24acf489d58a7853a576d103c9'"
+			"Comment": "1.1.1-3",
+			"Rev": "dfa8d343cdbdd9543136eb0d55c258edb8dcf32d"
 		},
 		{
 			"ImportPath": "github.com/Sirupsen/logrus",
