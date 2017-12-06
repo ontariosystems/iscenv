@@ -1,5 +1,5 @@
 /*
-Copyright 2016 Ontario Systems
+Copyright 2017 Ontario Systems
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -104,7 +104,11 @@ func (*Plugin) BeforeInstance(state *isclib.Instance) error {
 	uid := stat.Uid
 	gid := stat.Gid
 
-	keyPath := filepath.Join(mgrDir, "cache.key")
+	keyFilename := "cache.key"
+	if state.Product == isclib.Iris {
+		keyFilename = "license.key"
+	}
+	keyPath := filepath.Join(mgrDir, keyFilename)
 	plog.WithFields(log.Fields{
 		"url":   url,
 		"path":  keyPath,
