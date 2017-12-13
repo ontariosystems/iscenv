@@ -80,18 +80,22 @@ func (*Plugin) BeforeInstance(state *isclib.Instance) error {
 	pjd, err := state.DeterminePrimaryJournalDirectory()
 	if err != nil {
 		plog.WithError(err).Error("Failed to determine primary journal directory")
+		return err
 	}
 	if err := deleteJournalDirectoryLck(path.Join(pjd, "cache.lck")); err != nil {
 		plog.WithField("directory", pjd).WithError(err).Error("Failed to remove lck file from primary journal directory")
+		return err
 	}
 
 	plog.Info("Cleaning up secondary journal directory lck files")
 	sjd, err := state.DetermineSecondaryJournalDirectory()
 	if err != nil {
 		plog.WithError(err).Error("Failed to determine secondary journal directory")
+		return err
 	}
 	if err := deleteJournalDirectoryLck(path.Join(sjd, "cache.lck")); err != nil {
 		plog.WithField("directory", sjd).WithError(err).Error("Failed to remove lck file from secondary journal directory")
+		return err
 	}
 
 	return nil
