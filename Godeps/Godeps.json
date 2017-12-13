@@ -348,8 +348,8 @@
 		},
 		{
 			"ImportPath": "github.com/ontariosystems/isclib",
-			"Comment": "1.1.1-4",
-			"Rev": "b806f0d4658c59cb7ee7657ace7ef49fc75fb4ca"
+			"Comment": "1.2.0-3",
+			"Rev": "d702e8973c582f2a012808448ed2e9097dfa7f98"
 		},
 		{
 			"ImportPath": "github.com/Sirupsen/logrus",
