@@ -29,6 +29,7 @@ import (
 	"github.com/ontariosystems/iscenv/plugins/lifecycle/shm"
 	"github.com/ontariosystems/iscenv/plugins/versions/local"
 	"github.com/ontariosystems/iscenv/plugins/versions/quay"
+	"github.com/ontariosystems/iscenv/plugins/lifecycle/journal-lck"
 )
 
 // An API for starting internal plugins
@@ -57,6 +58,7 @@ func init() {
 	addPlugin(iscenv.LifecyclerKey, new(iscoverlayplugin.Plugin))
 	addPlugin(iscenv.LifecyclerKey, new(iscsourceplugin.Plugin))
 	addPlugin(iscenv.LifecyclerKey, new(homedirplugin.Plugin))
+	addPlugin(iscenv.LifecyclerKey, new(journallckplugin.Plugin))
 	addPlugin(iscenv.LifecyclerKey, new(cspplugin.Plugin))
 	addPlugin(iscenv.LifecyclerKey, new(servicebindingsplugin.Plugin))
 	addPlugin(iscenv.LifecyclerKey, new(shmplugin.Plugin))
