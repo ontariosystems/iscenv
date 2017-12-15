@@ -29,7 +29,7 @@ const (
  new
  set src = "{{.Src}}"
  set opts = "{{.Opts}}"
- set status = $system.OBJ.ImportDir(src,"*.inc;*.mac;*.cls",opts,,1)
+ set status = $system.OBJ.ImportDir(src,"*.inc;*.mac;*.cls;*.xml",opts,,1)
  if $system.Status.IsError(status) {
 	 do $system.Process.Terminate($job,2)
 	 quit
