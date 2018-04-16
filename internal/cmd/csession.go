@@ -17,10 +17,10 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/spf13/cobra"
+	log "github.com/Sirupsen/logrus"
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
-	log "github.com/Sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var csessionCmd = &cobra.Command{

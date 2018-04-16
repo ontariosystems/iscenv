@@ -28,7 +28,7 @@ func DockerPort(port iscenv.ContainerPort) docker.Port {
 }
 
 func DockerPortBinding(port int64, portOffset int64) []docker.PortBinding {
-	return []docker.PortBinding{docker.PortBinding{HostIP: "", HostPort: strconv.FormatInt(port+portOffset, 10)}}
+	return []docker.PortBinding{{HostIP: "", HostPort: strconv.FormatInt(port+portOffset, 10)}}
 }
 
 // Assumes a single binding

@@ -20,10 +20,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ontariosystems/iscenv/iscenv"
-	plugin "github.com/ontariosystems/iscenv/internal/plugins/config"
-	"github.com/ontariosystems/isclib"
 	log "github.com/Sirupsen/logrus"
+	plugin "github.com/ontariosystems/iscenv/internal/plugins/config"
+	"github.com/ontariosystems/iscenv/iscenv"
+	"github.com/ontariosystems/isclib"
 )
 
 const (

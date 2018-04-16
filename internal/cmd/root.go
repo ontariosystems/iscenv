@@ -24,10 +24,10 @@ import (
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 	"github.com/ontariosystems/iscenv/internal/plugins"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
-	log "github.com/Sirupsen/logrus"
 )
 
 const (

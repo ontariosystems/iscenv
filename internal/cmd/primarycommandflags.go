@@ -17,8 +17,8 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/spf13/cobra"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
+	"github.com/spf13/cobra"
 )
 
 func addPrimaryCommandFlags(cmd *cobra.Command) {

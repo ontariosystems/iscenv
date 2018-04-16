@@ -19,8 +19,8 @@ package cmd
 import (
 	"strings"
 
-	"github.com/spf13/cobra"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
+	"github.com/spf13/cobra"
 )
 
 func getPluginsToActivate(cmd *cobra.Command) []string {

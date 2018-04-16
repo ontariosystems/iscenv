@@ -17,8 +17,8 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/spf13/cobra"
 	"github.com/ontariosystems/iscenv/internal/app"
+	"github.com/spf13/cobra"
 
 	log "github.com/Sirupsen/logrus"
 )

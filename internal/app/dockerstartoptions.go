@@ -20,9 +20,9 @@ import (
 	"strconv"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/ontariosystems/iscenv/iscenv"
-	log "github.com/Sirupsen/logrus"
 )
 
 type DockerStartOptions struct {

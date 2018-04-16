@@ -17,9 +17,9 @@ limitations under the License.
 package app
 
 import (
+	log "github.com/Sirupsen/logrus"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/ontariosystems/iscenv/iscenv"
-	log "github.com/Sirupsen/logrus"
 )
 
 var DockerClient *docker.Client

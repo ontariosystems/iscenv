@@ -23,8 +23,8 @@ import (
 
 	"github.com/ontariosystems/iscenv/internal/app"
 
-	"github.com/spf13/cobra"
 	log "github.com/Sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var internalPurgeJournalCmd = &cobra.Command{

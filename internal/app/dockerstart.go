@@ -24,9 +24,9 @@ import (
 	"os"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	docker "github.com/fsouza/go-dockerclient"
 	version "github.com/hashicorp/go-version"
-	log "github.com/Sirupsen/logrus"
 )
 
 // Ensure that a container exists and is started.  Returns the ID of the started container or an error

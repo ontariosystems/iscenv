@@ -23,12 +23,12 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/spf13/cobra"
-	"github.com/ontariosystems/iscenv/iscenv"
+	log "github.com/Sirupsen/logrus"
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 	"github.com/ontariosystems/iscenv/internal/plugins"
-	log "github.com/Sirupsen/logrus"
+	"github.com/ontariosystems/iscenv/iscenv"
+	"github.com/spf13/cobra"
 )
 
 const (

@@ -20,16 +20,16 @@ package plugins
 import (
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/iscenv/plugins/lifecycle/addhostalias"
-	"github.com/ontariosystems/iscenv/plugins/lifecycle/license-key"
-	"github.com/ontariosystems/iscenv/plugins/lifecycle/isc-overlay"
-	"github.com/ontariosystems/iscenv/plugins/lifecycle/isc-source"
 	"github.com/ontariosystems/iscenv/plugins/lifecycle/csp"
 	"github.com/ontariosystems/iscenv/plugins/lifecycle/homedir"
+	"github.com/ontariosystems/iscenv/plugins/lifecycle/isc-overlay"
+	"github.com/ontariosystems/iscenv/plugins/lifecycle/isc-source"
+	"github.com/ontariosystems/iscenv/plugins/lifecycle/journal-lck"
+	"github.com/ontariosystems/iscenv/plugins/lifecycle/license-key"
 	"github.com/ontariosystems/iscenv/plugins/lifecycle/service-bindings"
 	"github.com/ontariosystems/iscenv/plugins/lifecycle/shm"
 	"github.com/ontariosystems/iscenv/plugins/versions/local"
 	"github.com/ontariosystems/iscenv/plugins/versions/quay"
-	"github.com/ontariosystems/iscenv/plugins/lifecycle/journal-lck"
 )
 
 // An API for starting internal plugins

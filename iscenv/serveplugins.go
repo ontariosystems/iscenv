@@ -20,10 +20,10 @@ import (
 	"io"
 	"os"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/hashicorp/go-plugin"
 	"github.com/spf13/pflag"
 	"github.com/x-cray/logrus-prefixed-formatter"
-	log "github.com/Sirupsen/logrus"
 )
 
 func ServeLifecyclePlugin(impl Lifecycler) {

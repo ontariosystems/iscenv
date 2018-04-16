@@ -22,8 +22,8 @@ import (
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 
-	"github.com/spf13/cobra"
 	log "github.com/Sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 func validateMultiInstanceFlags(cmd *cobra.Command, args []string) {

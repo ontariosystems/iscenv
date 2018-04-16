@@ -24,13 +24,13 @@ import (
 	"os"
 	"path"
 
-	"github.com/spf13/cobra"
-	"github.com/ontariosystems/iscenv/iscenv"
+	log "github.com/Sirupsen/logrus"
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 	"github.com/ontariosystems/iscenv/internal/plugins"
+	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/isclib"
-	log "github.com/Sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var internalStartCmd = &cobra.Command{

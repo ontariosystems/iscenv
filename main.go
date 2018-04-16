@@ -24,10 +24,10 @@ import (
 
 	"golang.org/x/crypto/ssh/terminal"
 
-	"github.com/ontariosystems/iscenv/iscenv"
+	log "github.com/Sirupsen/logrus"
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd"
-	log "github.com/Sirupsen/logrus"
+	"github.com/ontariosystems/iscenv/iscenv"
 )
 
 func main() {

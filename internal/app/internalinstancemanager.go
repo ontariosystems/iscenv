@@ -22,8 +22,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/ontariosystems/isclib"
 	log "github.com/Sirupsen/logrus"
+	"github.com/ontariosystems/isclib"
 )
 
 type InstanceStateFn func(instance *isclib.Instance)

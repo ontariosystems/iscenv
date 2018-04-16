@@ -17,9 +17,9 @@ limitations under the License.
 package cmd
 
 import (
+	log "github.com/Sirupsen/logrus"
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/plugins"
-	log "github.com/Sirupsen/logrus"
 )
 
 // getActivatedLifecyclers will populate lifecyclers with activated lifecyclers plugins based on the provided list.

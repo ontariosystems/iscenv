@@ -17,10 +17,10 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/spf13/cobra"
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 	"github.com/ontariosystems/iscenv/internal/plugins"
+	"github.com/spf13/cobra"
 )
 
 func addLifecyclerFlagsIfNeeded(cmd *cobra.Command) error {

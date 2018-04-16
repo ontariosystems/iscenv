@@ -20,10 +20,10 @@ import (
 	"io"
 	"time"
 
-	"github.com/spf13/cobra"
+	log "github.com/Sirupsen/logrus"
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
-	log "github.com/Sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var logsCmd = &cobra.Command{

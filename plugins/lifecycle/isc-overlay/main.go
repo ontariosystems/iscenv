@@ -22,9 +22,9 @@ import (
 	"time"
 
 	"fmt"
+	log "github.com/Sirupsen/logrus"
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/isclib"
-	log "github.com/Sirupsen/logrus"
 	"strings"
 	"syscall"
 )

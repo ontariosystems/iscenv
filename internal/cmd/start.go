@@ -27,15 +27,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 	"github.com/ontariosystems/iscenv/internal/plugins"
+	"github.com/ontariosystems/iscenv/iscenv"
 
+	log "github.com/Sirupsen/logrus"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/kardianos/osext"
 	"github.com/spf13/cobra"
-	log "github.com/Sirupsen/logrus"
 )
 
 var (

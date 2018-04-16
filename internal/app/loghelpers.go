@@ -17,8 +17,8 @@ limitations under the License.
 package app
 
 import (
-	"github.com/ontariosystems/iscenv/iscenv"
 	log "github.com/Sirupsen/logrus"
+	"github.com/ontariosystems/iscenv/iscenv"
 )
 
 func InstanceLogger(instance *iscenv.ISCInstance) *log.Entry {

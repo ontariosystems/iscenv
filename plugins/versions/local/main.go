@@ -21,10 +21,10 @@ import (
 	"regexp"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/mcuadros/go-version"
 	"github.com/ontariosystems/iscenv/iscenv"
-	log "github.com/Sirupsen/logrus"
 )
 
 const (
