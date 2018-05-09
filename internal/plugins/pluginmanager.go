@@ -25,7 +25,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/hashicorp/go-plugin"
 	"github.com/kardianos/osext"
 	"github.com/ontariosystems/iscenv/iscenv"

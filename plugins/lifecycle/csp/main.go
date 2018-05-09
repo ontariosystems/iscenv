@@ -21,7 +21,7 @@ import (
 	"os"
 	"strconv"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/iscenv"

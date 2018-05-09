@@ -22,7 +22,7 @@ import (
 	"io"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // RelogStream will given a JSON log stream, relog all of the message into the current process

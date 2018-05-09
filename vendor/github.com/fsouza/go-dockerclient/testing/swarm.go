@@ -139,19 +139,22 @@ func (s *DockerServer) swarmJoin(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	err = s.runNodeOperation(fmt.Sprintf("http://%s", req.RemoteAddrs[0]), nodeOperation{
-		Op:   "add",
-		Node: node,
-	})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 	s.swarm = &swarm.Swarm{
 		JoinTokens: swarm.JoinTokens{
 			Manager: s.generateID(),
 			Worker:  s.generateID(),
 		},
+	}
+	s.swarmMut.Unlock()
+	err = s.runNodeOperation(fmt.Sprintf("http://%s", req.RemoteAddrs[0]), nodeOperation{
+		Op:        "add",
+		Node:      node,
+		forceLock: true,
+	})
+	s.swarmMut.Lock()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	w.WriteHeader(http.StatusOK)
 }
@@ -226,6 +229,11 @@ func (s *DockerServer) serviceCreate(w http.ResponseWriter, r *http.Request) {
 	s.setServiceEndpoint(&service)
 	s.addTasks(&service, false)
 	s.services = append(s.services, &service)
+	err = s.runNodeOperation(s.swarmServer.URL(), nodeOperation{})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(service)
 }
@@ -247,6 +255,9 @@ func (s *DockerServer) setServiceEndpoint(service *swarm.Service) {
 }
 
 func (s *DockerServer) addTasks(service *swarm.Service, update bool) {
+	if service.Spec.TaskTemplate.ContainerSpec == nil {
+		return
+	}
 	containerCount := 1
 	if service.Spec.Mode.Global != nil {
 		containerCount = len(s.nodes)
@@ -269,7 +280,7 @@ func (s *DockerServer) addTasks(service *swarm.Service, update bool) {
 			NodeID:    chosenNode.ID,
 			Status: swarm.TaskStatus{
 				State: swarm.TaskStateReady,
-				ContainerStatus: swarm.ContainerStatus{
+				ContainerStatus: &swarm.ContainerStatus{
 					ContainerID: container.ID,
 				},
 			},
@@ -277,7 +288,7 @@ func (s *DockerServer) addTasks(service *swarm.Service, update bool) {
 			Spec:         service.Spec.TaskTemplate,
 		}
 		s.tasks = append(s.tasks, &task)
-		s.containers = append(s.containers, container)
+		s.addContainer(container)
 		s.notify(container)
 	}
 }
@@ -433,17 +444,24 @@ func (s *DockerServer) serviceDelete(w http.ResponseWriter, r *http.Request) {
 	s.services = s.services[:len(s.services)-1]
 	for i := 0; i < len(s.tasks); i++ {
 		if s.tasks[i].ServiceID == toDelete.ID {
-			_, contIdx, _ := s.findContainerWithLock(s.tasks[i].Status.ContainerStatus.ContainerID, false)
-			if contIdx != -1 {
-				s.containers = append(s.containers[:contIdx], s.containers[contIdx+1:]...)
+			cont, _ := s.findContainerWithLock(s.tasks[i].Status.ContainerStatus.ContainerID, false)
+			if cont != nil {
+				delete(s.containers, cont.ID)
+				delete(s.contNameToID, cont.Name)
 			}
 			s.tasks = append(s.tasks[:i], s.tasks[i+1:]...)
 			i--
 		}
 	}
+	err := s.runNodeOperation(s.swarmServer.URL(), nodeOperation{})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func (s *DockerServer) serviceUpdate(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
 	s.swarmMut.Lock()
 	defer s.swarmMut.Unlock()
 	s.cMut.Lock()
@@ -471,19 +489,31 @@ func (s *DockerServer) serviceUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	toUpdate.Spec = newSpec
+	end := time.Now()
+	toUpdate.UpdateStatus = &swarm.UpdateStatus{
+		State:       swarm.UpdateStateCompleted,
+		CompletedAt: &end,
+		StartedAt:   &start,
+	}
 	s.setServiceEndpoint(toUpdate)
 	for i := 0; i < len(s.tasks); i++ {
 		if s.tasks[i].ServiceID != toUpdate.ID {
 			continue
 		}
-		_, contIdx, _ := s.findContainerWithLock(s.tasks[i].Status.ContainerStatus.ContainerID, false)
-		if contIdx != -1 {
-			s.containers = append(s.containers[:contIdx], s.containers[contIdx+1:]...)
+		cont, _ := s.findContainerWithLock(s.tasks[i].Status.ContainerStatus.ContainerID, false)
+		if cont != nil {
+			delete(s.containers, cont.ID)
+			delete(s.contNameToID, cont.Name)
 		}
 		s.tasks = append(s.tasks[:i], s.tasks[i+1:]...)
 		i--
 	}
 	s.addTasks(toUpdate, true)
+	err = s.runNodeOperation(s.swarmServer.URL(), nodeOperation{})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func (s *DockerServer) nodeUpdate(w http.ResponseWriter, r *http.Request) {
@@ -576,8 +606,11 @@ func (s *DockerServer) nodeList(w http.ResponseWriter, r *http.Request) {
 }
 
 type nodeOperation struct {
-	Op   string
-	Node swarm.Node
+	Op        string
+	Node      swarm.Node
+	Tasks     []*swarm.Task
+	Services  []*swarm.Service
+	forceLock bool
 }
 
 func (s *DockerServer) runNodeOperation(dst string, nodeOp nodeOperation) error {
@@ -586,6 +619,9 @@ func (s *DockerServer) runNodeOperation(dst string, nodeOp nodeOperation) error 
 		return err
 	}
 	url := fmt.Sprintf("%s/internal/updatenodes", strings.TrimRight(dst, "/"))
+	if nodeOp.forceLock {
+		url += "?forcelock=1"
+	}
 	rsp, err := http.Post(url, "application/json", bytes.NewReader(data))
 	if err != nil {
 		return err
@@ -598,7 +634,7 @@ func (s *DockerServer) runNodeOperation(dst string, nodeOp nodeOperation) error 
 
 func (s *DockerServer) internalUpdateNodes(w http.ResponseWriter, r *http.Request) {
 	propagate := r.URL.Query().Get("propagate") != "0"
-	if !propagate {
+	if !propagate || r.URL.Query().Get("forcelock") != "" {
 		s.swarmMut.Lock()
 		defer s.swarmMut.Unlock()
 	}
@@ -612,19 +648,6 @@ func (s *DockerServer) internalUpdateNodes(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
-	}
-	if propagate {
-		for _, node := range s.nodes {
-			if s.nodeID == node.ID {
-				continue
-			}
-			url := fmt.Sprintf("http://%s/internal/updatenodes?propagate=0", node.ManagerStatus.Addr)
-			_, err = http.Post(url, "application/json", bytes.NewReader(data))
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		}
 	}
 	switch nodeOp.Op {
 	case "add":
@@ -643,6 +666,28 @@ func (s *DockerServer) internalUpdateNodes(w http.ResponseWriter, r *http.Reques
 				break
 			}
 		}
+	}
+	if propagate {
+		nodeOp.Services = s.services
+		nodeOp.Tasks = s.tasks
+		data, _ = json.Marshal(nodeOp)
+		for _, node := range s.nodes {
+			if s.nodeID == node.ID {
+				continue
+			}
+			url := fmt.Sprintf("http://%s/internal/updatenodes?propagate=0", node.ManagerStatus.Addr)
+			_, err = http.Post(url, "application/json", bytes.NewReader(data))
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+	}
+	if nodeOp.Services != nil {
+		s.services = nodeOp.Services
+	}
+	if nodeOp.Tasks != nil {
+		s.tasks = nodeOp.Tasks
 	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(s.nodes)

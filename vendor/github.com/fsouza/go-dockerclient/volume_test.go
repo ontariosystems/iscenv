@@ -13,6 +13,7 @@ import (
 )
 
 func TestListVolumes(t *testing.T) {
+	t.Parallel()
 	volumesData := `[
 	{
 		"Name": "tardis",
@@ -41,6 +42,7 @@ func TestListVolumes(t *testing.T) {
 }
 
 func TestCreateVolume(t *testing.T) {
+	t.Parallel()
 	body := `{
 		"Name": "tardis",
 		"Driver": "local",
@@ -79,10 +81,14 @@ func TestCreateVolume(t *testing.T) {
 }
 
 func TestInspectVolume(t *testing.T) {
+	t.Parallel()
 	body := `{
 		"Name": "tardis",
 		"Driver": "local",
-		"Mountpoint": "/var/lib/docker/volumes/tardis"
+		"Mountpoint": "/var/lib/docker/volumes/tardis",
+		"Options": {
+			"foo": "bar"
+		}
 	}`
 	var expected Volume
 	if err := json.Unmarshal([]byte(body), &expected); err != nil {
@@ -110,6 +116,7 @@ func TestInspectVolume(t *testing.T) {
 }
 
 func TestRemoveVolume(t *testing.T) {
+	t.Parallel()
 	name := "test"
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusNoContent}
 	client := newTestClient(fakeRT)
@@ -127,16 +134,72 @@ func TestRemoveVolume(t *testing.T) {
 	}
 }
 
+func TestRemoveVolumeWithOptions(t *testing.T) {
+	t.Parallel()
+	name := "test"
+	fakeRT := &FakeRoundTripper{message: "", status: http.StatusNoContent}
+	client := newTestClient(fakeRT)
+	if err := client.RemoveVolumeWithOptions(RemoveVolumeOptions{
+		Name:  name,
+		Force: true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	req := fakeRT.requests[0]
+	expectedMethod := "DELETE"
+	if req.Method != expectedMethod {
+		t.Errorf("RemoveVolume(%q): Wrong HTTP method. Want %s. Got %s.", name, expectedMethod, req.Method)
+	}
+	u, _ := url.Parse(client.getURL("/volumes/" + name + "?force=1"))
+	if req.URL.RequestURI() != u.RequestURI() {
+		t.Errorf("RemoveVolume(%q): Wrong request path. Want %q. Got %q.", name, u.RequestURI(), req.URL.RequestURI())
+	}
+}
+
 func TestRemoveVolumeNotFound(t *testing.T) {
+	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "no such volume", status: http.StatusNotFound})
 	if err := client.RemoveVolume("test:"); err != ErrNoSuchVolume {
 		t.Errorf("RemoveVolume: wrong error. Want %#v. Got %#v.", ErrNoSuchVolume, err)
 	}
 }
 
+func TestRemoveVolumeInternalError(t *testing.T) {
+	t.Parallel()
+	client := newTestClient(&FakeRoundTripper{message: "something went wrong", status: http.StatusInternalServerError})
+	if err := client.RemoveVolume("test:test"); err == nil {
+		t.Error("RemoveVolume: unexpected <nil> error")
+	}
+}
+
 func TestRemoveVolumeInUse(t *testing.T) {
+	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "volume in use and cannot be removed", status: http.StatusConflict})
 	if err := client.RemoveVolume("test:"); err != ErrVolumeInUse {
 		t.Errorf("RemoveVolume: wrong error. Want %#v. Got %#v.", ErrVolumeInUse, err)
+	}
+}
+
+func TestPruneVolumes(t *testing.T) {
+	t.Parallel()
+	results := `{
+		"VolumesDeleted": [
+			"a", "b", "c"
+		],
+		"SpaceReclaimed": 123
+	}`
+
+	expected := &PruneVolumesResults{}
+	err := json.Unmarshal([]byte(results), expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := newTestClient(&FakeRoundTripper{message: results, status: http.StatusOK})
+	got, err := client.PruneVolumes(PruneVolumesOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(got, expected) {
+		t.Errorf("PruneContainers: Expected %#v. Got %#v.", expected, got)
 	}
 }

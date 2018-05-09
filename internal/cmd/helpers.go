@@ -19,7 +19,7 @@ package cmd
 import (
 	"github.com/ontariosystems/iscenv/iscenv"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // This file exists to hold helper functions which should only *ever* be used by commands (and never by other packages within the project)

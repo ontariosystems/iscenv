@@ -32,7 +32,7 @@ import (
 	"github.com/ontariosystems/iscenv/internal/plugins"
 	"github.com/ontariosystems/iscenv/iscenv"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/kardianos/osext"
 	"github.com/spf13/cobra"

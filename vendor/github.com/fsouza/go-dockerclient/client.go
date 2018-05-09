@@ -10,6 +10,7 @@ package docker
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -24,6 +25,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -33,9 +35,6 @@ import (
 	"github.com/docker/docker/pkg/homedir"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/stdcopy"
-	"github.com/hashicorp/go-cleanhttp"
-	"golang.org/x/net/context"
-	"golang.org/x/net/context/ctxhttp"
 )
 
 const (
@@ -58,6 +57,8 @@ var (
 	apiVersion112, _ = NewAPIVersion("1.12")
 	apiVersion119, _ = NewAPIVersion("1.19")
 	apiVersion124, _ = NewAPIVersion("1.24")
+	apiVersion125, _ = NewAPIVersion("1.25")
+	apiVersion135, _ = NewAPIVersion("1.35")
 )
 
 // APIVersion is an internal representation of a version of the Remote API.
@@ -150,7 +151,6 @@ type Client struct {
 	requestedAPIVersion APIVersion
 	serverAPIVersion    APIVersion
 	expectedAPIVersion  APIVersion
-	nativeHTTPClient    *http.Client
 }
 
 // Dialer is an interface that allows network connections to be dialed
@@ -211,18 +211,26 @@ func NewVersionedClient(endpoint string, apiVersionString string) (*Client, erro
 		}
 	}
 	c := &Client{
-		HTTPClient:          cleanhttp.DefaultClient(),
+		HTTPClient:          defaultClient(),
 		Dialer:              &net.Dialer{},
 		endpoint:            endpoint,
 		endpointURL:         u,
 		eventMonitor:        new(eventMonitoringState),
 		requestedAPIVersion: requestedAPIVersion,
 	}
-	c.initializeNativeClient()
+	c.initializeNativeClient(defaultTransport)
 	return c, nil
 }
 
-// NewVersionnedTLSClient has been DEPRECATED, please use NewVersionedTLSClient.
+// WithTransport replaces underlying HTTP client of Docker Client by accepting
+// a function that returns pointer to a transport object.
+func (c *Client) WithTransport(trFunc func() *http.Transport) {
+	c.initializeNativeClient(trFunc)
+}
+
+// NewVersionnedTLSClient is like NewVersionedClient, but with ann extra n.
+//
+// Deprecated: Use NewVersionedTLSClient instead.
 func NewVersionnedTLSClient(endpoint string, cert, key, ca, apiVersionString string) (*Client, error) {
 	return NewVersionedTLSClient(endpoint, cert, key, ca, apiVersionString)
 }
@@ -230,17 +238,26 @@ func NewVersionnedTLSClient(endpoint string, cert, key, ca, apiVersionString str
 // NewVersionedTLSClient returns a Client instance ready for TLS communications with the givens
 // server endpoint, key and certificates, using a specific remote API version.
 func NewVersionedTLSClient(endpoint string, cert, key, ca, apiVersionString string) (*Client, error) {
-	certPEMBlock, err := ioutil.ReadFile(cert)
-	if err != nil {
-		return nil, err
+	var certPEMBlock []byte
+	var keyPEMBlock []byte
+	var caPEMCert []byte
+	if _, err := os.Stat(cert); !os.IsNotExist(err) {
+		certPEMBlock, err = ioutil.ReadFile(cert)
+		if err != nil {
+			return nil, err
+		}
 	}
-	keyPEMBlock, err := ioutil.ReadFile(key)
-	if err != nil {
-		return nil, err
+	if _, err := os.Stat(key); !os.IsNotExist(err) {
+		keyPEMBlock, err = ioutil.ReadFile(key)
+		if err != nil {
+			return nil, err
+		}
 	}
-	caPEMCert, err := ioutil.ReadFile(ca)
-	if err != nil {
-		return nil, err
+	if _, err := os.Stat(ca); !os.IsNotExist(err) {
+		caPEMCert, err = ioutil.ReadFile(ca)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return NewVersionedTLSClientFromBytes(endpoint, certPEMBlock, keyPEMBlock, caPEMCert, apiVersionString)
 }
@@ -299,14 +316,14 @@ func NewVersionedTLSClientFromBytes(endpoint string, certPEMBlock, keyPEMBlock, 
 			return nil, err
 		}
 	}
-	if certPEMBlock == nil || keyPEMBlock == nil {
-		return nil, errors.New("Both cert and key are required")
+	tlsConfig := &tls.Config{}
+	if certPEMBlock != nil && keyPEMBlock != nil {
+		tlsCert, err := tls.X509KeyPair(certPEMBlock, keyPEMBlock)
+		if err != nil {
+			return nil, err
+		}
+		tlsConfig.Certificates = []tls.Certificate{tlsCert}
 	}
-	tlsCert, err := tls.X509KeyPair(certPEMBlock, keyPEMBlock)
-	if err != nil {
-		return nil, err
-	}
-	tlsConfig := &tls.Config{Certificates: []tls.Certificate{tlsCert}}
 	if caPEMCert == nil {
 		tlsConfig.InsecureSkipVerify = true
 	} else {
@@ -316,7 +333,7 @@ func NewVersionedTLSClientFromBytes(endpoint string, certPEMBlock, keyPEMBlock, 
 		}
 		tlsConfig.RootCAs = caPool
 	}
-	tr := cleanhttp.DefaultTransport()
+	tr := defaultTransport()
 	tr.TLSClientConfig = tlsConfig
 	if err != nil {
 		return nil, err
@@ -330,19 +347,15 @@ func NewVersionedTLSClientFromBytes(endpoint string, certPEMBlock, keyPEMBlock, 
 		eventMonitor:        new(eventMonitoringState),
 		requestedAPIVersion: requestedAPIVersion,
 	}
-	c.initializeNativeClient()
+	c.initializeNativeClient(defaultTransport)
 	return c, nil
 }
 
-// SetTimeout takes a timeout and applies it to both the HTTPClient and
-// nativeHTTPClient. It should not be called concurrently with any other Client
-// methods.
+// SetTimeout takes a timeout and applies it to the HTTPClient. It should not
+// be called concurrently with any other Client methods.
 func (c *Client) SetTimeout(t time.Duration) {
 	if c.HTTPClient != nil {
 		c.HTTPClient.Timeout = t
-	}
-	if c.nativeHTTPClient != nil {
-		c.nativeHTTPClient.Timeout = t
 	}
 }
 
@@ -374,8 +387,16 @@ func (c *Client) Endpoint() string {
 //
 // See https://goo.gl/wYfgY1 for more details.
 func (c *Client) Ping() error {
+	return c.PingWithContext(nil)
+}
+
+// PingWithContext pings the docker server
+// The context object can be used to cancel the ping request.
+//
+// See https://goo.gl/wYfgY1 for more details.
+func (c *Client) PingWithContext(ctx context.Context) error {
 	path := "/_ping"
-	resp, err := c.do("GET", path, doOptions{})
+	resp, err := c.do("GET", path, doOptions{context: ctx})
 	if err != nil {
 		return err
 	}
@@ -427,12 +448,10 @@ func (c *Client) do(method, path string, doOptions doOptions) (*http.Response, e
 			return nil, err
 		}
 	}
-	httpClient := c.HTTPClient
 	protocol := c.endpointURL.Scheme
 	var u string
 	switch protocol {
 	case unixProtocol, namedPipeProtocol:
-		httpClient = c.nativeHTTPClient
 		u = c.getFakeNativeURL(path)
 	default:
 		u = c.getURL(path)
@@ -458,7 +477,7 @@ func (c *Client) do(method, path string, doOptions doOptions) (*http.Response, e
 		ctx = context.Background()
 	}
 
-	resp, err := ctxhttp.Do(ctx, httpClient, req)
+	resp, err := c.HTTPClient.Do(req.WithContext(ctx))
 	if err != nil {
 		if strings.Contains(err.Error(), "connection refused") {
 			return nil, ErrConnectionRefused
@@ -480,6 +499,7 @@ type streamOptions struct {
 	in             io.Reader
 	stdout         io.Writer
 	stderr         io.Writer
+	reqSent        chan struct{}
 	// timeout is the initial connection timeout
 	timeout time.Duration
 	// Timeout with no data is received, it's reset every time new data
@@ -558,6 +578,9 @@ func (c *Client) stream(method, path string, streamOptions streamOptions) error 
 			dial.SetDeadline(time.Now().Add(streamOptions.timeout))
 		}
 
+		if streamOptions.reqSent != nil {
+			close(streamOptions.reqSent)
+		}
 		if resp, err = http.ReadResponse(breader, req); err != nil {
 			// Cancel timeout for future I/O operations
 			if streamOptions.timeout > 0 {
@@ -570,11 +593,14 @@ func (c *Client) stream(method, path string, streamOptions streamOptions) error 
 			return chooseError(subCtx, err)
 		}
 	} else {
-		if resp, err = ctxhttp.Do(subCtx, c.HTTPClient, req); err != nil {
+		if resp, err = c.HTTPClient.Do(req.WithContext(subCtx)); err != nil {
 			if strings.Contains(err.Error(), "connection refused") {
 				return ErrConnectionRefused
 			}
 			return chooseError(subCtx, err)
+		}
+		if streamOptions.reqSent != nil {
+			close(streamOptions.reqSent)
 		}
 	}
 	defer resp.Body.Close()
@@ -583,7 +609,8 @@ func (c *Client) stream(method, path string, streamOptions streamOptions) error 
 	}
 	var canceled uint32
 	if streamOptions.inactivityTimeout > 0 {
-		ch := handleInactivityTimeout(&streamOptions, cancelRequest, &canceled)
+		var ch chan<- struct{}
+		resp.Body, ch = handleInactivityTimeout(resp.Body, streamOptions.inactivityTimeout, cancelRequest, &canceled)
 		defer close(ch)
 	}
 	err = handleStreamResponse(resp, &streamOptions)
@@ -624,35 +651,32 @@ func handleStreamResponse(resp *http.Response, streamOptions *streamOptions) err
 	return err
 }
 
-type proxyWriter struct {
-	io.Writer
+type proxyReader struct {
+	io.ReadCloser
 	calls uint64
 }
 
-func (p *proxyWriter) callCount() uint64 {
+func (p *proxyReader) callCount() uint64 {
 	return atomic.LoadUint64(&p.calls)
 }
 
-func (p *proxyWriter) Write(data []byte) (int, error) {
+func (p *proxyReader) Read(data []byte) (int, error) {
 	atomic.AddUint64(&p.calls, 1)
-	return p.Writer.Write(data)
+	return p.ReadCloser.Read(data)
 }
 
-func handleInactivityTimeout(options *streamOptions, cancelRequest func(), canceled *uint32) chan<- struct{} {
+func handleInactivityTimeout(reader io.ReadCloser, timeout time.Duration, cancelRequest func(), canceled *uint32) (io.ReadCloser, chan<- struct{}) {
 	done := make(chan struct{})
-	proxyStdout := &proxyWriter{Writer: options.stdout}
-	proxyStderr := &proxyWriter{Writer: options.stderr}
-	options.stdout = proxyStdout
-	options.stderr = proxyStderr
+	proxyReader := &proxyReader{ReadCloser: reader}
 	go func() {
 		var lastCallCount uint64
 		for {
 			select {
-			case <-time.After(options.inactivityTimeout):
+			case <-time.After(timeout):
 			case <-done:
 				return
 			}
-			curCallCount := proxyStdout.callCount() + proxyStderr.callCount()
+			curCallCount := proxyReader.callCount()
 			if curCallCount == lastCallCount {
 				atomic.AddUint32(canceled, 1)
 				cancelRequest()
@@ -661,7 +685,7 @@ func handleInactivityTimeout(options *streamOptions, cancelRequest func(), cance
 			lastCallCount = curCallCount
 		}
 	}()
-	return done
+	return proxyReader, done
 }
 
 type hijackOptions struct {
@@ -893,6 +917,10 @@ func addQueryStringValue(items url.Values, key string, v reflect.Value) {
 		if v.Int() > 0 {
 			items.Add(key, strconv.FormatInt(v.Int(), 10))
 		}
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		if v.Uint() > 0 {
+			items.Add(key, strconv.FormatUint(v.Uint(), 10))
+		}
 	case reflect.Float32, reflect.Float64:
 		if v.Float() > 0 {
 			items.Add(key, strconv.FormatFloat(v.Float(), 'f', -1, 64))
@@ -930,12 +958,20 @@ type Error struct {
 }
 
 func newError(resp *http.Response) *Error {
+	type ErrMsg struct {
+		Message string `json:"message"`
+	}
 	defer resp.Body.Close()
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return &Error{Status: resp.StatusCode, Message: fmt.Sprintf("cannot read body, err: %v", err)}
 	}
-	return &Error{Status: resp.StatusCode, Message: string(data)}
+	var emsg ErrMsg
+	err = json.Unmarshal(data, &emsg)
+	if err != nil {
+		return &Error{Status: resp.StatusCode, Message: string(data)}
+	}
+	return &Error{Status: resp.StatusCode, Message: emsg.Message}
 }
 
 func (e *Error) Error() string {
@@ -1016,4 +1052,42 @@ func getDockerEnv() (*dockerEnv, error) {
 		dockerTLSVerify: dockerTLSVerify,
 		dockerCertPath:  dockerCertPath,
 	}, nil
+}
+
+// defaultTransport returns a new http.Transport with similar default values to
+// http.DefaultTransport, but with idle connections and keepalives disabled.
+func defaultTransport() *http.Transport {
+	transport := defaultPooledTransport()
+	transport.DisableKeepAlives = true
+	transport.MaxIdleConnsPerHost = -1
+	return transport
+}
+
+// defaultPooledTransport returns a new http.Transport with similar default
+// values to http.DefaultTransport. Do not use this for transient transports as
+// it can leak file descriptors over time. Only use this for transports that
+// will be re-used for the same host(s).
+func defaultPooledTransport() *http.Transport {
+	transport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		MaxIdleConnsPerHost:   runtime.GOMAXPROCS(0) + 1,
+	}
+	return transport
+}
+
+// defaultClient returns a new http.Client with similar default values to
+// http.Client, but with a non-shared Transport, idle connections disabled, and
+// keepalives disabled.
+func defaultClient() *http.Client {
+	return &http.Client{
+		Transport: defaultTransport(),
+	}
 }

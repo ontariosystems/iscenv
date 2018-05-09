@@ -1,29 +1,32 @@
-package v2
+package v2 // import "github.com/docker/docker/plugin/v2"
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/pkg/plugingetter"
 	"github.com/docker/docker/pkg/plugins"
-	"github.com/docker/docker/pkg/system"
+	"github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
 // Plugin represents an individual plugin.
 type Plugin struct {
-	sync.RWMutex
-	PluginObj         types.Plugin    `json:"plugin"`
-	PClient           *plugins.Client `json:"-"`
-	RuntimeSourcePath string          `json:"-"`
-	RefCount          int             `json:"-"`
-	Restart           bool            `json:"-"`
-	ExitChan          chan bool       `json:"-"`
-	LibRoot           string          `json:"-"`
+	mu        sync.RWMutex
+	PluginObj types.Plugin `json:"plugin"` // todo: embed struct
+	pClient   *plugins.Client
+	refCount  int
+	Rootfs    string // TODO: make private
+
+	Config   digest.Digest
+	Blobsums []digest.Digest
+
+	modifyRuntimeSpec func(*specs.Spec)
+
+	SwarmServiceID string
 }
 
 const defaultPluginRuntimeDestination = "/run/docker/plugins"
@@ -37,22 +40,29 @@ func (e ErrInadequateCapability) Error() string {
 	return fmt.Sprintf("plugin does not provide %q capability", e.cap)
 }
 
-func newPluginObj(name, id, tag string) types.Plugin {
-	return types.Plugin{Name: name, ID: id, Tag: tag}
-}
-
-// NewPlugin creates a plugin.
-func NewPlugin(name, id, runRoot, libRoot, tag string) *Plugin {
-	return &Plugin{
-		PluginObj:         newPluginObj(name, id, tag),
-		RuntimeSourcePath: filepath.Join(runRoot, id),
-		LibRoot:           libRoot,
+// ScopedPath returns the path scoped to the plugin rootfs
+func (p *Plugin) ScopedPath(s string) string {
+	if p.PluginObj.Config.PropagatedMount != "" && strings.HasPrefix(s, p.PluginObj.Config.PropagatedMount) {
+		// re-scope to the propagated mount path on the host
+		return filepath.Join(filepath.Dir(p.Rootfs), "propagated-mount", strings.TrimPrefix(s, p.PluginObj.Config.PropagatedMount))
 	}
+	return filepath.Join(p.Rootfs, s)
 }
 
 // Client returns the plugin client.
 func (p *Plugin) Client() *plugins.Client {
-	return p.PClient
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	return p.pClient
+}
+
+// SetPClient set the plugin client.
+func (p *Plugin) SetPClient(client *plugins.Client) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	p.pClient = client
 }
 
 // IsV1 returns true for V1 plugins and false otherwise.
@@ -62,12 +72,7 @@ func (p *Plugin) IsV1() bool {
 
 // Name returns the plugin name.
 func (p *Plugin) Name() string {
-	name := p.PluginObj.Name
-	if len(p.PluginObj.Tag) > 0 {
-		// TODO: this feels hacky, maybe we should be storing the distribution reference rather than splitting these
-		name += ":" + p.PluginObj.Tag
-	}
-	return name
+	return p.PluginObj.Name
 }
 
 // FilterByCap query the plugin for a given capability.
@@ -81,52 +86,26 @@ func (p *Plugin) FilterByCap(capability string) (*Plugin, error) {
 	return nil, ErrInadequateCapability{capability}
 }
 
-// RemoveFromDisk deletes the plugin's runtime files from disk.
-func (p *Plugin) RemoveFromDisk() error {
-	return os.RemoveAll(p.RuntimeSourcePath)
-}
-
-// InitPlugin populates the plugin object from the plugin config file.
-func (p *Plugin) InitPlugin() error {
-	dt, err := os.Open(filepath.Join(p.LibRoot, p.PluginObj.ID, "config.json"))
-	if err != nil {
-		return err
-	}
-	err = json.NewDecoder(dt).Decode(&p.PluginObj.Config)
-	dt.Close()
-	if err != nil {
-		return err
-	}
-
+// InitEmptySettings initializes empty settings for a plugin.
+func (p *Plugin) InitEmptySettings() {
 	p.PluginObj.Settings.Mounts = make([]types.PluginMount, len(p.PluginObj.Config.Mounts))
-	for i, mount := range p.PluginObj.Config.Mounts {
-		p.PluginObj.Settings.Mounts[i] = mount
-	}
+	copy(p.PluginObj.Settings.Mounts, p.PluginObj.Config.Mounts)
+	p.PluginObj.Settings.Devices = make([]types.PluginDevice, len(p.PluginObj.Config.Linux.Devices))
+	copy(p.PluginObj.Settings.Devices, p.PluginObj.Config.Linux.Devices)
 	p.PluginObj.Settings.Env = make([]string, 0, len(p.PluginObj.Config.Env))
 	for _, env := range p.PluginObj.Config.Env {
 		if env.Value != nil {
 			p.PluginObj.Settings.Env = append(p.PluginObj.Settings.Env, fmt.Sprintf("%s=%s", env.Name, *env.Value))
 		}
 	}
+	p.PluginObj.Settings.Args = make([]string, len(p.PluginObj.Config.Args.Value))
 	copy(p.PluginObj.Settings.Args, p.PluginObj.Config.Args.Value)
-
-	return p.writeSettings()
-}
-
-func (p *Plugin) writeSettings() error {
-	f, err := os.Create(filepath.Join(p.LibRoot, p.PluginObj.ID, "plugin-settings.json"))
-	if err != nil {
-		return err
-	}
-	err = json.NewEncoder(f).Encode(&p.PluginObj.Settings)
-	f.Close()
-	return err
 }
 
 // Set is used to pass arguments to the plugin.
 func (p *Plugin) Set(args []string) error {
-	p.Lock()
-	defer p.Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
 	if p.PluginObj.Enabled {
 		return fmt.Errorf("cannot set on an active plugin, disable plugin before setting")
@@ -169,13 +148,16 @@ next:
 				}
 
 				// it is, so lets update the settings in memory
+				if mount.Source == nil {
+					return fmt.Errorf("Plugin config has no mount source")
+				}
 				*mount.Source = s.value
 				continue next
 			}
 		}
 
 		// range over all the devices in the config
-		for _, device := range p.PluginObj.Config.Devices {
+		for _, device := range p.PluginObj.Config.Linux.Devices {
 			// found the device in the config
 			if device.Name == s.name {
 				// is it settable ?
@@ -186,6 +168,9 @@ next:
 				}
 
 				// it is, so lets update the settings in memory
+				if device.Path == nil {
+					return fmt.Errorf("Plugin config has no device path")
+				}
 				*device.Path = s.value
 				continue next
 			}
@@ -208,135 +193,74 @@ next:
 		return fmt.Errorf("setting %q not found in the plugin configuration", s.name)
 	}
 
-	// update the settings on disk
-	return p.writeSettings()
-}
-
-// ComputePrivileges takes the config file and computes the list of access necessary
-// for the plugin on the host.
-func (p *Plugin) ComputePrivileges() types.PluginPrivileges {
-	m := p.PluginObj.Config
-	var privileges types.PluginPrivileges
-	if m.Network.Type != "null" && m.Network.Type != "bridge" {
-		privileges = append(privileges, types.PluginPrivilege{
-			Name:        "network",
-			Description: "",
-			Value:       []string{m.Network.Type},
-		})
-	}
-	for _, mount := range m.Mounts {
-		if mount.Source != nil {
-			privileges = append(privileges, types.PluginPrivilege{
-				Name:        "mount",
-				Description: "",
-				Value:       []string{*mount.Source},
-			})
-		}
-	}
-	for _, device := range m.Devices {
-		if device.Path != nil {
-			privileges = append(privileges, types.PluginPrivilege{
-				Name:        "device",
-				Description: "",
-				Value:       []string{*device.Path},
-			})
-		}
-	}
-	if len(m.Capabilities) > 0 {
-		privileges = append(privileges, types.PluginPrivilege{
-			Name:        "capabilities",
-			Description: "",
-			Value:       m.Capabilities,
-		})
-	}
-	return privileges
+	return nil
 }
 
 // IsEnabled returns the active state of the plugin.
 func (p *Plugin) IsEnabled() bool {
-	p.RLock()
-	defer p.RUnlock()
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 
 	return p.PluginObj.Enabled
 }
 
 // GetID returns the plugin's ID.
 func (p *Plugin) GetID() string {
-	p.RLock()
-	defer p.RUnlock()
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 
 	return p.PluginObj.ID
 }
 
 // GetSocket returns the plugin socket.
 func (p *Plugin) GetSocket() string {
-	p.RLock()
-	defer p.RUnlock()
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 
 	return p.PluginObj.Config.Interface.Socket
 }
 
 // GetTypes returns the interface types of a plugin.
 func (p *Plugin) GetTypes() []types.PluginInterfaceType {
-	p.RLock()
-	defer p.RUnlock()
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 
 	return p.PluginObj.Config.Interface.Types
 }
 
-// InitSpec creates an OCI spec from the plugin's config.
-func (p *Plugin) InitSpec(s specs.Spec, libRoot string) (*specs.Spec, error) {
-	rootfs := filepath.Join(libRoot, p.PluginObj.ID, "rootfs")
-	s.Root = specs.Root{
-		Path:     rootfs,
-		Readonly: false, // TODO: all plugins should be readonly? settable in config?
-	}
+// GetRefCount returns the reference count.
+func (p *Plugin) GetRefCount() int {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 
-	mounts := append(p.PluginObj.Settings.Mounts, types.PluginMount{
-		Source:      &p.RuntimeSourcePath,
-		Destination: defaultPluginRuntimeDestination,
-		Type:        "bind",
-		Options:     []string{"rbind", "rshared"},
-	})
-	for _, mount := range mounts {
-		m := specs.Mount{
-			Destination: mount.Destination,
-			Type:        mount.Type,
-			Options:     mount.Options,
-		}
-		// TODO: if nil, then it's required and user didn't set it
-		if mount.Source != nil {
-			m.Source = *mount.Source
-		}
-		if m.Source != "" && m.Type == "bind" {
-			fi, err := os.Lstat(filepath.Join(rootfs, m.Destination)) // TODO: followsymlinks
-			if err != nil {
-				return nil, err
-			}
-			if fi.IsDir() {
-				if err := os.MkdirAll(m.Source, 0700); err != nil {
-					return nil, err
-				}
-			}
-		}
-		s.Mounts = append(s.Mounts, m)
-	}
+	return p.refCount
+}
 
-	envs := make([]string, 1, len(p.PluginObj.Settings.Env)+1)
-	envs[0] = "PATH=" + system.DefaultPathEnv
-	envs = append(envs, p.PluginObj.Settings.Env...)
+// AddRefCount adds to reference count.
+func (p *Plugin) AddRefCount(count int) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
-	args := append(p.PluginObj.Config.Entrypoint, p.PluginObj.Settings.Args...)
-	cwd := p.PluginObj.Config.Workdir
-	if len(cwd) == 0 {
-		cwd = "/"
-	}
-	s.Process = specs.Process{
-		Terminal: false,
-		Args:     args,
-		Cwd:      cwd,
-		Env:      envs,
-	}
+	p.refCount += count
+}
 
-	return &s, nil
+// Acquire increments the plugin's reference count
+// This should be followed up by `Release()` when the plugin is no longer in use.
+func (p *Plugin) Acquire() {
+	p.AddRefCount(plugingetter.Acquire)
+}
+
+// Release decrements the plugin's reference count
+// This should only be called when the plugin is no longer in use, e.g. with
+// via `Acquire()` or getter.Get("name", "type", plugingetter.Acquire)
+func (p *Plugin) Release() {
+	p.AddRefCount(plugingetter.Release)
+}
+
+// SetSpecOptModifier sets the function to use to modify the the generated
+// runtime spec.
+func (p *Plugin) SetSpecOptModifier(f func(*specs.Spec)) {
+	p.mu.Lock()
+	p.modifyRuntimeSpec = f
+	p.mu.Unlock()
 }

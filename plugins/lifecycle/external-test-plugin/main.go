@@ -17,7 +17,7 @@ limitations under the License.
 package main
 
 import (
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/isclib"
 )

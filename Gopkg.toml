@@ -22,46 +22,57 @@
 
 
 [[constraint]]
-  name = "github.com/Sirupsen/logrus"
+  name = "github.com/sirupsen/logrus"
+  version = "^1.0.5"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/creack/termios"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/fsouza/go-dockerclient"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/hashicorp/go-multierror"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/hashicorp/go-plugin"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/hashicorp/go-version"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/kardianos/osext"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/mcuadros/go-version"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/ontariosystems/isclib"
-  version = ">=1.2.0, <=3.0.0"
+  version = "^2.0.0"
 
 [[constraint]]
   name = "github.com/spf13/cobra"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/spf13/pflag"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/spf13/viper"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/x-cray/logrus-prefixed-formatter"
-  version = "0.3.0"
+  version = "^0.5.2"
 
 [[constraint]]
   name = "golang.org/x/crypto"
+  branch = "master"

@@ -1,4 +1,4 @@
-package client
+package client // import "github.com/docker/docker/client"
 
 import (
 	"bytes"
@@ -22,6 +22,16 @@ func TestContainerStatPathError(t *testing.T) {
 	_, err := client.ContainerStatPath(context.Background(), "container_id", "path")
 	if err == nil || err.Error() != "Error response from daemon: Server error" {
 		t.Fatalf("expected a Server error, got %v", err)
+	}
+}
+
+func TestContainerStatPathNotFoundError(t *testing.T) {
+	client := &Client{
+		client: newMockClient(errorMock(http.StatusNotFound, "Not found")),
+	}
+	_, err := client.ContainerStatPath(context.Background(), "container_id", "path")
+	if !IsErrNotFound(err) {
+		t.Fatalf("expected a not found error, got %v", err)
 	}
 }
 
@@ -78,10 +88,10 @@ func TestContainerStatPath(t *testing.T) {
 		t.Fatal(err)
 	}
 	if stat.Name != "name" {
-		t.Fatalf("expected container path stat name to be 'name', was '%s'", stat.Name)
+		t.Fatalf("expected container path stat name to be 'name', got '%s'", stat.Name)
 	}
 	if stat.Mode != 0700 {
-		t.Fatalf("expected container path stat mode to be 0700, was '%v'", stat.Mode)
+		t.Fatalf("expected container path stat mode to be 0700, got '%v'", stat.Mode)
 	}
 }
 
@@ -92,6 +102,16 @@ func TestCopyToContainerError(t *testing.T) {
 	err := client.CopyToContainer(context.Background(), "container_id", "path/to/file", bytes.NewReader([]byte("")), types.CopyToContainerOptions{})
 	if err == nil || err.Error() != "Error response from daemon: Server error" {
 		t.Fatalf("expected a Server error, got %v", err)
+	}
+}
+
+func TestCopyToContainerNotFoundError(t *testing.T) {
+	client := &Client{
+		client: newMockClient(errorMock(http.StatusNotFound, "Not found")),
+	}
+	err := client.CopyToContainer(context.Background(), "container_id", "path/to/file", bytes.NewReader([]byte("")), types.CopyToContainerOptions{})
+	if !IsErrNotFound(err) {
+		t.Fatalf("expected a not found error, got %v", err)
 	}
 }
 
@@ -161,6 +181,16 @@ func TestCopyFromContainerError(t *testing.T) {
 	}
 }
 
+func TestCopyFromContainerNotFoundError(t *testing.T) {
+	client := &Client{
+		client: newMockClient(errorMock(http.StatusNotFound, "Not found")),
+	}
+	_, _, err := client.CopyFromContainer(context.Background(), "container_id", "path/to/file")
+	if !IsErrNotFound(err) {
+		t.Fatalf("expected a not found error, got %v", err)
+	}
+}
+
 func TestCopyFromContainerNotStatusOKError(t *testing.T) {
 	client := &Client{
 		client: newMockClient(errorMock(http.StatusNoContent, "No content")),
@@ -195,7 +225,7 @@ func TestCopyFromContainer(t *testing.T) {
 				return nil, fmt.Errorf("Expected URL '%s', got '%s'", expectedURL, req.URL)
 			}
 			if req.Method != "GET" {
-				return nil, fmt.Errorf("expected PUT method, got %s", req.Method)
+				return nil, fmt.Errorf("expected GET method, got %s", req.Method)
 			}
 			query := req.URL.Query()
 			path := query.Get("path")
@@ -226,10 +256,10 @@ func TestCopyFromContainer(t *testing.T) {
 		t.Fatal(err)
 	}
 	if stat.Name != "name" {
-		t.Fatalf("expected container path stat name to be 'name', was '%s'", stat.Name)
+		t.Fatalf("expected container path stat name to be 'name', got '%s'", stat.Name)
 	}
 	if stat.Mode != 0700 {
-		t.Fatalf("expected container path stat mode to be 0700, was '%v'", stat.Mode)
+		t.Fatalf("expected container path stat mode to be 0700, got '%v'", stat.Mode)
 	}
 	content, err := ioutil.ReadAll(r)
 	if err != nil {

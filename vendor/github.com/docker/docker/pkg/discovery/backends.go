@@ -1,4 +1,4 @@
-package discovery
+package discovery // import "github.com/docker/docker/pkg/discovery"
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -86,7 +86,7 @@ func ParseAdvertise(advertise string) (string, error) {
 		break
 	}
 	if addr == "" {
-		return "", fmt.Errorf("couldnt find a valid ip-address in interface %s", advertise)
+		return "", fmt.Errorf("could not find a valid ip-address in interface %s", advertise)
 	}
 
 	addr = net.JoinHostPort(addr, port)
