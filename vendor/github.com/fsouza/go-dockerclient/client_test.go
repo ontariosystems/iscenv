@@ -6,6 +6,7 @@ package docker
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -14,17 +15,14 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"testing"
 	"time"
-
-	"golang.org/x/net/context"
 )
 
 func TestNewAPIClient(t *testing.T) {
+	t.Parallel()
 	endpoint := "http://localhost:4243"
 	client, err := NewClient(endpoint)
 	if err != nil {
@@ -58,6 +56,7 @@ func newTLSClient(endpoint string) (*Client, error) {
 }
 
 func TestNewTSLAPIClient(t *testing.T) {
+	t.Parallel()
 	endpoint := "https://localhost:4243"
 	client, err := newTLSClient(endpoint)
 	if err != nil {
@@ -75,6 +74,7 @@ func TestNewTSLAPIClient(t *testing.T) {
 }
 
 func TestNewVersionedClient(t *testing.T) {
+	t.Parallel()
 	endpoint := "http://localhost:4243"
 	client, err := NewVersionedClient(endpoint, "1.12")
 	if err != nil {
@@ -92,6 +92,7 @@ func TestNewVersionedClient(t *testing.T) {
 }
 
 func TestNewVersionedClientFromEnv(t *testing.T) {
+	t.Parallel()
 	endpoint := "tcp://localhost:2376"
 	endpointURL := "http://localhost:2376"
 	os.Setenv("DOCKER_HOST", endpoint)
@@ -115,6 +116,7 @@ func TestNewVersionedClientFromEnv(t *testing.T) {
 }
 
 func TestNewVersionedClientFromEnvTLS(t *testing.T) {
+	t.Parallel()
 	endpoint := "tcp://localhost:2376"
 	endpointURL := "https://localhost:2376"
 	base, _ := os.Getwd()
@@ -140,6 +142,7 @@ func TestNewVersionedClientFromEnvTLS(t *testing.T) {
 }
 
 func TestNewTLSVersionedClient(t *testing.T) {
+	t.Parallel()
 	certPath := "testing/data/cert.pem"
 	keyPath := "testing/data/key.pem"
 	caPath := "testing/data/ca.pem"
@@ -159,7 +162,29 @@ func TestNewTLSVersionedClient(t *testing.T) {
 	}
 }
 
+func TestNewTLSVersionedClientNoClientCert(t *testing.T) {
+	t.Parallel()
+	certPath := "testing/data/cert_doesnotexist.pem"
+	keyPath := "testing/data/key_doesnotexist.pem"
+	caPath := "testing/data/ca.pem"
+	endpoint := "https://localhost:4243"
+	client, err := NewVersionedTLSClient(endpoint, certPath, keyPath, caPath, "1.14")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if client.endpoint != endpoint {
+		t.Errorf("Expected endpoint %s. Got %s.", endpoint, client.endpoint)
+	}
+	if reqVersion := client.requestedAPIVersion.String(); reqVersion != "1.14" {
+		t.Errorf("Wrong requestAPIVersion. Want %q. Got %q.", "1.14", reqVersion)
+	}
+	if client.SkipServerVersionCheck {
+		t.Error("Expected SkipServerVersionCheck to be false, got true")
+	}
+}
+
 func TestNewTLSVersionedClientInvalidCA(t *testing.T) {
+	t.Parallel()
 	certPath := "testing/data/cert.pem"
 	keyPath := "testing/data/key.pem"
 	caPath := "testing/data/key.pem"
@@ -170,7 +195,20 @@ func TestNewTLSVersionedClientInvalidCA(t *testing.T) {
 	}
 }
 
+func TestNewTLSVersionedClientInvalidCANoClientCert(t *testing.T) {
+	t.Parallel()
+	certPath := "testing/data/cert_doesnotexist.pem"
+	keyPath := "testing/data/key_doesnotexist.pem"
+	caPath := "testing/data/key.pem"
+	endpoint := "https://localhost:4243"
+	_, err := NewVersionedTLSClient(endpoint, certPath, keyPath, caPath, "1.14")
+	if err == nil {
+		t.Errorf("Expected invalid ca at %s", caPath)
+	}
+}
+
 func TestNewClientInvalidEndpoint(t *testing.T) {
+	t.Parallel()
 	cases := []string{
 		"htp://localhost:3243", "http://localhost:a",
 		"", "http://localhost:8080:8383", "http://localhost:65536",
@@ -188,6 +226,7 @@ func TestNewClientInvalidEndpoint(t *testing.T) {
 }
 
 func TestNewClientNoSchemeEndpoint(t *testing.T) {
+	t.Parallel()
 	cases := []string{"localhost", "localhost:8080"}
 	for _, c := range cases {
 		client, err := NewClient(c)
@@ -201,6 +240,7 @@ func TestNewClientNoSchemeEndpoint(t *testing.T) {
 }
 
 func TestNewTLSClient(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		endpoint string
 		expected string
@@ -223,6 +263,7 @@ func TestNewTLSClient(t *testing.T) {
 }
 
 func TestEndpoint(t *testing.T) {
+	t.Parallel()
 	client, err := NewVersionedClient("http://localhost:4243", "1.12")
 	if err != nil {
 		t.Fatal(err)
@@ -233,6 +274,7 @@ func TestEndpoint(t *testing.T) {
 }
 
 func TestGetURL(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		endpoint string
 		path     string
@@ -257,6 +299,7 @@ func TestGetURL(t *testing.T) {
 }
 
 func TestGetFakeNativeURL(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		endpoint string
 		path     string
@@ -278,6 +321,7 @@ func TestGetFakeNativeURL(t *testing.T) {
 }
 
 func TestError(t *testing.T) {
+	t.Parallel()
 	fakeBody := ioutil.NopCloser(bytes.NewBufferString("bad parameter"))
 	resp := &http.Response{
 		StatusCode: 400,
@@ -295,6 +339,7 @@ func TestError(t *testing.T) {
 }
 
 func TestQueryString(t *testing.T) {
+	t.Parallel()
 	v := float32(2.4)
 	f32QueryString := fmt.Sprintf("w=%s&x=10&y=10.35", strconv.FormatFloat(float64(v), 'f', -1, 64))
 	jsonPerson := url.QueryEscape(`{"Name":"gopher","age":4}`)
@@ -326,6 +371,7 @@ func TestQueryString(t *testing.T) {
 }
 
 func TestAPIVersions(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		a                              string
 		b                              string
@@ -373,6 +419,7 @@ func TestAPIVersions(t *testing.T) {
 }
 
 func TestPing(t *testing.T) {
+	t.Parallel()
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusOK}
 	client := newTestClient(fakeRT)
 	err := client.Ping()
@@ -382,6 +429,7 @@ func TestPing(t *testing.T) {
 }
 
 func TestPingFailing(t *testing.T) {
+	t.Parallel()
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusInternalServerError}
 	client := newTestClient(fakeRT)
 	err := client.Ping()
@@ -395,6 +443,7 @@ func TestPingFailing(t *testing.T) {
 }
 
 func TestPingFailingWrongStatus(t *testing.T) {
+	t.Parallel()
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusAccepted}
 	client := newTestClient(fakeRT)
 	err := client.Ping()
@@ -408,6 +457,7 @@ func TestPingFailingWrongStatus(t *testing.T) {
 }
 
 func TestPingErrorWithNativeClient(t *testing.T) {
+	t.Parallel()
 	srv, cleanup, err := newNativeServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("aaaaaaaaaaa-invalid-aaaaaaaaaaa"))
 	}))
@@ -429,6 +479,7 @@ func TestPingErrorWithNativeClient(t *testing.T) {
 }
 
 func TestClientStreamTimeoutNotHit(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		for i := 0; i < 5; i++ {
 			fmt.Fprintf(w, "%d\n", i)
@@ -459,6 +510,7 @@ func TestClientStreamTimeoutNotHit(t *testing.T) {
 }
 
 func TestClientStreamInactivityTimeout(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		for i := 0; i < 5; i++ {
 			fmt.Fprintf(w, "%d\n", i)
@@ -489,12 +541,13 @@ func TestClientStreamInactivityTimeout(t *testing.T) {
 }
 
 func TestClientStreamContextDeadline(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "abc\n")
 		if f, ok := w.(http.Flusher); ok {
 			f.Flush()
 		}
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(time.Second)
 		fmt.Fprint(w, "def\n")
 		if f, ok := w.(http.Flusher); ok {
 			f.Flush()
@@ -505,7 +558,7 @@ func TestClientStreamContextDeadline(t *testing.T) {
 		t.Fatal(err)
 	}
 	var w bytes.Buffer
-	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 400*time.Millisecond)
 	defer cancel()
 	err = client.stream("POST", "/image/create", streamOptions{
 		setRawTerminal: true,
@@ -523,6 +576,7 @@ func TestClientStreamContextDeadline(t *testing.T) {
 }
 
 func TestClientStreamContextCancel(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "abc\n")
 		if f, ok := w.(http.Flusher); ok {
@@ -592,6 +646,7 @@ var mockPullOutput = `{"status":"Pulling from tsuru/static","id":"latest"}
 `
 
 func TestClientStreamJSONDecode(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(mockPullOutput))
 	}))
@@ -643,6 +698,7 @@ func (b *terminalBuffer) IsTerminal() bool {
 }
 
 func TestClientStreamJSONDecodeWithTerminal(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(mockPullOutput))
 	}))
@@ -658,12 +714,11 @@ func TestClientStreamJSONDecodeWithTerminal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	expected := "latest: Pulling from tsuru/static\n" +
-		"\x1b[0B\n" +
-		"\x1b[0A\x1b[2K\ra6aa3b66376f: Already exists \r\x1b[0B\n" +
-		"\x1b[0A\x1b[2K\r106572778bf7: Pulling fs layer \r\x1b[0B\n" +
-		"\x1b[0A\x1b[2K\rbac681833e51: Pulling fs layer \r\x1b[0B\n" +
-		"\x1b[0A\x1b[2K\r7302e23ef08a: Pulling fs layer \r\x1b[0B\x1b[2A\x1b[2K\rbac681833e51: Downloading [==================================================>]    621 B/621 B\r\x1b[2B\x1b[2A\x1b[2K\rbac681833e51: Verifying Checksum \r\x1b[2B\x1b[2A\x1b[2K\rbac681833e51: Download complete \r\x1b[2B\x1b[3A\x1b[2K\r106572778bf7: Downloading [==================================================>] 1.854 kB/1.854 kB\r\x1b[3B\x1b[3A\x1b[2K\r106572778bf7: Verifying Checksum \r\x1b[3B\x1b[3A\x1b[2K\r106572778bf7: Download complete \r\x1b[3B\x1b[3A\x1b[2K\r106572778bf7: Extracting [==================================================>] 1.854 kB/1.854 kB\r\x1b[3B\x1b[3A\x1b[2K\r106572778bf7: Extracting [==================================================>] 1.854 kB/1.854 kB\r\x1b[3B\x1b[1A\x1b[2K\r7302e23ef08a: Downloading [>                                                  ]   233 kB/21.06 MB\r\x1b[1B\x1b[1A\x1b[2K\r7302e23ef08a: Downloading [=>                                                 ] 462.4 kB/21.06 MB\r\x1b[1B\x1b[1A\x1b[2K\r7302e23ef08a: Downloading [====================>                              ] 8.491 MB/21.06 MB\r\x1b[1B\x1b[1A\x1b[2K\r7302e23ef08a: Downloading [=================================================> ] 20.88 MB/21.06 MB\r\x1b[1B\x1b[1A\x1b[2K\r7302e23ef08a: Verifying Checksum \r\x1b[1B\x1b[1A\x1b[2K\r7302e23ef08a: Download complete \r\x1b[1B\x1b[3A\x1b[2K\r106572778bf7: Pull complete \r\x1b[3B\x1b[2A\x1b[2K\rbac681833e51: Extracting [==================================================>]    621 B/621 B\r\x1b[2B\x1b[2A\x1b[2K\rbac681833e51: Extracting [==================================================>]    621 B/621 B\r\x1b[2B\x1b[2A\x1b[2K\rbac681833e51: Pull complete \r\x1b[2B\x1b[1A\x1b[2K\r7302e23ef08a: Extracting [>                                                  ] 229.4 kB/21.06 MB\r\x1b[1B\x1b[1A\x1b[2K\r7302e23ef08a: Extracting [=>                                                 ] 458.8 kB/21.06 MB\r\x1b[1B\x1b[1A\x1b[2K\r7302e23ef08a: Extracting [==========================>                        ] 11.24 MB/21.06 MB\r\x1b[1B\x1b[1A\x1b[2K\r7302e23ef08a: Extracting [==================================================>] 21.06 MB/21.06 MB\r\x1b[1B\x1b[1A\x1b[2K\r7302e23ef08a: Pull complete \r\x1b[1BDigest: sha256:b754472891aa7e33fc0214e3efa988174f2c2289285fcae868b7ec8b6675fc77\n" +
+	expected := "latest: Pulling from tsuru/static\n\n" +
+		"\x1b[1A\x1b[1K\x1b[K\ra6aa3b66376f: Already exists \r\x1b[1B\n" +
+		"\x1b[1A\x1b[1K\x1b[K\r106572778bf7: Pulling fs layer \r\x1b[1B\n" +
+		"\x1b[1A\x1b[1K\x1b[K\rbac681833e51: Pulling fs layer \r\x1b[1B\n" +
+		"\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Pulling fs layer \r\x1b[1B\x1b[2A\x1b[1K\x1b[K\rbac681833e51: Downloading [==================================================>]     621B/621B\r\x1b[2B\x1b[2A\x1b[1K\x1b[K\rbac681833e51: Verifying Checksum \r\x1b[2B\x1b[2A\x1b[1K\x1b[K\rbac681833e51: Download complete \r\x1b[2B\x1b[3A\x1b[1K\x1b[K\r106572778bf7: Downloading [==================================================>]  1.854kB/1.854kB\r\x1b[3B\x1b[3A\x1b[1K\x1b[K\r106572778bf7: Verifying Checksum \r\x1b[3B\x1b[3A\x1b[1K\x1b[K\r106572778bf7: Download complete \r\x1b[3B\x1b[3A\x1b[1K\x1b[K\r106572778bf7: Extracting [==================================================>]  1.854kB/1.854kB\r\x1b[3B\x1b[3A\x1b[1K\x1b[K\r106572778bf7: Extracting [==================================================>]  1.854kB/1.854kB\r\x1b[3B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Downloading [>                                                  ]    233kB/21.06MB\r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Downloading [=>                                                 ]  462.4kB/21.06MB\r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Downloading [====================>                              ]  8.491MB/21.06MB\r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Downloading [=================================================> ]  20.88MB/21.06MB\r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Verifying Checksum \r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Download complete \r\x1b[1B\x1b[3A\x1b[1K\x1b[K\r106572778bf7: Pull complete \r\x1b[3B\x1b[2A\x1b[1K\x1b[K\rbac681833e51: Extracting [==================================================>]     621B/621B\r\x1b[2B\x1b[2A\x1b[1K\x1b[K\rbac681833e51: Extracting [==================================================>]     621B/621B\r\x1b[2B\x1b[2A\x1b[1K\x1b[K\rbac681833e51: Pull complete \r\x1b[2B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Extracting [>                                                  ]  229.4kB/21.06MB\r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Extracting [=>                                                 ]  458.8kB/21.06MB\r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Extracting [==========================>                        ]  11.24MB/21.06MB\r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Extracting [==================================================>]  21.06MB/21.06MB\r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Pull complete \r\x1b[1BDigest: sha256:b754472891aa7e33fc0214e3efa988174f2c2289285fcae868b7ec8b6675fc77\n" +
 		"Status: Downloaded newer image for 192.168.50.4:5000/tsuru/static\n"
 	result := w.String()
 	if result != expected {
@@ -672,6 +727,7 @@ func TestClientStreamJSONDecodeWithTerminal(t *testing.T) {
 }
 
 func TestClientDoContextDeadline(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(500 * time.Millisecond)
 	}))
@@ -690,6 +746,7 @@ func TestClientDoContextDeadline(t *testing.T) {
 }
 
 func TestClientDoContextCancel(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(500 * time.Millisecond)
 	}))
@@ -711,6 +768,7 @@ func TestClientDoContextCancel(t *testing.T) {
 }
 
 func TestClientStreamTimeoutNativeClient(t *testing.T) {
+	t.Parallel()
 	srv, cleanup, err := newNativeServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		for i := 0; i < 5; i++ {
 			fmt.Fprintf(w, "%d\n", i)
@@ -743,118 +801,6 @@ func TestClientStreamTimeoutNativeClient(t *testing.T) {
 	result := w.String()
 	if result != expected {
 		t.Fatalf("expected stream result %q, got: %q", expected, result)
-	}
-}
-
-func TestClientDoConcurrentStress(t *testing.T) {
-	var reqs []*http.Request
-	var mu sync.Mutex
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		mu.Lock()
-		reqs = append(reqs, r)
-		mu.Unlock()
-	})
-	var nativeSrvs []*httptest.Server
-	for i := 0; i < 3; i++ {
-		srv, cleanup, err := newNativeServer(handler)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer cleanup()
-		nativeSrvs = append(nativeSrvs, srv)
-	}
-	var tests = []struct {
-		srv           *httptest.Server
-		scheme        string
-		withTimeout   bool
-		withTLSServer bool
-		withTLSClient bool
-	}{
-		{srv: httptest.NewUnstartedServer(handler), scheme: "http"},
-		{srv: nativeSrvs[0], scheme: nativeProtocol},
-		{srv: httptest.NewUnstartedServer(handler), scheme: "http", withTimeout: true},
-		{srv: nativeSrvs[1], scheme: nativeProtocol, withTimeout: true},
-		{srv: httptest.NewUnstartedServer(handler), scheme: "https", withTLSServer: true, withTLSClient: true},
-		{srv: nativeSrvs[2], scheme: nativeProtocol, withTLSServer: false, withTLSClient: nativeProtocol == unixProtocol}, // TLS client only works with unix protocol
-	}
-	for _, tt := range tests {
-		reqs = nil
-		var client *Client
-		var err error
-		endpoint := tt.scheme + "://" + tt.srv.Listener.Addr().String()
-		if tt.withTLSServer {
-			tt.srv.StartTLS()
-		} else {
-			tt.srv.Start()
-		}
-		if tt.withTLSClient {
-			certPEMBlock, certErr := ioutil.ReadFile("testing/data/cert.pem")
-			if certErr != nil {
-				t.Fatal(certErr)
-			}
-			keyPEMBlock, certErr := ioutil.ReadFile("testing/data/key.pem")
-			if certErr != nil {
-				t.Fatal(certErr)
-			}
-			client, err = NewTLSClientFromBytes(endpoint, certPEMBlock, keyPEMBlock, nil)
-		} else {
-			client, err = NewClient(endpoint)
-		}
-		if err != nil {
-			t.Fatal(err)
-		}
-		if tt.withTimeout {
-			client.SetTimeout(time.Minute)
-		}
-		n := 50
-		wg := sync.WaitGroup{}
-		var paths []string
-		errsCh := make(chan error, 3*n)
-		waiters := make(chan CloseWaiter, n)
-		for i := 0; i < n; i++ {
-			path := fmt.Sprintf("/%05d", i)
-			paths = append(paths, "GET"+path)
-			paths = append(paths, "POST"+path)
-			paths = append(paths, "HEAD"+path)
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				_, clientErr := client.do("GET", path, doOptions{})
-				if clientErr != nil {
-					errsCh <- clientErr
-				}
-				clientErr = client.stream("POST", path, streamOptions{})
-				if clientErr != nil {
-					errsCh <- clientErr
-				}
-				cw, clientErr := client.hijack("HEAD", path, hijackOptions{})
-				if clientErr != nil {
-					errsCh <- clientErr
-				} else {
-					waiters <- cw
-				}
-			}()
-		}
-		wg.Wait()
-		close(errsCh)
-		close(waiters)
-		for cw := range waiters {
-			cw.Wait()
-			cw.Close()
-		}
-		for err = range errsCh {
-			t.Error(err)
-		}
-		var reqPaths []string
-		for _, r := range reqs {
-			reqPaths = append(reqPaths, r.Method+r.URL.Path)
-		}
-		sort.Strings(paths)
-		sort.Strings(reqPaths)
-		if !reflect.DeepEqual(reqPaths, paths) {
-			t.Fatalf("expected server request paths to equal %v, got: %v", paths, reqPaths)
-		}
-		tt.srv.Close()
 	}
 }
 

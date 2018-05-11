@@ -5,14 +5,14 @@
 package docker
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
-
-	"golang.org/x/net/context"
 )
 
 // Exec is the type representing a `docker exec` instance and containing the
@@ -25,15 +25,17 @@ type Exec struct {
 //
 // See https://goo.gl/60TeBP for more details
 type CreateExecOptions struct {
-	AttachStdin  bool            `json:"AttachStdin,omitempty" yaml:"AttachStdin,omitempty"`
-	AttachStdout bool            `json:"AttachStdout,omitempty" yaml:"AttachStdout,omitempty"`
-	AttachStderr bool            `json:"AttachStderr,omitempty" yaml:"AttachStderr,omitempty"`
-	Tty          bool            `json:"Tty,omitempty" yaml:"Tty,omitempty"`
-	Cmd          []string        `json:"Cmd,omitempty" yaml:"Cmd,omitempty"`
-	Container    string          `json:"Container,omitempty" yaml:"Container,omitempty"`
-	User         string          `json:"User,omitempty" yaml:"User,omitempty"`
+	AttachStdin  bool            `json:"AttachStdin,omitempty" yaml:"AttachStdin,omitempty" toml:"AttachStdin,omitempty"`
+	AttachStdout bool            `json:"AttachStdout,omitempty" yaml:"AttachStdout,omitempty" toml:"AttachStdout,omitempty"`
+	AttachStderr bool            `json:"AttachStderr,omitempty" yaml:"AttachStderr,omitempty" toml:"AttachStderr,omitempty"`
+	Tty          bool            `json:"Tty,omitempty" yaml:"Tty,omitempty" toml:"Tty,omitempty"`
+	Env          []string        `json:"Env,omitempty" yaml:"Env,omitempty" toml:"Env,omitempty"`
+	Cmd          []string        `json:"Cmd,omitempty" yaml:"Cmd,omitempty" toml:"Cmd,omitempty"`
+	Container    string          `json:"Container,omitempty" yaml:"Container,omitempty" toml:"Container,omitempty"`
+	User         string          `json:"User,omitempty" yaml:"User,omitempty" toml:"User,omitempty"`
+	WorkingDir   string          `json:"WorkingDir,omitempty" yaml:"WorkingDir,omitempty" toml:"WorkingDir,omitempty"`
 	Context      context.Context `json:"-"`
-	Privileged   bool            `json:"Privileged,omitempty" yaml:"Privileged,omitempty"`
+	Privileged   bool            `json:"Privileged,omitempty" yaml:"Privileged,omitempty" toml:"Privileged,omitempty"`
 }
 
 // CreateExec sets up an exec instance in a running container `id`, returning the exec
@@ -41,6 +43,12 @@ type CreateExecOptions struct {
 //
 // See https://goo.gl/60TeBP for more details
 func (c *Client) CreateExec(opts CreateExecOptions) (*Exec, error) {
+	if len(opts.Env) > 0 && c.serverAPIVersion.LessThan(apiVersion125) {
+		return nil, errors.New("exec configuration Env is only supported in API#1.25 and above")
+	}
+	if len(opts.WorkingDir) > 0 && c.serverAPIVersion.LessThan(apiVersion135) {
+		return nil, errors.New("exec configuration WorkingDir is only supported in API#1.35 and above")
+	}
 	path := fmt.Sprintf("/containers/%s/exec", opts.Container)
 	resp, err := c.do("POST", path, doOptions{data: opts, context: opts.Context})
 	if err != nil {
@@ -66,8 +74,8 @@ type StartExecOptions struct {
 	OutputStream io.Writer `qs:"-"`
 	ErrorStream  io.Writer `qs:"-"`
 
-	Detach bool `json:"Detach,omitempty" yaml:"Detach,omitempty"`
-	Tty    bool `json:"Tty,omitempty" yaml:"Tty,omitempty"`
+	Detach bool `json:"Detach,omitempty" yaml:"Detach,omitempty" toml:"Detach,omitempty"`
+	Tty    bool `json:"Tty,omitempty" yaml:"Tty,omitempty" toml:"Tty,omitempty"`
 
 	// Use raw terminal? Usually true when the container contains a TTY.
 	RawTerminal bool `qs:"-"`
@@ -154,11 +162,11 @@ func (c *Client) ResizeExecTTY(id string, height, width int) error {
 // ExecProcessConfig is a type describing the command associated to a Exec
 // instance. It's used in the ExecInspect type.
 type ExecProcessConfig struct {
-	User       string   `json:"user,omitempty" yaml:"user,omitempty"`
-	Privileged bool     `json:"privileged,omitempty" yaml:"privileged,omitempty"`
-	Tty        bool     `json:"tty,omitempty" yaml:"tty,omitempty"`
-	EntryPoint string   `json:"entrypoint,omitempty" yaml:"entrypoint,omitempty"`
-	Arguments  []string `json:"arguments,omitempty" yaml:"arguments,omitempty"`
+	User       string   `json:"user,omitempty" yaml:"user,omitempty" toml:"user,omitempty"`
+	Privileged bool     `json:"privileged,omitempty" yaml:"privileged,omitempty" toml:"privileged,omitempty"`
+	Tty        bool     `json:"tty,omitempty" yaml:"tty,omitempty" toml:"tty,omitempty"`
+	EntryPoint string   `json:"entrypoint,omitempty" yaml:"entrypoint,omitempty" toml:"entrypoint,omitempty"`
+	Arguments  []string `json:"arguments,omitempty" yaml:"arguments,omitempty" toml:"arguments,omitempty"`
 }
 
 // ExecInspect is a type with details about a exec instance, including the
@@ -167,14 +175,16 @@ type ExecProcessConfig struct {
 //
 // See https://goo.gl/ctMUiW for more details
 type ExecInspect struct {
-	ID            string            `json:"ID,omitempty" yaml:"ID,omitempty"`
-	ExitCode      int               `json:"ExitCode,omitempty" yaml:"ExitCode,omitempty"`
-	Running       bool              `json:"Running,omitempty" yaml:"Running,omitempty"`
-	OpenStdin     bool              `json:"OpenStdin,omitempty" yaml:"OpenStdin,omitempty"`
-	OpenStderr    bool              `json:"OpenStderr,omitempty" yaml:"OpenStderr,omitempty"`
-	OpenStdout    bool              `json:"OpenStdout,omitempty" yaml:"OpenStdout,omitempty"`
-	ProcessConfig ExecProcessConfig `json:"ProcessConfig,omitempty" yaml:"ProcessConfig,omitempty"`
-	Container     Container         `json:"Container,omitempty" yaml:"Container,omitempty"`
+	ID            string            `json:"ID,omitempty" yaml:"ID,omitempty" toml:"ID,omitempty"`
+	ExitCode      int               `json:"ExitCode,omitempty" yaml:"ExitCode,omitempty" toml:"ExitCode,omitempty"`
+	Running       bool              `json:"Running,omitempty" yaml:"Running,omitempty" toml:"Running,omitempty"`
+	OpenStdin     bool              `json:"OpenStdin,omitempty" yaml:"OpenStdin,omitempty" toml:"OpenStdin,omitempty"`
+	OpenStderr    bool              `json:"OpenStderr,omitempty" yaml:"OpenStderr,omitempty" toml:"OpenStderr,omitempty"`
+	OpenStdout    bool              `json:"OpenStdout,omitempty" yaml:"OpenStdout,omitempty" toml:"OpenStdout,omitempty"`
+	ProcessConfig ExecProcessConfig `json:"ProcessConfig,omitempty" yaml:"ProcessConfig,omitempty" toml:"ProcessConfig,omitempty"`
+	ContainerID   string            `json:"ContainerID,omitempty" yaml:"ContainerID,omitempty" toml:"ContainerID,omitempty"`
+	DetachKeys    string            `json:"DetachKeys,omitempty" yaml:"DetachKeys,omitempty" toml:"DetachKeys,omitempty"`
+	CanRemove     bool              `json:"CanRemove,omitempty" yaml:"CanRemove,omitempty" toml:"CanRemove,omitempty"`
 }
 
 // InspectExec returns low-level information about the exec command id.

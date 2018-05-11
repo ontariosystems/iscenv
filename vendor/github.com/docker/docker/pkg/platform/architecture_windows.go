@@ -1,13 +1,15 @@
-package platform
+package platform // import "github.com/docker/docker/pkg/platform"
 
 import (
 	"fmt"
 	"syscall"
 	"unsafe"
+
+	"golang.org/x/sys/windows"
 )
 
 var (
-	modkernel32       = syscall.NewLazyDLL("kernel32.dll")
+	modkernel32       = windows.NewLazySystemDLL("kernel32.dll")
 	procGetSystemInfo = modkernel32.NewProc("GetSystemInfo")
 )
 

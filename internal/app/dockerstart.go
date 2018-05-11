@@ -24,7 +24,7 @@ import (
 	"os"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	docker "github.com/fsouza/go-dockerclient"
 	version "github.com/hashicorp/go-version"
 )

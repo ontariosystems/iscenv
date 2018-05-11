@@ -19,7 +19,7 @@ package cmd
 import (
 	"os"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 func logAndExit(l log.FieldLogger, format string, args ...interface{}) {

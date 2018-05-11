@@ -2,33 +2,74 @@
 
 
 [[projects]]
+  branch = "master"
   name = "github.com/Azure/go-ansiterm"
-  packages = [".","winterm"]
-  revision = "fa152c58bc15761d0200cb75fe958b89a9d4888e"
+  packages = [
+    ".",
+    "winterm"
+  ]
+  revision = "d6e3b3328b783f23731bc4d058875b0371ff8109"
 
 [[projects]]
   name = "github.com/Microsoft/go-winio"
   packages = ["."]
-  revision = "562bb09f6612d9a4e91597184709d1cdba95af93"
-  version = "0.3.6"
+  revision = "7da180ee92d8bd8bb8c37fc560e673e6557c392f"
+  version = "v0.4.7"
 
 [[projects]]
-  name = "github.com/Sirupsen/logrus"
+  branch = "master"
+  name = "github.com/Nvveen/Gotty"
   packages = ["."]
-  revision = "1445b7a38228c041834afc69231b7966b9943397"
+  revision = "cd527374f1e5bff4938207604a14f2e38a9cf512"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/containerd/continuity"
+  packages = ["pathdriver"]
+  revision = "c6cef34830231743494fe2969284df7b82cc0ad0"
 
 [[projects]]
   branch = "master"
   name = "github.com/creack/termios"
-  packages = ["raw","win"]
+  packages = [
+    "raw",
+    "win"
+  ]
   revision = "88d0029e36a108c959d6f8fc63c393f591b0302b"
 
 [[projects]]
   name = "github.com/docker/docker"
-  packages = ["api/types","api/types/blkiodev","api/types/container","api/types/filters","api/types/mount","api/types/network","api/types/registry","api/types/strslice","api/types/swarm","api/types/versions","opts","pkg/archive","pkg/fileutils","pkg/homedir","pkg/idtools","pkg/ioutils","pkg/jsonlog","pkg/jsonmessage","pkg/longpath","pkg/pools","pkg/promise","pkg/stdcopy","pkg/system","pkg/term","pkg/term/windows"]
-  revision = "4549e9104cef53ff51a194bc47896a041bf18418"
+  packages = [
+    "api/types",
+    "api/types/blkiodev",
+    "api/types/container",
+    "api/types/filters",
+    "api/types/mount",
+    "api/types/network",
+    "api/types/registry",
+    "api/types/strslice",
+    "api/types/swarm",
+    "api/types/swarm/runtime",
+    "api/types/versions",
+    "opts",
+    "pkg/archive",
+    "pkg/fileutils",
+    "pkg/homedir",
+    "pkg/idtools",
+    "pkg/ioutils",
+    "pkg/jsonmessage",
+    "pkg/longpath",
+    "pkg/mount",
+    "pkg/pools",
+    "pkg/stdcopy",
+    "pkg/system",
+    "pkg/term",
+    "pkg/term/windows"
+  ]
+  revision = "a422774e593b33bd287d9890544ad9e09b380d8c"
 
 [[projects]]
+  branch = "master"
   name = "github.com/docker/go-connections"
   packages = ["nat"]
   revision = "4ccf312bf1d35e5dbda654e57a9be4c3f3cd0366"
@@ -36,17 +77,26 @@
 [[projects]]
   name = "github.com/docker/go-units"
   packages = ["."]
-  revision = "8a7beacffa3009a9ac66bad506b18ffdd110cf97"
+  revision = "47565b4f722fb6ceae66b95f853feed578a4a51c"
+  version = "v0.3.3"
 
 [[projects]]
+  branch = "master"
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
   revision = "f12c6236fe7b5cf6bcf30e5935d08cb079d78334"
 
 [[projects]]
+  branch = "master"
   name = "github.com/fsouza/go-dockerclient"
   packages = ["."]
-  revision = "5cfde1d138cd2cdc13e4aa36af631beb19dcbe9c"
+  revision = "51bd33c0c7792b2566054672a4915b406d988cc6"
+
+[[projects]]
+  name = "github.com/gogo/protobuf"
+  packages = ["proto"]
+  revision = "1adfc126b41513cc696b209667c8656ea7aac67c"
+  version = "v1.0.0"
 
 [[projects]]
   branch = "master"
@@ -55,31 +105,41 @@
   revision = "7554cd9344cec97297fa6649b055a8c98c2a1e55"
 
 [[projects]]
-  name = "github.com/hashicorp/go-cleanhttp"
-  packages = ["."]
-  revision = "ad28ea4487f05916463e2423a55166280e8254b5"
-
-[[projects]]
+  branch = "master"
   name = "github.com/hashicorp/go-multierror"
   packages = ["."]
   revision = "8c5f0ad9360406a3807ce7de6bc73269a91a6e51"
 
 [[projects]]
+  branch = "master"
   name = "github.com/hashicorp/go-plugin"
   packages = ["."]
   revision = "cccb4a1328abbb89898f3ecf4311a05bddc4de6d"
 
 [[projects]]
+  branch = "master"
   name = "github.com/hashicorp/go-version"
   packages = ["."]
   revision = "deeb027c13a95d56c7585df3fe29207208c6706e"
 
 [[projects]]
+  branch = "master"
   name = "github.com/hashicorp/hcl"
-  packages = [".","hcl/ast","hcl/parser","hcl/scanner","hcl/strconv","hcl/token","json/parser","json/scanner","json/token"]
+  packages = [
+    ".",
+    "hcl/ast",
+    "hcl/parser",
+    "hcl/scanner",
+    "hcl/strconv",
+    "hcl/token",
+    "json/parser",
+    "json/scanner",
+    "json/token"
+  ]
   revision = "99df0eb941dd8ddbc83d3f3605a34f6a686ac85e"
 
 [[projects]]
+  branch = "master"
   name = "github.com/hashicorp/yamux"
   packages = ["."]
   revision = "d1caa6c97c9fc1cc9e83bbe34d0603f9ff0ce8bd"
@@ -91,6 +151,7 @@
   version = "v1.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/kardianos/osext"
   packages = ["."]
   revision = "c2c54e542fb797ad986b31721e1baedf214ca413"
@@ -102,21 +163,25 @@
   revision = "2788f0dbd16903de03cb8186e5c7d97b69ad387b"
 
 [[projects]]
+  branch = "master"
   name = "github.com/magiconair/properties"
   packages = ["."]
   revision = "61b492c03cf472e0c6419be5899b8e0dc28b1b88"
 
 [[projects]]
+  branch = "master"
   name = "github.com/mcuadros/go-version"
   packages = ["."]
   revision = "257f7b9a7d87427c8d7f89469a5958d57f8abd7c"
 
 [[projects]]
+  branch = "master"
   name = "github.com/mgutz/ansi"
   packages = ["."]
   revision = "c286dcecd19ff979eeb73ea444e479b903f2cfcb"
 
 [[projects]]
+  branch = "master"
   name = "github.com/mitchellh/mapstructure"
   packages = ["."]
   revision = "ca63d7c062ee3c9f34db231e352b60012b4fd0c1"
@@ -124,12 +189,31 @@
 [[projects]]
   name = "github.com/ontariosystems/isclib"
   packages = ["."]
-  revision = "d702e8973c582f2a012808448ed2e9097dfa7f98"
-  version = "v1.3.0"
+  revision = "ad83a456faaf2a62ef8ff3e6a3537d7adea90a18"
+  version = "v2.0.0"
 
 [[projects]]
+  name = "github.com/opencontainers/go-digest"
+  packages = ["."]
+  revision = "279bed98673dd5bef374d3b6e4b09e2af76183bf"
+  version = "v1.0.0-rc1"
+
+[[projects]]
+  name = "github.com/opencontainers/image-spec"
+  packages = [
+    "specs-go",
+    "specs-go/v1"
+  ]
+  revision = "d60099175f88c47cd379c4738d158884749ed235"
+  version = "v1.0.1"
+
+[[projects]]
+  branch = "master"
   name = "github.com/opencontainers/runc"
-  packages = ["libcontainer/system","libcontainer/user"]
+  packages = [
+    "libcontainer/system",
+    "libcontainer/user"
+  ]
   revision = "43c43004ef0563ceab23bb8f254cd5061a6f607e"
 
 [[projects]]
@@ -139,46 +223,65 @@
   version = "v0.1.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/pelletier/go-toml"
   packages = ["."]
   revision = "31055c2ff0bb0c7f9095aec0d220aed21108121e"
 
 [[projects]]
+  branch = "master"
   name = "github.com/pkg/errors"
   packages = ["."]
   revision = "839d9e913e063e28dfd0e6c7b7512793e0a48be9"
 
 [[projects]]
+  branch = "master"
   name = "github.com/pkg/sftp"
   packages = ["."]
   revision = "4d0e916071f68db74f8a73926335f809396d6b42"
 
 [[projects]]
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
+  version = "v1.0.5"
+
+[[projects]]
+  branch = "master"
   name = "github.com/spf13/afero"
-  packages = [".","mem","sftp"]
+  packages = [
+    ".",
+    "mem",
+    "sftp"
+  ]
   revision = "52e4a6cfac46163658bd4f123c49b6ee7dc75f78"
 
 [[projects]]
+  branch = "master"
   name = "github.com/spf13/cast"
   packages = ["."]
   revision = "e31f36ffc91a2ba9ddb72a4b6a607ff9b3d3cb63"
 
 [[projects]]
+  branch = "master"
   name = "github.com/spf13/cobra"
   packages = ["."]
   revision = "9c28e4bbd74e5c3ed7aacbc552b2cab7cfdfe744"
 
 [[projects]]
+  branch = "master"
   name = "github.com/spf13/jwalterweatherman"
   packages = ["."]
   revision = "33c24e77fb80341fe7130ee7c594256ff08ccc46"
 
 [[projects]]
+  branch = "master"
   name = "github.com/spf13/pflag"
   packages = ["."]
   revision = "6fd2ff4ff8dfcdf5556fbdc0ac0284408274b1a7"
 
 [[projects]]
+  branch = "master"
   name = "github.com/spf13/viper"
   packages = ["."]
   revision = "16990631d4aa7e38f73dbbbf37fa13e67c648531"
@@ -186,30 +289,51 @@
 [[projects]]
   name = "github.com/x-cray/logrus-prefixed-formatter"
   packages = ["."]
-  revision = "1d837bc239d1686e1ae281c4629495bd0e7da8d5"
-  version = "v0.3.0"
+  revision = "bb2702d423886830dee131692131d35648c382e2"
+  version = "v0.5.2"
 
 [[projects]]
+  branch = "master"
   name = "golang.org/x/crypto"
-  packages = ["curve25519","ed25519","ed25519/internal/edwards25519","ssh","ssh/terminal"]
+  packages = [
+    "curve25519",
+    "ed25519",
+    "ed25519/internal/edwards25519",
+    "ssh",
+    "ssh/terminal"
+  ]
   revision = "7682e7e3945130cf3cde089834664f68afdd1523"
 
 [[projects]]
+  branch = "master"
   name = "golang.org/x/net"
-  packages = ["context","context/ctxhttp"]
+  packages = ["context"]
   revision = "e57319ce2bbbdc638169d4756554fbaedc805399"
 
 [[projects]]
+  branch = "master"
   name = "golang.org/x/sys"
-  packages = ["unix","windows"]
-  revision = "b699b7032584f0953262cb2788a0ca19bb494703"
+  packages = [
+    "unix",
+    "windows"
+  ]
+  revision = "7db1c3b1a98089d0071c84f646ff5c96aad43682"
 
 [[projects]]
+  branch = "master"
   name = "golang.org/x/text"
-  packages = ["internal/gen","internal/triegen","internal/ucd","transform","unicode/cldr","unicode/norm"]
+  packages = [
+    "internal/gen",
+    "internal/triegen",
+    "internal/ucd",
+    "transform",
+    "unicode/cldr",
+    "unicode/norm"
+  ]
   revision = "098f51fb687dbaba1f6efabeafbb6461203f9e21"
 
 [[projects]]
+  branch = "master"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
   revision = "e4d366fc3c7938e2958e662b4258c7a89e1f0e3e"
@@ -217,6 +341,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "90069cd4c71e6f62fac8e122ace1399029b9386ccd3496c5d557d55a85ec8299"
+  inputs-digest = "c5b5347156ea67c2c4172c1976e9803d7bf8e346b209a4ff9639e1b1d4a9e067"
   solver-name = "gps-cdcl"
   solver-version = 1
