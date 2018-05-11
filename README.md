@@ -1,4 +1,6 @@
-[![CLA assistant](https://cla-assistant.io/readme/badge/ontariosystems/iscenv)](https://cla-assistant.io/ontariosystems/iscenv) [![Build Status](https://travis-ci.org/ontariosystems/iscenv.svg?branch=master)](https://travis-ci.org/ontariosystems/iscenv)
+[![Latest Release](https://img.shields.io/github/release/ontariosystems/iscenv.svg)](https://github.com/ontariosystems/iscenv/releases)
+[![CLA assistant](https://cla-assistant.io/readme/badge/ontariosystems/iscenv)](https://cla-assistant.io/ontariosystems/iscenv)
+[![Build Status](https://travis-ci.org/ontariosystems/iscenv.svg?branch=master)](https://travis-ci.org/ontariosystems/iscenv)
 
 # ISCEnv
 This utility allows the user to manage docker-based ISC product instances.  These instances are meant to be used as
