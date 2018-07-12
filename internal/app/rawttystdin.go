@@ -27,8 +27,10 @@ import (
 	"github.com/creack/termios/win"
 )
 
+// TTYSizeChangeHandler is a type that specifies a function signature for dealing with tty size changes
 type TTYSizeChangeHandler func(height, width int)
 
+// NewRawTTYStdin creates and returns a new raw tty with stdin
 func NewRawTTYStdin() (tty *rawTTYStdin, err error) {
 	rts := &rawTTYStdin{File: os.Stdin}
 	if rts.IsTerminal() {

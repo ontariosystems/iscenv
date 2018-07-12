@@ -19,6 +19,7 @@ package iscenv
 // Version This version number will be injected by the build system based on the Mercurial tags on the repository
 var Version string
 
+// Constants for use with the iscenv application
 const (
 	ApplicationName = "iscenv"
 

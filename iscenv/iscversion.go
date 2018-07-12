@@ -16,6 +16,7 @@ limitations under the License.
 
 package iscenv
 
+// ISCVersion represent data related to a version of an ISC product
 type ISCVersion struct {
 	ID      string
 	Version string

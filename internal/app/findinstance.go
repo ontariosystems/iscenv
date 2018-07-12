@@ -24,11 +24,13 @@ import (
 	"github.com/ontariosystems/iscenv/iscenv"
 )
 
+// FindInstance finds and returns the instance with the provided name
 func FindInstance(instanceName string) *iscenv.ISCInstance {
 	instanceName = strings.ToLower(instanceName)
 	return GetInstances().Find(instanceName)
 }
 
+// FindInstanceAndLogger finds and returns the instance with the provided name and a logger for that instance
 func FindInstanceAndLogger(instanceName string) (*iscenv.ISCInstance, *log.Entry) {
 	var id string
 	instance := FindInstance(instanceName)

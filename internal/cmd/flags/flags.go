@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// This package is a simple cobra/viper-aware flag wrapper that creates a unified interface for flag addition and access.
+// Package flags is a simple cobra/viper-aware flag wrapper that creates a unified interface for flag addition and access.
 // It supports only the types that iscenv needs, if you need more add them.
 package flags
 
@@ -32,8 +32,9 @@ type flag struct {
 	value  interface{}
 }
 
-var flags map[string]*flag = make(map[string]*flag)
+var flags = make(map[string]*flag)
 
+// GetKeys returns a slice of the keys of the flags
 func GetKeys() []string {
 	keys := make([]string, len(flags))
 	i := 0
@@ -45,34 +46,42 @@ func GetKeys() []string {
 	return keys
 }
 
+// GetString returns a flag value by name as a string
 func GetString(cmd *cobra.Command, name string) string {
 	return GetValue(cmd, name).(string)
 }
 
+// GetBool returns a flag value by name as a bool
 func GetBool(cmd *cobra.Command, name string) bool {
 	return GetValue(cmd, name).(bool)
 }
 
+// GetInt returns a flag value by name as a int
 func GetInt(cmd *cobra.Command, name string) int {
 	return int(forceFloat64(GetValue(cmd, name)))
 }
 
+// GetInt64 returns a flag value by name as a int64
 func GetInt64(cmd *cobra.Command, name string) int64 {
 	return int64(forceFloat64(GetValue(cmd, name)))
 }
 
+// GetUint returns a flag value by name as a uint
 func GetUint(cmd *cobra.Command, name string) uint {
 	return uint(forceFloat64(GetValue(cmd, name)))
 }
 
+// GetStringSlice returns a flag value by name as a string slice
 func GetStringSlice(cmd *cobra.Command, name string) []string {
 	return GetValue(cmd, name).([]string)
 }
 
+// GetValue returns a flag value by name as an interface
 func GetValue(cmd *cobra.Command, name string) interface{} {
 	return GetValueWithKey(GetFlagKey(cmd, name))
 }
 
+// GetValueWithKey returns a flag value by key as an interface
 func GetValueWithKey(key string) interface{} {
 	flag, ok := flags[key]
 	if !ok {
@@ -91,6 +100,7 @@ func GetValueWithKey(key string) interface{} {
 	return rv.Elem().Interface()
 }
 
+// GetRawValue returns a flag value as the underlying interface without asserting a type
 func GetRawValue(key string) interface{} {
 	flag, ok := flags[key]
 	if !ok {
@@ -100,23 +110,27 @@ func GetRawValue(key string) interface{} {
 	return flag.value
 }
 
+// AddFlag adds a flag to the provided command
 func AddFlag(cmd *cobra.Command, name string, value interface{}, usage string) {
 	AddFlagComplex(cmd, false, false, name, "", value, usage)
 }
 
+// AddFlagP is like AddFlag, but accepts a shorthand letter that can be used after a single dash
 func AddFlagP(cmd *cobra.Command, name string, shorthand string, value interface{}, usage string) {
 	AddFlagComplex(cmd, false, false, name, shorthand, value, usage)
 }
 
+// AddConfigFlag adds a flag to the provided command that is also bound to a config value
 func AddConfigFlag(cmd *cobra.Command, name string, value interface{}, usage string) {
 	AddFlagComplex(cmd, false, true, name, "", value, usage)
 }
 
+// AddConfigFlagP is like AddConfigFlag but accepts a shorthand letter that can be used after a single dash.
 func AddConfigFlagP(cmd *cobra.Command, name string, shorthand string, value interface{}, usage string) {
 	AddFlagComplex(cmd, false, true, name, shorthand, value, usage)
 }
 
-// Add a flag to the provided cobra command.  The default value will determine the type of flag.  Supported types are:
+// AddFlagComplex adds a flag to the provided cobra command.  The default value will determine the type of flag.  Supported types are:
 // string, bool, int64, uint, []string
 func AddFlagComplex(cmd *cobra.Command, persistent bool, cfg bool, name string, shorthand string, value interface{}, usage string) {
 	key := GetFlagKey(cmd, name)
@@ -162,6 +176,7 @@ func AddFlagComplex(cmd *cobra.Command, persistent bool, cfg bool, name string, 
 	}
 }
 
+// GetFlagKey returns the key for a flag given its name
 func GetFlagKey(cmd *cobra.Command, name string) string {
 	if cmd.Name() != "" {
 		return cmd.Name() + "." + name
@@ -170,7 +185,7 @@ func GetFlagKey(cmd *cobra.Command, name string) string {
 	return name
 }
 
-// viper uses spf13's cast library to quietly covert types in all manner of ways, (strings to ints by parsing for example).  We don't want to go that far, but since viper stores all numeric values as float64 we have to do a little conversion.
+// viper uses spf13's cast library to quietly convert types in all manner of ways, (strings to ints by parsing for example).  We don't want to go that far, but since viper stores all numeric values as float64 we have to do a little conversion.
 func forceFloat64(num interface{}) float64 {
 	switch n := num.(type) {
 	case float64:

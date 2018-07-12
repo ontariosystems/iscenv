@@ -34,8 +34,10 @@ const (
 	StartPhaseShutdown
 )
 
+// StartPhase represents a phase in the startup process
 type StartPhase uint
 
+// NewStartStatus creates and returns a new initialized StartStatus
 func NewStartStatus() *StartStatus {
 	return &StartStatus{
 		Phase:         StartPhaseStartup,
@@ -44,6 +46,7 @@ func NewStartStatus() *StartStatus {
 	}
 }
 
+// StartStatus represents information about the startup of an instance and the current phase it is in
 type StartStatus struct {
 	Phase           StartPhase       `json:"phase"`
 	ActivePlugins   []string         `json:"activePlugins"`
@@ -51,6 +54,7 @@ type StartStatus struct {
 	InstanceState   *isclib.Instance `json:"instanceState"`
 }
 
+// Update will update the start phase of the provided instance to the provided start phase
 func (ss *StartStatus) Update(phase StartPhase, state *isclib.Instance, executingPlugin string) {
 	// Done this way rather than simply auto-advancing so the calling code is easier to read
 	if ss.Phase != phase && ss.Phase+1 != phase {

@@ -6,7 +6,7 @@ deploy:
   provider: releases
   api_key:
     secure: aMWTwlKUjjQuniEufD0H8iLEZsWSZY/hVPN3q17U8NJJcxyTu6X8uFFFQ/3SFR/IRKEb+7N7uOHnDjNUvIbqNvrrHUH6tsWeb0AihnA/gzc6JLNYuiyTZfb94D/EVVAILp7QTHD6IIknuqWV7QTWoopWK5O5jKFcsQCE3CNyJcP90YnL92FejbRBMed1MqcmxryjL6YcQMZS6w1DHS3MgCBKC/H4GWiPKY6Ca28rqcjyA73A/4YK84v6BcENloVmtirqZ5IWindtuBzpFRT3EqBOOy99v+I1P9u5wU5LhT+ogGRiLXRV1UtpJFkkCI9oV+Np+G6kiJ1ulbIwg6MMmBm9Qnt7m2LhfQ3weCO6hJhbSe8BkFYwypBE5TUZ4nbTGoXXDl6Z0mzZIEaG6NQ9KIkEfo8fO/2rSB4Oz/WmZ5pTnyn5O0TR82vAXb6A0ITR0PptJFc/ZCIo9tGoiDpeAhXKwXqF904/+jI1td9q8rpYZwi7d+8//W/LgNGeb51NHBQLzzyOo+nKk5a/j5WGbXb96i8/ux1jHl1Qviq5XKY0e3jTqpkzNRiv+5tu2QDtRyOlMZoY43b2wNmgs1/rtG9iiIBYB4yUQVjGKiLzdEmcpDJuuE1q/uLoXx+UbQKDofsAHomVEmYvCdv7mzJk/FJAwjzJPkB7Hhid3XxpEgg=
-  file: iscenv
+  file: pkg/iscenv
   on:
     repo: ontariosystems/iscenv
   skip_cleanup: true

@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 )
 
+// CalledAs returns whether iscenv was called as one of the wrapped commands or not
 func CalledAs() (executable string, wrapped bool) {
 	executable = filepath.Base(os.Args[0])
 	for _, wrappedExe := range WrappedCommands {

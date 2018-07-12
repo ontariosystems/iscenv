@@ -18,10 +18,11 @@ package app
 
 import (
 	log "github.com/sirupsen/logrus"
-	docker "github.com/fsouza/go-dockerclient"
+	"github.com/fsouza/go-dockerclient"
 	"github.com/ontariosystems/iscenv/iscenv"
 )
 
+// DockerClient holds a reference to a client for interacting with docker
 var DockerClient *docker.Client
 
 func init() {

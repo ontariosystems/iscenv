@@ -18,6 +18,7 @@ package plugins
 
 import "github.com/ontariosystems/iscenv/iscenv"
 
+// NewVersionerManager creates and returns a PluginManager for a VersionerPlugin
 func NewVersionerManager(args PluginArgs) (*VersionerManager, error) {
 	pm, err := NewPluginManager(iscenv.VersionerKey, iscenv.VersionerPlugin{}, args)
 	if err != nil {
@@ -27,15 +28,18 @@ func NewVersionerManager(args PluginArgs) (*VersionerManager, error) {
 	return &VersionerManager{PluginManager: pm}, nil
 }
 
+// VersionerManager is a PluginManager for managing versioner plugins
 type VersionerManager struct {
 	*PluginManager
 }
 
+//ActivatedVersioner holds information about a versioner plugin that has been activated
 type ActivatedVersioner struct {
 	*ActivatedPlugin
 	Versioner iscenv.Versioner
 }
 
+// ActivatePlugins will activate the provided list of versioner plugins.
 func (lm *VersionerManager) ActivatePlugins(pluginsToActivate []string) ([]*ActivatedVersioner, error) {
 	plugins, err := lm.PluginManager.ActivatePlugins(pluginsToActivate)
 	if err != nil {

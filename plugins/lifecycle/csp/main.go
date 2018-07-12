@@ -38,17 +38,22 @@ var (
 	plog         = log.WithField("plugin", pluginKey)
 )
 
+// Plugin represents this plugin and serves as a place to attach functions to implement the Lifecycler interface
 type Plugin struct{}
+
+// Flags is used to hold flag values for this plugins flags
 type Flags struct {
 	Image string `json:"image"`
 	Tag   string `json:"tag"`
 	Port  int64  `json:"port"`
 }
 
+// Main serves as the main entry point for the plugin
 func (plugin *Plugin) Main() {
 	iscenv.ServeLifecyclePlugin(plugin)
 }
 
+// Key returns the unique identifier for the plugin
 func (*Plugin) Key() string {
 	var err error
 	if dockerClient, err = docker.NewClient(iscenv.DockerSocket); err != nil {
@@ -58,6 +63,7 @@ func (*Plugin) Key() string {
 	return pluginKey
 }
 
+// Flags returns an array of additional flags to add to the start command
 func (*Plugin) Flags() (iscenv.PluginFlags, error) {
 	fb := iscenv.NewPluginFlagsBuilder()
 	fb.AddFlag("image", true, "", "The docker image to use when creating the CSP container")
@@ -66,23 +72,28 @@ func (*Plugin) Flags() (iscenv.PluginFlags, error) {
 	return fb.Flags()
 }
 
+// Environment returns an array of docker API formatted environment variables (ENV_VAR=value) which will be added to the instance
 func (*Plugin) Environment(version string, flags map[string]interface{}) ([]string, error) {
 	return nil, nil
 }
 
+// Copies returns an array of items to copy to the container in the format "src:dest"
 func (*Plugin) Copies(_ string, _ map[string]interface{}) ([]string, error) {
 	return nil, nil
 }
 
+// Volumes returns an array of volumes to add where the string is a standard docker volume format "src:dest:flag"
 func (*Plugin) Volumes(_ string, _ map[string]interface{}) ([]string, error) {
 	return nil, nil
 }
 
+// Ports returns an array of additional ports to map in the format <optional hostIP>:hostPort:containerPort.  You may also prefix the host port with a + to indicate it should be shifted by the port offset
 func (*Plugin) Ports(_ string, _ map[string]interface{}) ([]string, error) {
 	return nil, nil
 }
 
-func (p *Plugin) AfterStart(instance *iscenv.ISCInstance) error {
+// AfterStart will run on the host after the container instance starts, receives the same flag values as start
+func (plugin *Plugin) AfterStart(instance *iscenv.ISCInstance) error {
 	flags, err := getFlagsForInstance(instance)
 	if err != nil || flags.Image == "" {
 		return err
@@ -99,8 +110,8 @@ func (p *Plugin) AfterStart(instance *iscenv.ISCInstance) error {
 		return err
 	}
 
-	// TODO: This is hacky.  The entire container handling portion of iscenv needs to be rewritten.  Right now it's more trouble that it's worth to restart this instance.  Too much of the port offset, etc. logic is rolled into simple container creation.  When it's rewritten remove this.
-	if err := p.BeforeRemove(instance); err != nil {
+	// TODO: This is hacky.  The entire container handling portion of iscenv needs to be rewritten.  Right now it's more trouble than it's worth to restart this instance.  Too much of the port offset, etc. logic is rolled into simple container creation.  When it's rewritten remove this.
+	if err := plugin.BeforeRemove(instance); err != nil {
 		return err
 	}
 
@@ -135,6 +146,7 @@ func (p *Plugin) AfterStart(instance *iscenv.ISCInstance) error {
 	return nil
 }
 
+// AfterStop will run on the host after the instance stops
 func (*Plugin) AfterStop(instance *iscenv.ISCInstance) error {
 	name := getCSPContainerName(instance)
 	l := plog.WithField("name", name)
@@ -151,6 +163,7 @@ func (*Plugin) AfterStop(instance *iscenv.ISCInstance) error {
 	return nil
 }
 
+// BeforeRemove will run on the host before the instance is removed
 func (*Plugin) BeforeRemove(instance *iscenv.ISCInstance) error {
 	name := getCSPContainerName(instance)
 	l := plog.WithField("name", name)
@@ -167,14 +180,17 @@ func (*Plugin) BeforeRemove(instance *iscenv.ISCInstance) error {
 	return nil
 }
 
+// BeforeInstance will run within the container before the instance successfully starts
 func (*Plugin) BeforeInstance(state *isclib.Instance) error {
 	return nil
 }
 
+// WithInstance will run within the container after the instance starts
 func (*Plugin) WithInstance(state *isclib.Instance) error {
 	return nil
 }
 
+// AfterInstance will run within the container after the instance stops
 func (*Plugin) AfterInstance(state *isclib.Instance) error {
 	return nil
 }

@@ -36,16 +36,20 @@ const (
 	registryURL = "https://" + registry
 )
 
+// Plugin represents this plugin and serves as a place to attach functions to implement the Lifecycler interface
 type Plugin struct{}
 
+// Main serves as the main entry point for the plugin
 func (plugin *Plugin) Main() {
 	iscenv.ServeVersionsPlugin(plugin)
 }
 
+// Key returns the unique identifier for the plugin
 func (*Plugin) Key() string {
 	return pluginKey
 }
 
+// Versions finds the versions available for the provided image
 func (*Plugin) Versions(image string) (iscenv.ISCVersions, error) {
 	// If this isn't a quay image, we can't search quay for it (obviously)
 	prefix := registry + "/"

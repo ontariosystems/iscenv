@@ -36,6 +36,7 @@ func init() {
 	golog.SetOutput(ioutil.Discard)
 }
 
+// NewPluginManager creates and returns a PluginManager for the requested Plugin
 func NewPluginManager(pluginType string, iscenvPlugin plugin.Plugin, args PluginArgs) (*PluginManager, error) {
 	exeDir, err := osext.ExecutableFolder()
 	if err != nil {
@@ -99,27 +100,31 @@ func NewPluginManager(pluginType string, iscenvPlugin plugin.Plugin, args Plugin
 	}, nil
 }
 
+// PluginManager holds the type of the plugin and a map of the clients
 type PluginManager struct {
 	pluginType string
 	clients    map[string]*PluginClient
 }
 
+// PluginClient holds path to the executable and client for a plugin
 type PluginClient struct {
 	ExecutablePath string
 	*plugin.Client
 }
 
+// ActivatedPlugin holds information about a plugin that has been activated
 type ActivatedPlugin struct {
 	Id     string
 	Path   string
 	Plugin interface{}
 }
 
-// Needed because the embedded struct is Client and it has a function called Client so it's client.Client() is ambiguous
+// RPCClient is needed because the embedded struct is Client and it has a function called Client so it's client.Client() is ambiguous
 func (pc *PluginClient) RPCClient() (*plugin.RPCClient, error) {
 	return pc.Client.Client()
 }
 
+// AvailablePlugins returns a slice of the keys of all of the discovered plugins
 func (pm *PluginManager) AvailablePlugins() []string {
 	plugins := make([]string, len(pm.clients))
 	i := 0
@@ -168,6 +173,7 @@ func (pm *PluginManager) ActivatePlugins(pluginsToActivate []string) ([]*Activat
 	return activatedPlugins, nil
 }
 
+// Close will shut down all the PluginClients
 func (pm *PluginManager) Close() {
 	for _, client := range pm.clients {
 		client.Kill()

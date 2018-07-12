@@ -23,14 +23,17 @@ import (
 	"github.com/ontariosystems/iscenv/iscenv"
 )
 
+// DockerPort creates and returns a container docker port
 func DockerPort(port iscenv.ContainerPort) docker.Port {
 	return docker.Port(port.String()) + "/tcp"
 }
 
+// DockerPortBinding returns a slice of PortBindings representing the binding between a container port and a host port based on the offset
 func DockerPortBinding(port int64, portOffset int64) []docker.PortBinding {
 	return []docker.PortBinding{{HostIP: "", HostPort: strconv.FormatInt(port+portOffset, 10)}}
 }
 
+// GetDockerBindingPort returns a DockerPort that represents the first port from the provided bindings
 // Assumes a single binding
 func GetDockerBindingPort(bindings []docker.PortBinding) (iscenv.ContainerPort, error) {
 	port, err := strconv.ParseInt(bindings[0].HostPort, 10, 64)

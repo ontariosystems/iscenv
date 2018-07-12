@@ -25,6 +25,7 @@ import (
 	"github.com/ontariosystems/iscenv/iscenv"
 )
 
+// WaitForInstance will wait for an instance until it is running or the timeout is reached
 func WaitForInstance(instance *iscenv.ISCInstance, timeout time.Duration) error {
 	c := make(chan error, 1)
 	go WaitForInstanceForever(instance, c)
@@ -36,6 +37,7 @@ func WaitForInstance(instance *iscenv.ISCInstance, timeout time.Duration) error 
 	}
 }
 
+// WaitForInstanceForever ill wait for an instance until it is running
 func WaitForInstanceForever(instance *iscenv.ISCInstance, c chan error) {
 	for {
 		container, err := GetContainerForInstance(instance)

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// This package exists mainly to prevent a cycle when plugins need to use "app"
+// Package plugins exists mainly to prevent a cycle when plugins need to use "app"
 package plugins
 
 import (
@@ -32,7 +32,7 @@ import (
 	"github.com/ontariosystems/iscenv/plugins/versions/quay"
 )
 
-// An API for starting internal plugins
+// InternalPlugin is an API for starting internal plugins
 type InternalPlugin interface {
 	// Start the plugin
 	Main()
@@ -45,6 +45,7 @@ type InternalPlugin interface {
 // The value is the implementation of the plugin itself
 type internalPluginMapping map[string]map[string]InternalPlugin
 
+// InternalPlugins provides information about all the internal plugins keyed first by type and then by key
 var InternalPlugins internalPluginMapping
 
 func init() {

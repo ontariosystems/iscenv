@@ -20,14 +20,17 @@ import (
 	"strconv"
 )
 
+// ContainerPorts is a listing of the ContainerPorts of the container
 type ContainerPorts struct {
 	SuperServer ContainerPort
 	Web         ContainerPort
 	HealthCheck ContainerPort
 }
 
+// ContainerPort is a int64 representation of a port in a container
 type ContainerPort int64
 
+// String returns a string representing the ContainerPort
 func (p ContainerPort) String() string {
 	return strconv.FormatInt(int64(p), 10)
 }

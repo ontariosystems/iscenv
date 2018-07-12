@@ -21,6 +21,7 @@ import (
 	"github.com/ontariosystems/iscenv/iscenv"
 )
 
+// DockerRemove removes the container that backs the provided instance
 func DockerRemove(instance *iscenv.ISCInstance) error {
 	return DockerClient.RemoveContainer(docker.RemoveContainerOptions{ID: instance.ID, RemoveVolumes: true, Force: true})
 }

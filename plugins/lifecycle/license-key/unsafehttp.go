@@ -14,8 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// This exists to ignore our various insane internal certificates
 package licensekeyplugin
+
+// This exists to ignore our various insane internal certificates
 
 import (
 	"crypto/tls"
@@ -39,6 +40,7 @@ var unsafeClient = &http.Client{
 	},
 }
 
+// UnsafeGet exists as a way to ignore certificate errors
 func UnsafeGet(url string) (*http.Response, error) {
 	return unsafeClient.Get(url)
 }

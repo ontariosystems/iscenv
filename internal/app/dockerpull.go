@@ -27,6 +27,7 @@ const (
 	defaultRegistry = "https://index.docker.io/v1/"
 )
 
+// DockerPull performs a docker pull of the requested image at the designated tag
 func DockerPull(image, tag string) error {
 	authcfgs, err := docker.NewAuthConfigurationsFromDockerCfg()
 	if err != nil {

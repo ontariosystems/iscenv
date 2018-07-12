@@ -22,43 +22,48 @@ import (
 	"github.com/hashicorp/go-plugin"
 )
 
+// Constants for versioner plugins
 const (
 	VersionerKey = "versions"
 )
 
-// The versioner interface describes a plugin which can find versions for iscenv
+// Versioner is an interface that describes a plugin which can find versions for iscenv
 type Versioner interface {
-	// Find the versions avaiable for the provided image
+	// Find the versions available for the provided image
 	Versions(image string) (ISCVersions, error)
 }
 
-// The client (primary executable) RPC-based implementation of the interface
+// VersionerRPC is the client (primary executable) RPC-based implementation of the interface
 type VersionerRPC struct{ client *rpc.Client }
 
+// Versions is the client side of the plugin interface
 func (v VersionerRPC) Versions(image string) (ISCVersions, error) {
 	var resp ISCVersions
 	err := v.client.Call("Plugin.Versions", image, &resp)
 	return resp, err
 }
 
-// The server (plugin side) RPC wrapper around the concrete plugin implementation
+// VersionerRPCServer is the server (plugin side) RPC wrapper around the concrete plugin implementation
 type VersionerRPCServer struct{ Plugin Versioner }
 
+// Versions is the server side of the plugin interface
 func (v *VersionerRPCServer) Versions(image string, resp *ISCVersions) (err error) {
 	*resp, err = v.Plugin.Versions(image)
 	return err
 }
 
-// The actual plugin interface needed by go-plugin.  It's a little strange in that it has both the client and server sides in the same interface.
+// VersionerPlugin is the actual plugin interface needed by go-plugin.  It's a little strange in that it has both the client and server sides in the same interface.
 type VersionerPlugin struct {
 	// The actual implementation of the plugin.  This will be unset on the client side
 	Plugin Versioner
 }
 
+// Server is the server side of the plugin RPC
 func (v VersionerPlugin) Server(*plugin.MuxBroker) (interface{}, error) {
 	return &VersionerRPCServer{Plugin: v.Plugin}, nil
 }
 
+// Client is the client side of the plugin RPC
 func (VersionerPlugin) Client(_ *plugin.MuxBroker, c *rpc.Client) (interface{}, error) {
 	return &VersionerRPC{client: c}, nil
 }

@@ -29,7 +29,7 @@ import (
 	version "github.com/hashicorp/go-version"
 )
 
-// Ensure that a container exists and is started.  Returns the ID of the started container or an error
+// DockerStart ensures that a container exists and is started.  Returns the ID of the started container or an error
 func DockerStart(opts DockerStartOptions) (id string, err error) {
 	ilog := log.WithField("instance", opts.Name)
 	instances := GetInstances()
@@ -200,9 +200,5 @@ func writeTar(copies []string, writer io.Writer) error {
 	}
 
 	log.Debug("Closing tar writer")
-	if err := tw.Close(); err != nil {
-		return err
-	}
-
-	return nil
+	return tw.Close()
 }

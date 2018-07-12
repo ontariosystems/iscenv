@@ -25,6 +25,7 @@ import (
 	"github.com/ontariosystems/iscenv/iscenv"
 )
 
+// DockerStartOptions holds information used in starting a container
 type DockerStartOptions struct {
 	// The name of the instance
 	Name string
@@ -80,6 +81,7 @@ type DockerStartOptions struct {
 	Recreate bool
 }
 
+// ToCreateContainerOptions transforms a DockerStartOptions into CreateContainerOptions
 func (opts *DockerStartOptions) ToCreateContainerOptions() *docker.CreateContainerOptions {
 	return &docker.CreateContainerOptions{
 		Name: opts.ContainerName(),
@@ -97,6 +99,7 @@ func (opts *DockerStartOptions) ToCreateContainerOptions() *docker.CreateContain
 	}
 }
 
+// ToHostConfig transforms a DockerStartOptions into a HostConfig
 func (opts *DockerStartOptions) ToHostConfig() *docker.HostConfig {
 
 	return &docker.HostConfig{
@@ -110,6 +113,7 @@ func (opts *DockerStartOptions) ToHostConfig() *docker.HostConfig {
 	}
 }
 
+// InternalVolumes returns a map of the volumes internal to the container extracted from the DockerStartOptions list of volumes
 func (opts *DockerStartOptions) InternalVolumes() map[string]struct{} {
 	volumes := make(map[string]struct{})
 	for _, volume := range opts.Volumes {
@@ -123,6 +127,7 @@ func (opts *DockerStartOptions) InternalVolumes() map[string]struct{} {
 	return volumes
 }
 
+// VolumeBinds returns a slice of volumes that should be bound from the DockerStartOptions
 func (opts *DockerStartOptions) VolumeBinds() []string {
 	volumes := make([]string, 0)
 	for _, volume := range opts.Volumes {
@@ -134,6 +139,7 @@ func (opts *DockerStartOptions) VolumeBinds() []string {
 	return volumes
 }
 
+// ContainerName returns the name that should be used for the container that is being managed
 func (opts *DockerStartOptions) ContainerName() string {
 	if opts.FullName != "" {
 		return opts.FullName
@@ -141,6 +147,7 @@ func (opts *DockerStartOptions) ContainerName() string {
 	return iscenv.ContainerPrefix + opts.Name
 }
 
+// ToExposedPorts returns a map of ports that are exposed by the contain
 func (opts *DockerStartOptions) ToExposedPorts() map[docker.Port]struct{} {
 	ports := make(map[docker.Port]struct{})
 	for port := range opts.ToDockerPortBindings() {
@@ -150,6 +157,7 @@ func (opts *DockerStartOptions) ToExposedPorts() map[docker.Port]struct{} {
 	return ports
 }
 
+// ToDockerPortBindings returns a map of Ports to a slice of PortBindings
 func (opts *DockerStartOptions) ToDockerPortBindings() map[docker.Port][]docker.PortBinding {
 	bindings := make(map[docker.Port][]docker.PortBinding)
 

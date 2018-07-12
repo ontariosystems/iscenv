@@ -20,8 +20,10 @@ import (
 	"fmt"
 )
 
+// ISCInstances is a slice of ISCInstance
 type ISCInstances []*ISCInstance
 
+// ByPortOffsets returns a map of ISCInstance indexed by their port offsets
 func (is ISCInstances) ByPortOffsets() (map[int64]*ISCInstance, error) {
 	offsets := make(map[int64]*ISCInstance)
 	for _, i := range is {
@@ -35,6 +37,7 @@ func (is ISCInstances) ByPortOffsets() (map[int64]*ISCInstance, error) {
 	return offsets, nil
 }
 
+// CalculatePortOffset returns the next available port offset
 func (is ISCInstances) CalculatePortOffset(start int64) (int64, error) {
 	offsets, err := is.ByPortOffsets()
 	if err != nil {
@@ -51,6 +54,7 @@ func (is ISCInstances) CalculatePortOffset(start int64) (int64, error) {
 	return -1, fmt.Errorf("Could not determine next port offset")
 }
 
+// UsedPortOffset returns whether a port offset is currently in use
 func (is ISCInstances) UsedPortOffset(offset int64) (bool, error) {
 	offsets, err := is.ByPortOffsets()
 	if err != nil {
@@ -61,6 +65,7 @@ func (is ISCInstances) UsedPortOffset(offset int64) (bool, error) {
 	return used, nil
 }
 
+// Find returns the corresponding ISCInstance for the name string provided
 func (is ISCInstances) Find(name string) *ISCInstance {
 	for _, i := range is {
 		if i.Name == name {
@@ -71,6 +76,7 @@ func (is ISCInstances) Find(name string) *ISCInstance {
 	return nil
 }
 
+// Exists returns whether an instance exists with the provided name
 func (is ISCInstances) Exists(name string) bool {
 	return is.Find(name) != nil
 }

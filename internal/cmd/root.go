@@ -43,6 +43,7 @@ var rootCmd = &cobra.Command{
 	Long:  "This tool allows the creation and management of Docker-based ISC product Environments.",
 }
 
+// Execute runs the root functionality of the iscenv command
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		logAndExit(log.WithError(err), "Failed to execute iscenv command")

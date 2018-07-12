@@ -18,6 +18,7 @@ package plugins
 
 import "github.com/ontariosystems/iscenv/iscenv"
 
+// NewLifecyclerManager creates and returns a PluginManager for a LifecyclerPlugin
 func NewLifecyclerManager(args PluginArgs) (*LifecyclerManager, error) {
 	pm, err := NewPluginManager(iscenv.LifecyclerKey, iscenv.LifecyclerPlugin{}, args)
 	if err != nil {
@@ -27,15 +28,18 @@ func NewLifecyclerManager(args PluginArgs) (*LifecyclerManager, error) {
 	return &LifecyclerManager{PluginManager: pm}, nil
 }
 
+// LifecyclerManager is a PluginManager for managing lifecycler plugins
 type LifecyclerManager struct {
 	*PluginManager
 }
 
+// ActivatedLifecycler holds information about a lifecycler plugin that has been activated
 type ActivatedLifecycler struct {
 	*ActivatedPlugin
 	Lifecycler iscenv.Lifecycler
 }
 
+// ActivatePlugins will activate the provided list of lifecycler plugins.
 func (lm *LifecyclerManager) ActivatePlugins(pluginsToActivate []string) ([]*ActivatedLifecycler, error) {
 	plugins, err := lm.PluginManager.ActivatePlugins(pluginsToActivate)
 	if err != nil {

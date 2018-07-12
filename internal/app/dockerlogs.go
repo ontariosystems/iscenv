@@ -25,6 +25,7 @@ import (
 )
 
 // Retrieve the logs from only this start run
+
 // DockerLogs will retrieve logs from a docker container
 // If follow is true, the logs will be followed
 // since is the unix time from which logs should be retrieved

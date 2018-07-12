@@ -21,19 +21,19 @@ import (
 	"strings"
 )
 
-// The contents of a docker ocnfiguration file
+// DockerConfig is the contents of a docker ocnfiguration file
 type DockerConfig struct {
 	Path    string
 	Entries map[string]DockerConfigEntry
 }
 
-// A single entry from a docker configuration file
+// DockerConfigEntry is a single entry from a docker configuration file
 type DockerConfigEntry struct {
 	Auth  string `json:"auth"`
 	Email string `json:"email"`
 }
 
-// Parse the credentials from this entry
+// Credentials parses the credentials from this entry
 func (dce DockerConfigEntry) Credentials() (user string, pass string, err error) {
 	creds, err := base64.StdEncoding.DecodeString(dce.Auth)
 	if err != nil {
