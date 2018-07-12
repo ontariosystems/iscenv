@@ -25,12 +25,14 @@ import (
 	"strings"
 )
 
+// DockerTokenTransport represents the information needed to make a request providing basic username and password authentication
 type DockerTokenTransport struct {
 	Transport http.RoundTripper
 	Username  string
 	Password  string
 }
 
+// RoundTrip authenticates with username and password credentials to a secured docker registry
 func (dtt *DockerTokenTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	resp, err := dtt.Transport.RoundTrip(req)
 	if err != nil {

@@ -22,10 +22,12 @@ import (
 	"github.com/ontariosystems/iscenv/iscenv"
 )
 
+// GetInstanceStartTime gets and returns the start time of the provided instance
 func GetInstanceStartTime(instance *iscenv.ISCInstance) (time.Time, error) {
+	var err error
 	if container, err := GetContainerForInstance(instance); err == nil {
 		return container.State.StartedAt, nil
-	} else {
-		return time.Time{}, err
 	}
+
+	return time.Time{}, err
 }

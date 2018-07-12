@@ -21,11 +21,12 @@ import (
 	"github.com/ontariosystems/iscenv/iscenv"
 )
 
+// InstanceLogger creates and returns a logger for the provided instance
 func InstanceLogger(instance *iscenv.ISCInstance) *log.Entry {
 	return InstanceLoggerArgs(instance.Name, instance.ID)
 }
 
-// Return an instance logger with the values as args
+// InstanceLoggerArgs returns an instance logger with the values as args
 func InstanceLoggerArgs(instanceName, instanceID string) *log.Entry {
 	return log.WithFields(log.Fields{
 		"instanceName": instanceName,
@@ -33,6 +34,7 @@ func InstanceLoggerArgs(instanceName, instanceID string) *log.Entry {
 	})
 }
 
+// PluginLogger creates and returns a logger with references to the provided plugin information
 func PluginLogger(id, method, path string) *log.Entry {
 	return log.WithFields(log.Fields{
 		"pluginID":   id,
@@ -41,11 +43,12 @@ func PluginLogger(id, method, path string) *log.Entry {
 	})
 }
 
+// DockerRepoLogger creates and returns a logger with a reference to the provided docker repository
 func DockerRepoLogger(repo string) *log.Entry {
 	return log.WithField("dockerRepository", repo)
 }
 
-// Will evaluate an error for known error types and return a logger with the appropriate fields pulled from that type of error.
+// ErrorLogger will evaluate an error for known error types and return a logger with the appropriate fields pulled from that type of error.
 func ErrorLogger(logger log.FieldLogger, err error) *log.Entry {
 	switch e := err.(type) {
 	case *PluginError:

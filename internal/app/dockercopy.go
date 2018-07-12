@@ -27,10 +27,12 @@ import (
 	"github.com/fsouza/go-dockerclient"
 )
 
+// DockerCopy will copy a file from inside an instance to a local path
 func DockerCopy(instance *iscenv.ISCInstance, instancePath, localPath string) error {
 	r, w := io.Pipe()
 
 	go func() {
+		defer w.Close()
 		DockerClient.DownloadFromContainer(instance.ID, docker.DownloadFromContainerOptions{
 			Path:         instancePath,
 			OutputStream: w,

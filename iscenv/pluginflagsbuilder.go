@@ -25,17 +25,20 @@ func NewPluginFlagsBuilder() *PluginFlagsBuilder {
 	}
 }
 
+// PluginFlagsBuilder holds the flags for a plugin and any errors that have occurred
 type PluginFlagsBuilder struct {
 	flags  PluginFlags
 	result *multierror.Error
 }
 
+// AddFlag adds a flag to list of flags on the PluginFlagsBuilder
 func (builder *PluginFlagsBuilder) AddFlag(flag string, hasConfig bool, defaultValue interface{}, usage string) {
 	if err := builder.flags.AddFlag(flag, hasConfig, defaultValue, usage); err != nil {
 		builder.result = multierror.Append(builder.result, err)
 	}
 }
 
+// Flags returns the list of flags and any errors that were encountered
 func (builder *PluginFlagsBuilder) Flags() (PluginFlags, error) {
 	return builder.flags, builder.result.ErrorOrNil()
 }

@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/go-plugin"
 )
 
+// PluginHandshake is the handshake config used with plugins
 var PluginHandshake = plugin.HandshakeConfig{
 	ProtocolVersion:  1,
 	MagicCookieKey:   "ISCENV_PLUGIN",

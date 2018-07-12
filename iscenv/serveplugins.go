@@ -26,6 +26,7 @@ import (
 	"github.com/x-cray/logrus-prefixed-formatter"
 )
 
+// ServeLifecyclePlugin serves a life cycle plugin
 func ServeLifecyclePlugin(impl Lifecycler) {
 	pluginMap := map[string]plugin.Plugin{
 		LifecyclerKey: LifecyclerPlugin{Plugin: impl},
@@ -40,6 +41,7 @@ func ServeLifecyclePlugin(impl Lifecycler) {
 	})
 }
 
+// ServeVersionsPlugin serves a versioner plugin
 func ServeVersionsPlugin(impl Versioner) {
 	pluginMap := map[string]plugin.Plugin{
 		VersionerKey: VersionerPlugin{Plugin: impl},

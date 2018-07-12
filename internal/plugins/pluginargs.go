@@ -16,11 +16,13 @@ limitations under the License.
 
 package plugins
 
+// PluginArgs holds information about the arguments for a plugin
 type PluginArgs struct {
 	LogLevel string
 	LogJSON  bool
 }
 
+// ToArgs returns a slice of strings representing the command arguments for a plugin
 func (pa PluginArgs) ToArgs() []string {
 	args := []string{}
 	if pa.LogLevel != "" {

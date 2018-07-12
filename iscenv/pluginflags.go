@@ -21,17 +21,19 @@ import (
 	"strings"
 )
 
+// NewPluginFlags creates and returns an empty map of PluginFlag
 func NewPluginFlags() PluginFlags {
 	return PluginFlags{
 		Flags: make(map[string]*PluginFlag),
 	}
 }
 
+// PluginFlags is a slice of PluginFlag
 type PluginFlags struct {
 	Flags map[string]*PluginFlag
 }
 
-// Add a Plugin Flag to the list of available flags.
+// AddFlag adds a Plugin Flag to the list of available flags.
 func (pf *PluginFlags) AddFlag(flag string, hasConfig bool, defaultValue interface{}, usage string) error {
 	flag = strings.ToLower(flag)
 	if _, ok := pf.Flags[flag]; ok {

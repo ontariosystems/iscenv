@@ -22,6 +22,7 @@ import (
 	"strings"
 )
 
+// GetDocker0InterfaceIP finds and returns the ip for the docker0 network interface
 func GetDocker0InterfaceIP() (string, error) {
 	i, err := net.InterfaceByName("docker0")
 	if err != nil {

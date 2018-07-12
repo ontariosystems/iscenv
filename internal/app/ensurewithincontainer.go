@@ -24,6 +24,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// EnsureWithinContainer returns an error if it is executed from outside a container
 func EnsureWithinContainer(commandName string) error {
 	proc1CGroupContents, err := ioutil.ReadFile("/proc/1/cgroup")
 	if err != nil {

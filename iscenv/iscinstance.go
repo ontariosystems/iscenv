@@ -20,6 +20,7 @@ import (
 	"fmt"
 )
 
+// ISCInstance represents information about an instance of an ISC product instance
 type ISCInstance struct {
 	ID      string
 	Name    string
@@ -29,6 +30,7 @@ type ISCInstance struct {
 	Ports   ContainerPorts
 }
 
+// PortOffset finds and returns the port offset for the instance
 func (i ISCInstance) PortOffset() (offset int64, err error) {
 	var ss, web, hc int64
 	if ss, err = getOffset(i.Name, "SuperServer", i.Ports.SuperServer, PortExternalSS); err != nil {

@@ -16,6 +16,7 @@ limitations under the License.
 
 package app
 
+// NewDockerConfigError creates and returns a new DockerConfigError
 func NewDockerConfigError(path, registry string, err error) *DockerConfigError {
 	return &DockerConfigError{
 		ConfigPath: path,
@@ -24,12 +25,14 @@ func NewDockerConfigError(path, registry string, err error) *DockerConfigError {
 	}
 }
 
+// DockerConfigError is an used for logging an error with a docker config
 type DockerConfigError struct {
 	ConfigPath string
 	Registry   string
 	Err        error
 }
 
+// Error returns the error string for the error associated with the DockerConfigError
 func (dce *DockerConfigError) Error() string {
 	return dce.Err.Error()
 }

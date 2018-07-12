@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 // This was copied from docker itself rather than vendoring the entire docker project for this one struct
+
 package quayversionsplugin
 
 import (

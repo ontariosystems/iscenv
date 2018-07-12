@@ -21,6 +21,7 @@ import (
 	"github.com/ontariosystems/iscenv/iscenv"
 )
 
+// GetContainerForInstance finds and returns the container that is backing the provided instance
 func GetContainerForInstance(instance *iscenv.ISCInstance) (*docker.Container, error) {
 	return DockerClient.InspectContainer(instance.ID)
 }

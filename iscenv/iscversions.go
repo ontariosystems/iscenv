@@ -22,10 +22,16 @@ import (
 	"github.com/mcuadros/go-version"
 )
 
+// ISCVersions is a slice of ISCVersion
 type ISCVersions []*ISCVersion
 
-func (evs ISCVersions) Len() int      { return len(evs) }
+// Len returns the number of versions
+func (evs ISCVersions) Len() int { return len(evs) }
+
+// Swap interchanges two versions in the list
 func (evs ISCVersions) Swap(i, j int) { evs[i], evs[j] = evs[j], evs[i] }
+
+// Less returns whether version in one index is less than the version in the other index
 func (evs ISCVersions) Less(i, j int) bool {
 	cmp := version.CompareSimple(version.Normalize(evs[i].Version), version.Normalize(evs[j].Version))
 	if cmp == 0 {
@@ -35,6 +41,7 @@ func (evs ISCVersions) Less(i, j int) bool {
 	return cmp < 0
 }
 
+// AddIfMissing adds a version to the list if it isn't already included
 func (evs *ISCVersions) AddIfMissing(ev *ISCVersion) bool {
 	if !evs.Exists(ev.Version) {
 		*evs = append(*evs, ev)
@@ -44,14 +51,17 @@ func (evs *ISCVersions) AddIfMissing(ev *ISCVersion) bool {
 	return false
 }
 
+// Latest finds and returns the last version in the list
 func (evs ISCVersions) Latest() *ISCVersion {
 	return evs[len(evs)-1]
 }
 
+// Exists returns whether the provided version exists in the list
 func (evs ISCVersions) Exists(versionString string) bool {
 	return evs.Find(versionString) != nil
 }
 
+// Find finds and returns the ISCVersion for the provided version string
 func (evs ISCVersions) Find(versionString string) *ISCVersion {
 	for _, version := range evs {
 		if version.Version == versionString {
@@ -62,6 +72,7 @@ func (evs ISCVersions) Find(versionString string) *ISCVersion {
 	return nil
 }
 
+// Sort sorts the versions in the list
 func (evs *ISCVersions) Sort() {
 	sort.Sort(*evs)
 }

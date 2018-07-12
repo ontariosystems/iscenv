@@ -23,6 +23,7 @@ import (
 	"time"
 )
 
+// WaitForPort waits for a port to become available or until the timeout
 func WaitForPort(ip string, port string, timeout time.Duration) error {
 	c := make(chan error, 1)
 
@@ -35,6 +36,7 @@ func WaitForPort(ip string, port string, timeout time.Duration) error {
 	}
 }
 
+// WaitForPortForever waits for a port to become available
 func WaitForPortForever(ip string, port string, c chan error) {
 	for {
 		if conn, err := net.Dial("tcp", ip+":"+port); err == nil {

@@ -263,9 +263,9 @@ func addPortMapping(portMap map[string]string, ports []string, prefix, host, con
 		if existing == container {
 			l.Warn("Duplicate port mapping, skipping")
 			return ports
-		} else {
-			logAndExit(l, "Overlapping port mapping")
 		}
+
+		logAndExit(l, "Overlapping port mapping")
 	}
 
 	portMap[host] = container
@@ -328,7 +328,7 @@ func getPluginConfig(lcs []*plugins.ActivatedLifecycler, cmd *cobra.Command, ver
 		if cps, err := lc.Lifecycler.Copies(version, flagValues); err != nil {
 			return nil, nil, nil, nil, nil, app.NewPluginError(lc.Id, "Copies", lc.Path, err)
 		} else if cps != nil {
-			cps = append(copies, cps...)
+			_ = append(copies, cps...)
 		}
 
 		if vols, err := lc.Lifecycler.Volumes(version, flagValues); err != nil {

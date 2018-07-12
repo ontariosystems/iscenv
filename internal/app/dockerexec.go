@@ -25,14 +25,17 @@ import (
 	"github.com/fsouza/go-dockerclient"
 )
 
+// DockerExecError is used for representing a failed docker exec
 type DockerExecError struct {
 	ExitCode int
 }
 
+// Error will return an error string for a DockerExecError
 func (dee DockerExecError) Error() string {
 	return fmt.Sprintf("Failing exit code returned from exec, exit code: %d", dee.ExitCode)
 }
 
+// DockerExec performs a docker exec against the provided instance
 func DockerExec(instance *iscenv.ISCInstance, interactive bool, commandAndArgs ...string) error {
 	createOpts := docker.CreateExecOptions{
 		Container:    instance.ID,

@@ -26,8 +26,10 @@ import (
 	"github.com/ontariosystems/isclib"
 )
 
+// InstanceStateFn is a type that specifies a function signature for dealing with an instance's state
 type InstanceStateFn func(instance *isclib.Instance)
 
+// NewISCInstanceManager creates and returns an ISCInstanceManager
 func NewISCInstanceManager(instanceName string, ccontrolPath string, csessionPath string, primaryCommand string, primaryCommandNamespace string) (*ISCInstanceManager, error) {
 
 	if ccontrolPath != "" {
@@ -52,7 +54,7 @@ func NewISCInstanceManager(instanceName string, ccontrolPath string, csessionPat
 	return eim, nil
 }
 
-// Manages a instance within a container
+// ISCInstanceManager manages a instance within a container
 type ISCInstanceManager struct {
 	*isclib.Instance
 	InstanceRunningHandler  InstanceStateFn
@@ -60,6 +62,7 @@ type ISCInstanceManager struct {
 	PrimaryCommandNamespace string
 }
 
+// Manage starts and manages the lifecycle of the instance associated with the ISCInstanceManager
 func (eim *ISCInstanceManager) Manage() error {
 	ilog := log.WithField("name", eim.Instance.Name)
 	ilog.Debug("Starting instance")

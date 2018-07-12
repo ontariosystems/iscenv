@@ -20,6 +20,7 @@ import (
 	"fmt"
 )
 
+// NewPluginError creates and returns a new PluginError
 func NewPluginError(plugin, method, path string, err error) *PluginError {
 	return &PluginError{
 		Plugin:       plugin,
@@ -29,6 +30,7 @@ func NewPluginError(plugin, method, path string, err error) *PluginError {
 	}
 }
 
+// PluginError is an used for logging an error with a plugin
 type PluginError struct {
 	Plugin       string
 	PluginMethod string
@@ -36,6 +38,7 @@ type PluginError struct {
 	Err          error
 }
 
+// Error returns the error string for the error associated with the PluginError
 func (pe *PluginError) Error() string {
 	return fmt.Sprintf("Plugin %s: %s", pe.Plugin, pe.Err)
 }

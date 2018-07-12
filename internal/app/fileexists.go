@@ -20,6 +20,7 @@ import (
 	"os"
 )
 
+// FileExists returns whether the path described by the provided string exists
 func FileExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil

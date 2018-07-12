@@ -21,6 +21,7 @@ import (
 	"os/user"
 )
 
+// IsUserRoot determines if the current user is root
 func IsUserRoot() error {
 	user, err := user.Current()
 	if err != nil {

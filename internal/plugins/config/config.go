@@ -23,7 +23,10 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 )
 
+// Config is a map of Cfgentry keyed by the Flag value
 type Config map[string]Cfgentry
+
+// Cfgentry holds the information to create a flag and a corresponding environment variable used to providing configuration to a plugin
 type Cfgentry struct {
 	Flag        string
 	Env         string
@@ -31,14 +34,17 @@ type Cfgentry struct {
 	Value       string
 }
 
+// Add will add a new entry to the Config keyed by the Flag value
 func (c Config) Add(ce Cfgentry) {
 	c[ce.Flag] = ce
 }
 
+// Get will return the Value field from the Config
 func (c Config) Get(flag string) string {
 	return c[flag].Value
 }
 
+// FromFlags will update the Config with the values from a map of command flags to values
 func (c Config) FromFlags(flags map[string]interface{}) error {
 	var result error
 
@@ -63,6 +69,7 @@ func (c Config) FromFlags(flags map[string]interface{}) error {
 	return result
 }
 
+// FromEnv will update the Config by reading the values from the environment variables specified by the Env field
 func (c Config) FromEnv() error {
 	var result error
 
@@ -79,6 +86,7 @@ func (c Config) FromEnv() error {
 	return result
 }
 
+// ToEnv will set the environment variables specified by the Env fields of the Config to their corresponding Value
 func (c Config) ToEnv() []string {
 	envs := make([]string, len(c))
 	i := 0
@@ -90,6 +98,7 @@ func (c Config) ToEnv() []string {
 	return envs
 }
 
+// Clone will clone the Config and return the copy
 func (c Config) Clone() Config {
 	clone := make(Config)
 	for key := range c {

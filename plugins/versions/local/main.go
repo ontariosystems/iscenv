@@ -33,8 +33,10 @@ const (
 
 var dockerClient *docker.Client
 
+// Plugin represents this plugin and serves as a place to attach functions to implement the Lifecycler interface
 type Plugin struct{}
 
+// Main serves as the main entry point for the plugin
 func (plugin *Plugin) Main() {
 	var err error
 	if dockerClient, err = docker.NewClient(iscenv.DockerSocket); err != nil {
@@ -44,10 +46,12 @@ func (plugin *Plugin) Main() {
 	iscenv.ServeVersionsPlugin(plugin)
 }
 
+// Key returns the unique identifier for the plugin
 func (*Plugin) Key() string {
 	return pluginKey
 }
 
+// Versions finds the versions available for the provided image
 func (*Plugin) Versions(image string) (iscenv.ISCVersions, error) {
 	localImages, err := dockerClient.ListImages(docker.ListImagesOptions{All: false})
 	if err != nil {

@@ -16,6 +16,7 @@ limitations under the License.
 
 package iscenv
 
+// NewPluginFlag creates and returns an initialized PluginFlag
 func NewPluginFlag(flag string, hasConfig bool, defaultValue interface{}, usage string) *PluginFlag {
 	return &PluginFlag{
 		Flag:         flag,
@@ -25,6 +26,7 @@ func NewPluginFlag(flag string, hasConfig bool, defaultValue interface{}, usage 
 	}
 }
 
+// PluginFlag represents information about a flag that is for use with a plugin
 type PluginFlag struct {
 	Flag         string
 	HasConfig    bool

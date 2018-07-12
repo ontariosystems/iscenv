@@ -16,6 +16,7 @@ limitations under the License.
 
 package app
 
+// NewInstanceError creates and returns a new InstanceError
 func NewInstanceError(name, id string, err error) *InstanceError {
 	return &InstanceError{
 		InstanceName: name,
@@ -24,12 +25,14 @@ func NewInstanceError(name, id string, err error) *InstanceError {
 	}
 }
 
+// InstanceError is an used for logging an error with an instance
 type InstanceError struct {
 	InstanceName string
 	InstanceID   string
 	Err          error
 }
 
+// Error returns the error string for the error associated with the InstanceError
 func (ie *InstanceError) Error() string {
 	return ie.Err.Error()
 }

@@ -22,6 +22,7 @@ import (
 	"strings"
 )
 
+// BasicAuthTransport represents the information needed to make a request providing basic username and password authentication
 type BasicAuthTransport struct {
 	Transport http.RoundTripper
 	URL       *url.URL
@@ -29,6 +30,7 @@ type BasicAuthTransport struct {
 	Password  string
 }
 
+// RoundTrip adds the basic authentication credentials to the request round trip
 func (bat *BasicAuthTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if bat.reqToManagedURL(req) {
 		if bat.Username != "" {
