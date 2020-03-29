@@ -22,9 +22,9 @@ import (
 	"os/exec"
 	"strconv"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/isclib"
+	log "github.com/sirupsen/logrus"
 )
 
 var plog = log.WithField("plugin", pluginKey)
@@ -106,7 +106,7 @@ func (*Plugin) BeforeInstance(state *isclib.Instance) error {
 		return err
 	}
 
-	sizeBytes := size * 1024 * 102
+	sizeBytes := size * 1024 * 1024
 
 	if err := sysctl("shmmax", sizeBytes); err != nil {
 		return err

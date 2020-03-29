@@ -5,13 +5,12 @@
 package autocert
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
-
-	"golang.org/x/net/context"
 )
 
 // make sure DirCache satisfies Cache interface
@@ -22,6 +21,7 @@ func TestDirCache(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer os.RemoveAll(dir)
 	dir = filepath.Join(dir, "certs") // a nonexistent dir
 	cache := DirCache(dir)
 	ctx := context.Background()
@@ -46,6 +46,15 @@ func TestDirCache(t *testing.T) {
 	name := filepath.Join(dir, "dummy")
 	if _, err := os.Stat(name); err != nil {
 		t.Error(err)
+	}
+
+	// test put deletes temp file
+	tmp, err := filepath.Glob(name + "?*")
+	if err != nil {
+		t.Error(err)
+	}
+	if tmp != nil {
+		t.Errorf("temp file exists: %s", tmp)
 	}
 
 	// test delete

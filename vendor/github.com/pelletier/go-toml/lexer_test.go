@@ -1,37 +1,14 @@
 package toml
 
 import (
-	"strings"
+	"reflect"
 	"testing"
 )
 
 func testFlow(t *testing.T, input string, expectedFlow []token) {
-	ch := lexToml(strings.NewReader(input))
-	for _, expected := range expectedFlow {
-		token := <-ch
-		if token != expected {
-			t.Log("While testing: ", input)
-			t.Log("compared (got)", token, "to (expected)", expected)
-			t.Log("\tvalue:", token.val, "<->", expected.val)
-			t.Log("\tvalue as bytes:", []byte(token.val), "<->", []byte(expected.val))
-			t.Log("\ttype:", token.typ.String(), "<->", expected.typ.String())
-			t.Log("\tline:", token.Line, "<->", expected.Line)
-			t.Log("\tcolumn:", token.Col, "<->", expected.Col)
-			t.Log("compared", token, "to", expected)
-			t.FailNow()
-		}
-	}
-
-	tok, ok := <-ch
-	if ok {
-		t.Log("channel is not closed!")
-		t.Log(len(ch)+1, "tokens remaining:")
-
-		t.Log("token ->", tok)
-		for token := range ch {
-			t.Log("token ->", token)
-		}
-		t.FailNow()
+	tokens := lexToml([]byte(input))
+	if !reflect.DeepEqual(tokens, expectedFlow) {
+		t.Fatal("Different flows. Expected\n", expectedFlow, "\nGot:\n", tokens)
 	}
 }
 
@@ -56,7 +33,7 @@ func TestNestedQuotedUnicodeKeyGroup(t *testing.T) {
 func TestUnclosedKeyGroup(t *testing.T) {
 	testFlow(t, "[hello world", []token{
 		{Position{1, 1}, tokenLeftBracket, "["},
-		{Position{1, 2}, tokenError, "unclosed key group"},
+		{Position{1, 2}, tokenError, "unclosed table key"},
 	})
 }
 
@@ -264,6 +241,24 @@ func TestMultilineArrayComments(t *testing.T) {
 	})
 }
 
+func TestNestedArraysComment(t *testing.T) {
+	toml := `
+someArray = [
+# does not work
+["entry1"]
+]`
+	testFlow(t, toml, []token{
+		{Position{2, 1}, tokenKey, "someArray"},
+		{Position{2, 11}, tokenEqual, "="},
+		{Position{2, 13}, tokenLeftBracket, "["},
+		{Position{4, 1}, tokenLeftBracket, "["},
+		{Position{4, 3}, tokenString, "entry1"},
+		{Position{4, 10}, tokenRightBracket, "]"},
+		{Position{5, 1}, tokenRightBracket, "]"},
+		{Position{5, 2}, tokenEOF, ""},
+	})
+}
+
 func TestKeyEqualArrayBools(t *testing.T) {
 	testFlow(t, "foo = [true, false, true]", []token{
 		{Position{1, 1}, tokenKey, "foo"},
@@ -295,14 +290,29 @@ func TestKeyEqualArrayBoolsWithComments(t *testing.T) {
 }
 
 func TestDateRegexp(t *testing.T) {
-	if dateRegexp.FindString("1979-05-27T07:32:00Z") == "" {
-		t.Error("basic lexing")
+	cases := map[string]string{
+		"basic":               "1979-05-27T07:32:00Z",
+		"offset":              "1979-05-27T00:32:00-07:00",
+		"nano precision":      "1979-05-27T00:32:00.999999-07:00",
+		"basic-no-T":          "1979-05-27 07:32:00Z",
+		"offset-no-T":         "1979-05-27 00:32:00-07:00",
+		"nano precision-no-T": "1979-05-27 00:32:00.999999-07:00",
+		"no-tz":               "1979-05-27T07:32:00",
+		"no-tz-nano":          "1979-05-27T00:32:00.999999",
+		"no-tz-no-t":          "1979-05-27 07:32:00",
+		"no-tz-no-t-nano":     "1979-05-27 00:32:00.999999",
+		"date-no-tz":          "1979-05-27",
+		"time-no-tz":          "07:32:00",
+		"time-no-tz-nano":     "00:32:00.999999",
 	}
-	if dateRegexp.FindString("1979-05-27T00:32:00-07:00") == "" {
-		t.Error("offset lexing")
+
+	for name, value := range cases {
+		if dateRegexp.FindString(value) == "" {
+			t.Error("failed date regexp test", name)
+		}
 	}
-	if dateRegexp.FindString("1979-05-27T00:32:00.999999-07:00") == "" {
-		t.Error("nano precision lexing")
+	if dateRegexp.FindString("1979-05-27 07:32:00Z") == "" {
+		t.Error("space delimiter lexing")
 	}
 }
 
@@ -324,6 +334,12 @@ func TestKeyEqualDate(t *testing.T) {
 		{Position{1, 5}, tokenEqual, "="},
 		{Position{1, 7}, tokenDate, "1979-05-27T00:32:00.999999-07:00"},
 		{Position{1, 39}, tokenEOF, ""},
+	})
+	testFlow(t, "foo = 1979-05-27 07:32:00Z", []token{
+		{Position{1, 1}, tokenKey, "foo"},
+		{Position{1, 5}, tokenEqual, "="},
+		{Position{1, 7}, tokenDate, "1979-05-27 07:32:00Z"},
+		{Position{1, 27}, tokenEOF, ""},
 	})
 }
 
@@ -512,6 +528,30 @@ func TestKeyEqualStringUnicodeEscape(t *testing.T) {
 		{Position{1, 5}, tokenEqual, "="},
 		{Position{1, 8}, tokenString, "hello δ"},
 		{Position{1, 25}, tokenEOF, ""},
+	})
+	testFlow(t, `foo = "\uabcd"`, []token{
+		{Position{1, 1}, tokenKey, "foo"},
+		{Position{1, 5}, tokenEqual, "="},
+		{Position{1, 8}, tokenString, "\uabcd"},
+		{Position{1, 15}, tokenEOF, ""},
+	})
+	testFlow(t, `foo = "\uABCD"`, []token{
+		{Position{1, 1}, tokenKey, "foo"},
+		{Position{1, 5}, tokenEqual, "="},
+		{Position{1, 8}, tokenString, "\uABCD"},
+		{Position{1, 15}, tokenEOF, ""},
+	})
+	testFlow(t, `foo = "\U000bcdef"`, []token{
+		{Position{1, 1}, tokenKey, "foo"},
+		{Position{1, 5}, tokenEqual, "="},
+		{Position{1, 8}, tokenString, "\U000bcdef"},
+		{Position{1, 19}, tokenEOF, ""},
+	})
+	testFlow(t, `foo = "\U000BCDEF"`, []token{
+		{Position{1, 1}, tokenKey, "foo"},
+		{Position{1, 5}, tokenEqual, "="},
+		{Position{1, 8}, tokenString, "\U000BCDEF"},
+		{Position{1, 19}, tokenEOF, ""},
 	})
 	testFlow(t, `foo = "\u2"`, []token{
 		{Position{1, 1}, tokenKey, "foo"},
@@ -705,4 +745,79 @@ func TestLexUnknownRvalue(t *testing.T) {
 		{Position{1, 3}, tokenEqual, "="},
 		{Position{1, 5}, tokenError, `no value can start with \`},
 	})
+}
+
+func TestLexInlineTableBareKey(t *testing.T) {
+	testFlow(t, `foo = { bar = "baz" }`, []token{
+		{Position{1, 1}, tokenKey, "foo"},
+		{Position{1, 5}, tokenEqual, "="},
+		{Position{1, 7}, tokenLeftCurlyBrace, "{"},
+		{Position{1, 9}, tokenKey, "bar"},
+		{Position{1, 13}, tokenEqual, "="},
+		{Position{1, 16}, tokenString, "baz"},
+		{Position{1, 21}, tokenRightCurlyBrace, "}"},
+		{Position{1, 22}, tokenEOF, ""},
+	})
+}
+
+func TestLexInlineTableBareKeyDash(t *testing.T) {
+	testFlow(t, `foo = { -bar = "baz" }`, []token{
+		{Position{1, 1}, tokenKey, "foo"},
+		{Position{1, 5}, tokenEqual, "="},
+		{Position{1, 7}, tokenLeftCurlyBrace, "{"},
+		{Position{1, 9}, tokenKey, "-bar"},
+		{Position{1, 14}, tokenEqual, "="},
+		{Position{1, 17}, tokenString, "baz"},
+		{Position{1, 22}, tokenRightCurlyBrace, "}"},
+		{Position{1, 23}, tokenEOF, ""},
+	})
+}
+
+func TestLexInlineTableBareKeyUnderscore(t *testing.T) {
+	testFlow(t, `foo = { _bar = "baz" }`, []token{
+		{Position{1, 1}, tokenKey, "foo"},
+		{Position{1, 5}, tokenEqual, "="},
+		{Position{1, 7}, tokenLeftCurlyBrace, "{"},
+		{Position{1, 9}, tokenKey, "_bar"},
+		{Position{1, 14}, tokenEqual, "="},
+		{Position{1, 17}, tokenString, "baz"},
+		{Position{1, 22}, tokenRightCurlyBrace, "}"},
+		{Position{1, 23}, tokenEOF, ""},
+	})
+}
+
+func TestLexInlineTableQuotedKey(t *testing.T) {
+	testFlow(t, `foo = { "bar" = "baz" }`, []token{
+		{Position{1, 1}, tokenKey, "foo"},
+		{Position{1, 5}, tokenEqual, "="},
+		{Position{1, 7}, tokenLeftCurlyBrace, "{"},
+		{Position{1, 9}, tokenKey, "\"bar\""},
+		{Position{1, 15}, tokenEqual, "="},
+		{Position{1, 18}, tokenString, "baz"},
+		{Position{1, 23}, tokenRightCurlyBrace, "}"},
+		{Position{1, 24}, tokenEOF, ""},
+	})
+}
+
+func BenchmarkLexer(b *testing.B) {
+	sample := `title = "Hugo: A Fast and Flexible Website Generator"
+baseurl = "http://gohugo.io/"
+MetaDataFormat = "yaml"
+pluralizeListTitles = false
+
+[params]
+  description = "Documentation of Hugo, a fast and flexible static site generator built with love by spf13, bep and friends in Go"
+  author = "Steve Francia (spf13) and friends"
+  release = "0.22-DEV"
+
+[[menu.main]]
+	name = "Download Hugo"
+	pre = "<i class='fa fa-download'></i>"
+	url = "https://github.com/spf13/hugo/releases"
+	weight = -200
+`
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		lexToml([]byte(sample))
+	}
 }

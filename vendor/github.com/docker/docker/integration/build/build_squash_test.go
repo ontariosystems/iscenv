@@ -9,23 +9,30 @@ import (
 	"testing"
 
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/integration-cli/cli/build/fakecontext"
-	"github.com/docker/docker/integration-cli/daemon"
+	dclient "github.com/docker/docker/client"
 	"github.com/docker/docker/integration/internal/container"
+	"github.com/docker/docker/internal/test/daemon"
+	"github.com/docker/docker/internal/test/fakecontext"
 	"github.com/docker/docker/pkg/stdcopy"
-	"github.com/gotestyourself/gotestyourself/assert"
-	is "github.com/gotestyourself/gotestyourself/assert/cmp"
+	"gotest.tools/assert"
+	is "gotest.tools/assert/cmp"
+	"gotest.tools/skip"
 )
 
 func TestBuildSquashParent(t *testing.T) {
-	d := daemon.New(t, "", "dockerd", daemon.Config{
-		Experimental: true,
-	})
-	d.StartWithBusybox(t)
-	defer d.Stop(t)
+	skip.If(t, testEnv.DaemonInfo.OSType == "windows")
 
-	client, err := d.NewClient()
-	assert.NilError(t, err)
+	var client dclient.APIClient
+	if !testEnv.DaemonInfo.ExperimentalBuild {
+		skip.If(t, testEnv.IsRemoteDaemon, "cannot run daemon when remote daemon")
+
+		d := daemon.New(t, daemon.WithExperimental)
+		d.StartWithBusybox(t)
+		defer d.Stop(t)
+		client = d.NewClientT(t)
+	} else {
+		client = testEnv.APIClient()
+	}
 
 	dockerfile := `
 		FROM busybox
@@ -72,7 +79,7 @@ func TestBuildSquashParent(t *testing.T) {
 	resp.Body.Close()
 	assert.NilError(t, err)
 
-	cid := container.Run(t, ctx, client,
+	cid := container.Run(ctx, t, client,
 		container.WithImage(name),
 		container.WithCmd("/bin/sh", "-c", "cat /hello"),
 	)
@@ -87,13 +94,13 @@ func TestBuildSquashParent(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Check(t, is.Equal(strings.TrimSpace(actualStdout.String()), "hello\nworld"))
 
-	container.Run(t, ctx, client,
+	container.Run(ctx, t, client,
 		container.WithImage(name),
 		container.WithCmd("/bin/sh", "-c", "[ ! -f /remove_me ]"),
 	)
-	container.Run(t, ctx, client,
+	container.Run(ctx, t, client,
 		container.WithImage(name),
-		container.WithCmd("/bin/sh", "-c", `[ "$(echo $HELLO)" == "world" ]`),
+		container.WithCmd("/bin/sh", "-c", `[ "$(echo $HELLO)" = "world" ]`),
 	)
 
 	origHistory, err := client.ImageHistory(ctx, origID)

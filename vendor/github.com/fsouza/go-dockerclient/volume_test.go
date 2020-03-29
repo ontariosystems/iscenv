@@ -18,12 +18,14 @@ func TestListVolumes(t *testing.T) {
 	{
 		"Name": "tardis",
 		"Driver": "local",
-		"Mountpoint": "/var/lib/docker/volumes/tardis"
+		"Mountpoint": "/var/lib/docker/volumes/tardis",
+		"CreatedAt": "2017-07-19T12:00:26Z"
 	},
 	{
 		"Name": "foo",
 		"Driver": "bar",
-		"Mountpoint": "/var/lib/docker/volumes/bar"
+		"Mountpoint": "/var/lib/docker/volumes/bar",
+		"CreatedAt": "2017-07-19T12:01:26Z"
 	}
 ]`
 	body := `{ "Volumes": ` + volumesData + ` }`
@@ -70,7 +72,7 @@ func TestCreateVolume(t *testing.T) {
 		t.Errorf("CreateVolume: Wrong return value. Want %#v. Got %#v.", expected, volume)
 	}
 	req := fakeRT.requests[0]
-	expectedMethod := "POST"
+	expectedMethod := http.MethodPost
 	if req.Method != expectedMethod {
 		t.Errorf("CreateVolume(): Wrong HTTP method. Want %s. Got %s.", expectedMethod, req.Method)
 	}
@@ -105,7 +107,7 @@ func TestInspectVolume(t *testing.T) {
 		t.Errorf("InspectVolume: Wrong return value. Want %#v. Got %#v.", expected, volume)
 	}
 	req := fakeRT.requests[0]
-	expectedMethod := "GET"
+	expectedMethod := http.MethodGet
 	if req.Method != expectedMethod {
 		t.Errorf("InspectVolume(%q): Wrong HTTP method. Want %s. Got %s.", name, expectedMethod, req.Method)
 	}
@@ -124,7 +126,7 @@ func TestRemoveVolume(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	expectedMethod := "DELETE"
+	expectedMethod := http.MethodDelete
 	if req.Method != expectedMethod {
 		t.Errorf("RemoveVolume(%q): Wrong HTTP method. Want %s. Got %s.", name, expectedMethod, req.Method)
 	}
@@ -146,7 +148,7 @@ func TestRemoveVolumeWithOptions(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	expectedMethod := "DELETE"
+	expectedMethod := http.MethodDelete
 	if req.Method != expectedMethod {
 		t.Errorf("RemoveVolume(%q): Wrong HTTP method. Want %s. Got %s.", name, expectedMethod, req.Method)
 	}
