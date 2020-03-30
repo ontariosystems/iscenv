@@ -1,13 +1,17 @@
 package dockerfile // import "github.com/docker/docker/builder/dockerfile"
 
 import (
+	"os"
+	"runtime"
 	"testing"
 
-	"github.com/docker/docker/builder/dockerfile/instructions"
 	"github.com/docker/docker/builder/remotecontext"
-	"github.com/docker/docker/internal/testutil"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/reexec"
+	"github.com/moby/buildkit/frontend/dockerfile/instructions"
+	"gotest.tools/assert"
+	is "gotest.tools/assert/cmp"
+	"gotest.tools/skip"
 )
 
 type dispatchTestCase struct {
@@ -20,8 +24,11 @@ func init() {
 	reexec.Init()
 }
 
-func initDispatchTestCases() []dispatchTestCase {
-	dispatchTestCases := []dispatchTestCase{
+func TestDispatch(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		skip.If(t, os.Getuid() != 0, "skipping test that requires root")
+	}
+	testCases := []dispatchTestCase{
 		{
 			name: "ADD multiple files to file",
 			cmd: &instructions.AddCommand{SourcesAndDest: instructions.SourcesAndDest{
@@ -88,53 +95,46 @@ func initDispatchTestCases() []dispatchTestCase {
 			}},
 			expectedError: "source can't be a URL for COPY",
 			files:         nil,
-		}}
-
-	return dispatchTestCases
-}
-
-func TestDispatch(t *testing.T) {
-	testCases := initDispatchTestCases()
-
-	for _, testCase := range testCases {
-		executeTestCase(t, testCase)
-	}
-}
-
-func executeTestCase(t *testing.T, testCase dispatchTestCase) {
-	contextDir, cleanup := createTestTempDir(t, "", "builder-dockerfile-test")
-	defer cleanup()
-
-	for filename, content := range testCase.files {
-		createTestTempFile(t, contextDir, filename, content, 0777)
+		},
 	}
 
-	tarStream, err := archive.Tar(contextDir, archive.Uncompressed)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			contextDir, cleanup := createTestTempDir(t, "", "builder-dockerfile-test")
+			defer cleanup()
 
-	if err != nil {
-		t.Fatalf("Error when creating tar stream: %s", err)
+			for filename, content := range tc.files {
+				createTestTempFile(t, contextDir, filename, content, 0777)
+			}
+
+			tarStream, err := archive.Tar(contextDir, archive.Uncompressed)
+
+			if err != nil {
+				t.Fatalf("Error when creating tar stream: %s", err)
+			}
+
+			defer func() {
+				if err = tarStream.Close(); err != nil {
+					t.Fatalf("Error when closing tar stream: %s", err)
+				}
+			}()
+
+			context, err := remotecontext.FromArchive(tarStream)
+
+			if err != nil {
+				t.Fatalf("Error when creating tar context: %s", err)
+			}
+
+			defer func() {
+				if err = context.Close(); err != nil {
+					t.Fatalf("Error when closing tar context: %s", err)
+				}
+			}()
+
+			b := newBuilderWithMockBackend()
+			sb := newDispatchRequest(b, '`', context, NewBuildArgs(make(map[string]*string)), newStagesBuildResults())
+			err = dispatch(sb, tc.cmd)
+			assert.Check(t, is.ErrorContains(err, tc.expectedError))
+		})
 	}
-
-	defer func() {
-		if err = tarStream.Close(); err != nil {
-			t.Fatalf("Error when closing tar stream: %s", err)
-		}
-	}()
-
-	context, err := remotecontext.FromArchive(tarStream)
-
-	if err != nil {
-		t.Fatalf("Error when creating tar context: %s", err)
-	}
-
-	defer func() {
-		if err = context.Close(); err != nil {
-			t.Fatalf("Error when closing tar context: %s", err)
-		}
-	}()
-
-	b := newBuilderWithMockBackend()
-	sb := newDispatchRequest(b, '`', context, newBuildArgs(make(map[string]*string)), newStagesBuildResults())
-	err = dispatch(sb, testCase.cmd)
-	testutil.ErrorContains(t, err, testCase.expectedError)
 }

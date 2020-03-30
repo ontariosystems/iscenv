@@ -30,7 +30,7 @@ func TestRandomScheduler(t *testing.T) {
 		t.Fatalf("got %d frames, expected 6", len(order))
 	}
 	if order[0].StreamID() != 0 || order[1].StreamID() != 0 {
-		t.Fatalf("expected non-stream frames first", order[0], order[1])
+		t.Fatal("expected non-stream frames first", order[0], order[1])
 	}
 	got := make(map[uint32]bool)
 	for _, wr := range order[2:] {
@@ -41,4 +41,20 @@ func TestRandomScheduler(t *testing.T) {
 			t.Errorf("frame not found for stream %d", id)
 		}
 	}
+
+	// Verify that we clean up maps for empty queues in all cases (golang.org/issue/33812)
+	const arbitraryStreamID = 123
+	ws.Push(makeHandlerPanicRST(arbitraryStreamID))
+	rws := ws.(*randomWriteScheduler)
+	if got, want := len(rws.sq), 1; got != want {
+		t.Fatalf("len of 123 stream = %v; want %v", got, want)
+	}
+	_, ok := ws.Pop()
+	if !ok {
+		t.Fatal("expected to be able to Pop")
+	}
+	if got, want := len(rws.sq), 0; got != want {
+		t.Fatalf("len of 123 stream = %v; want %v", got, want)
+	}
+
 }

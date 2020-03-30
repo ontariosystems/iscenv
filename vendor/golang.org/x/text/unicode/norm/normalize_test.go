@@ -119,7 +119,7 @@ var decomposeSegmentTests = []PositionTest{
 	{grave(31), 60, grave(30) + cgj},
 	{"a" + grave(31), 61, "a" + grave(30) + cgj},
 
-	// Stability tests: see http://www.unicode.org/review/pr-29.html.
+	// Stability tests: see https://www.unicode.org/review/pr-29.html.
 	// U+0300 COMBINING GRAVE ACCENT;Mn;230;NSM;;;;;N;NON-SPACING GRAVE;;;;
 	// U+0B47 ORIYA VOWEL SIGN E;Mc;0;L;;;;;N;;;;;
 	// U+0B3E ORIYA VOWEL SIGN AA;Mc;0;L;;;;;N;;;;;
@@ -437,7 +437,7 @@ var quickSpanNFCTests = []spanTest{
 	{"abc\u00C0", true, 5, nil},
 	// correctly ordered combining characters
 	// TODO: b may combine with modifiers, which is why this fails. We could
-	// make a more precise test that that actually checks whether last
+	// make a more precise test that actually checks whether last
 	// characters combines. Probably not worth it.
 	{"ab\u0300", true, 1, transform.ErrEndOfSpan},
 	{"ab\u0300cd", true, 1, transform.ErrEndOfSpan},
@@ -598,35 +598,42 @@ func runNormTests(t *testing.T, name string, fn appendFunc) {
 
 func runAppendTests(t *testing.T, name string, f Form, fn appendFunc, tests []AppendTest) {
 	for i, test := range tests {
-		if *testn >= 0 && i != *testn {
-			continue
-		}
-		out := []byte(test.left)
-		have := string(fn(f, out, test.right))
-		if len(have) != len(test.out) {
-			t.Errorf("%s.%s:%d: length is %d; want %d (%+q vs %+q)", fstr[f], name, i, len(have), len(test.out), pc(have), pc(test.out))
-		}
-		if have != test.out {
-			k, pf := pidx(have, test.out)
-			t.Errorf("%s.%s:%d: \nwas  %s%+q; \nwant %s%+q", fstr[f], name, i, pf, pc(have[k:]), pf, pc(test.out[k:]))
-		}
+		t.Run(fmt.Sprintf("%s/%d", fstr[f], i), func(t *testing.T) {
+			id := pc(test.left + test.right)
+			if *testn >= 0 && i != *testn {
+				return
+			}
+			t.Run("fn", func(t *testing.T) {
+				out := []byte(test.left)
+				have := string(fn(f, out, test.right))
+				if len(have) != len(test.out) {
+					t.Errorf("%+q: length is %d; want %d (%+q vs %+q)", id, len(have), len(test.out), pc(have), pc(test.out))
+				}
+				if have != test.out {
+					k, pf := pidx(have, test.out)
+					t.Errorf("%+q:\nwas  %s%+q; \nwant %s%+q", id, pf, pc(have[k:]), pf, pc(test.out[k:]))
+				}
+			})
 
-		// Bootstrap by normalizing input. Ensures that the various variants
-		// behave the same.
-		for g := NFC; g <= NFKD; g++ {
-			if f == g {
-				continue
+			// Bootstrap by normalizing input. Ensures that the various variants
+			// behave the same.
+			for g := NFC; g <= NFKD; g++ {
+				if f == g {
+					continue
+				}
+				t.Run(fstr[g], func(t *testing.T) {
+					want := g.String(test.left + test.right)
+					have := string(fn(g, g.AppendString(nil, test.left), test.right))
+					if len(have) != len(want) {
+						t.Errorf("%+q: length is %d; want %d (%+q vs %+q)", id, len(have), len(want), pc(have), pc(want))
+					}
+					if have != want {
+						k, pf := pidx(have, want)
+						t.Errorf("%+q:\nwas  %s%+q; \nwant %s%+q", id, pf, pc(have[k:]), pf, pc(want[k:]))
+					}
+				})
 			}
-			want := g.String(test.left + test.right)
-			have := string(fn(g, g.AppendString(nil, test.left), test.right))
-			if len(have) != len(want) {
-				t.Errorf("%s(%s.%s):%d: length is %d; want %d (%+q vs %+q)", fstr[g], fstr[f], name, i, len(have), len(want), pc(have), pc(want))
-			}
-			if have != want {
-				k, pf := pidx(have, want)
-				t.Errorf("%s(%s.%s):%d: \nwas  %s%+q; \nwant %s%+q", fstr[g], fstr[f], name, i, pf, pc(have[k:]), pf, pc(want[k:]))
-			}
-		}
+		})
 	}
 }
 
@@ -667,7 +674,7 @@ var appendTestsNFC = []AppendTest{
 		"\u1161\u11a8",
 	},
 
-	// Stability tests: see http://www.unicode.org/review/pr-29.html.
+	// Stability tests: see https://www.unicode.org/review/pr-29.html.
 	{"", "\u0b47\u0300\u0b3e", "\u0b47\u0300\u0b3e"},
 	{"", "\u1100\u0300\u1161", "\u1100\u0300\u1161"},
 	{"", "\u0b47\u0b3e", "\u0b4b"},
@@ -692,10 +699,28 @@ var appendTestsNFC = []AppendTest{
 		"\u0d4a" + strings.Repeat("\u0d3e", 30),
 		"\u0d4a" + strings.Repeat("\u0d3e", 29) + cgj + "\u0d3e",
 	},
+
+	{ //  https://golang.org/issues/20079
+		"",
+		"\xeb\u0344",
+		"\xeb\u0308\u0301",
+	},
+
+	{ //  https://golang.org/issues/20079
+		"",
+		"\uac00" + strings.Repeat("\u0300", 30),
+		"\uac00" + strings.Repeat("\u0300", 29) + "\u034f\u0300",
+	},
+
+	{ //  https://golang.org/issues/20079
+		"",
+		"\xeb" + strings.Repeat("\u0300", 31),
+		"\xeb" + strings.Repeat("\u0300", 30) + "\u034f\u0300",
+	},
 }
 
 var appendTestsNFD = []AppendTest{
-// TODO: Move some of the tests here.
+	// TODO: Move some of the tests here.
 }
 
 var appendTestsNFKC = []AppendTest{
@@ -768,6 +793,16 @@ var appendTestsNFKC = []AppendTest{
 	// - Many non-starter decompositions in a row causing overflow.
 	{"", rep(0x340, 31), rep(0x300, 30) + cgj + "\u0300"},
 	{"", rep(0xFF9E, 31), rep(0x3099, 30) + cgj + "\u3099"},
+
+	{"", "\u0644\u0625" + rep(0x300, 31), "\u0644\u0625" + rep(0x300, 29) + cgj + "\u0300\u0300"},
+	{"", "\ufef9" + rep(0x300, 31), "\u0644\u0625" + rep(0x300, 29) + cgj + rep(0x0300, 2)},
+	{"", "\ufef9" + rep(0x300, 31), "\u0644\u0625" + rep(0x300, 29) + cgj + rep(0x0300, 2)},
+
+	// U+0F81 TIBETAN VOWEL SIGN REVERSED II splits into two modifiers.
+	{"", "\u0f7f" + rep(0xf71, 29) + "\u0f81", "\u0f7f" + rep(0xf71, 29) + cgj + "\u0f71\u0f80"},
+	{"", "\u0f7f" + rep(0xf71, 28) + "\u0f81", "\u0f7f" + rep(0xf71, 29) + "\u0f80"},
+	{"", "\u0f7f" + rep(0xf81, 16), "\u0f7f" + rep(0xf71, 15) + rep(0xf80, 15) + cgj + "\u0f71\u0f80"},
+
 	// weird UTF-8
 	{"\u00E0\xE1", "\x86", "\u00E0\xE1\x86"},
 	{"a\u0300\u11B7", "\u0300", "\u00E0\u11B7\u0300"},
@@ -780,6 +815,7 @@ var appendTestsNFKC = []AppendTest{
 
 	{"", strings.Repeat("a\u0316\u0300", 6), strings.Repeat("\u00E0\u0316", 6)},
 	// large input.
+	{"", strings.Repeat("a\u0300\u0316", 31), strings.Repeat("\u00E0\u0316", 31)},
 	{"", strings.Repeat("a\u0300\u0316", 4000), strings.Repeat("\u00E0\u0316", 4000)},
 	{"", strings.Repeat("\x80\x80", 4000), strings.Repeat("\x80\x80", 4000)},
 	{"", "\u0041\u0307\u0304", "\u01E0"},
@@ -848,6 +884,12 @@ var appendTestsNFKD = []AppendTest{
 		"\u0300\u0320a" + grave(34) + "\u0320",
 		"\u0320\u0300a" + grave(30) + cgj + "\u0320" + grave(4),
 	},
+	{
+		// U+0F81 TIBETAN VOWEL SIGN REVERSED II splits into two modifiers.
+		"",
+		"a\u0f7f" + rep(0xf71, 29) + "\u0f81",
+		"a\u0f7f" + rep(0xf71, 29) + cgj + "\u0f71\u0f80",
+	},
 }
 
 func TestAppend(t *testing.T) {
@@ -876,6 +918,25 @@ func TestString(t *testing.T) {
 		outs := string(out) + s
 		return []byte(f.String(outs))
 	})
+}
+
+func TestLinking(t *testing.T) {
+	const prog = `
+	package main
+	import "fmt"
+	import "golang.org/x/text/unicode/norm"
+	func main() { fmt.Println(norm.%s) }
+	`
+	baseline, errB := testtext.CodeSize(fmt.Sprintf(prog, "MaxSegmentSize"))
+	withTables, errT := testtext.CodeSize(fmt.Sprintf(prog, `NFC.String("")`))
+	if errB != nil || errT != nil {
+		t.Skipf("code size failed: %v and %v", errB, errT)
+	}
+	// Tables are at least 50K
+	if d := withTables - baseline; d < 50*1024 {
+		t.Errorf("tables appear not to be dropped: %d - %d = %d",
+			withTables, baseline, d)
+	}
 }
 
 func appendBench(f Form, in []byte) func() {
@@ -1121,7 +1182,7 @@ func BenchmarkOverflow(b *testing.B) {
 var overflow = string(bytes.Repeat([]byte("\u035D"), 4096)) + "\u035B"
 
 // Tests sampled from the Canonical ordering tests (Part 2) of
-// http://unicode.org/Public/UNIDATA/NormalizationTest.txt
+// https://unicode.org/Public/UNIDATA/NormalizationTest.txt
 const txt_canon = `\u0061\u0315\u0300\u05AE\u0300\u0062 \u0061\u0300\u0315\u0300\u05AE\u0062
 \u0061\u0302\u0315\u0300\u05AE\u0062 \u0061\u0307\u0315\u0300\u05AE\u0062
 \u0061\u0315\u0300\u05AE\u030A\u0062 \u0061\u059A\u0316\u302A\u031C\u0062

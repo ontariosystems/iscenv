@@ -1,10 +1,28 @@
+/*
+   Copyright The containerd Authors.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
 package fstest
 
 import (
-	"io/ioutil"
-	"net"
+	"bytes"
+	"io"
+	"math/rand"
 	"os"
 	"path/filepath"
+	"syscall"
 	"time"
 )
 
@@ -22,9 +40,38 @@ func (a applyFn) Apply(root string) error {
 // CreateFile returns a file applier which creates a file as the
 // provided name with the given content and permission.
 func CreateFile(name string, content []byte, perm os.FileMode) Applier {
-	return applyFn(func(root string) error {
+	f := func() io.Reader {
+		return bytes.NewReader(content)
+	}
+	return writeFileStream(name, f, perm)
+}
+
+// CreateRandomFile returns a file applier which creates a file with random
+// content of the given size using the given seed and permission.
+func CreateRandomFile(name string, seed, size int64, perm os.FileMode) Applier {
+	f := func() io.Reader {
+		return io.LimitReader(rand.New(rand.NewSource(seed)), size)
+	}
+	return writeFileStream(name, f, perm)
+}
+
+// writeFileStream returns a file applier which creates a file as the
+// provided name with the given content from the provided i/o stream and permission.
+func writeFileStream(name string, stream func() io.Reader, perm os.FileMode) Applier {
+	return applyFn(func(root string) (retErr error) {
 		fullPath := filepath.Join(root, name)
-		if err := ioutil.WriteFile(fullPath, content, perm); err != nil {
+		f, err := os.OpenFile(fullPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, perm)
+		if err != nil {
+			return err
+		}
+		defer func() {
+			err := f.Close()
+			if err != nil && retErr == nil {
+				retErr = err
+			}
+		}()
+		_, err = io.Copy(f, stream())
+		if err != nil {
 			return err
 		}
 		return os.Chmod(fullPath, perm)
@@ -111,11 +158,15 @@ func Link(oldname, newname string) Applier {
 func CreateSocket(name string, perm os.FileMode) Applier {
 	return applyFn(func(root string) error {
 		fullPath := filepath.Join(root, name)
-		ln, err := net.Listen("unix", fullPath)
+		fd, err := syscall.Socket(syscall.AF_UNIX, syscall.SOCK_STREAM, 0)
 		if err != nil {
 			return err
 		}
-		defer ln.Close()
+		defer syscall.Close(fd)
+		sa := &syscall.SockaddrUnix{Name: fullPath}
+		if err := syscall.Bind(fd, sa); err != nil {
+			return err
+		}
 		return os.Chmod(fullPath, perm)
 	})
 }

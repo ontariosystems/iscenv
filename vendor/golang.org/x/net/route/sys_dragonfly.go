@@ -4,11 +4,14 @@
 
 package route
 
-import "unsafe"
+import (
+	"syscall"
+	"unsafe"
+)
 
 func (typ RIBType) parseable() bool { return true }
 
-// A RouteMetrics represents route metrics.
+// RouteMetrics represents route metrics.
 type RouteMetrics struct {
 	PathMTU int // path maximum transmission unit
 }
@@ -25,7 +28,7 @@ func (m *RouteMessage) Sys() []Sys {
 	}
 }
 
-// A InterfaceMetrics represents interface metrics.
+// InterfaceMetrics represents interface metrics.
 type InterfaceMetrics struct {
 	Type int // interface type
 	MTU  int // maximum transmission unit
@@ -44,28 +47,42 @@ func (m *InterfaceMessage) Sys() []Sys {
 	}
 }
 
-func probeRoutingStack() (int, map[int]parseFn) {
+func probeRoutingStack() (int, map[int]*wireFormat) {
 	var p uintptr
 	rtm := &wireFormat{extOff: 40, bodyOff: sizeofRtMsghdrDragonFlyBSD4}
+	rtm.parse = rtm.parseRouteMessage
 	ifm := &wireFormat{extOff: 16, bodyOff: sizeofIfMsghdrDragonFlyBSD4}
+	ifm.parse = ifm.parseInterfaceMessage
 	ifam := &wireFormat{extOff: sizeofIfaMsghdrDragonFlyBSD4, bodyOff: sizeofIfaMsghdrDragonFlyBSD4}
+	ifam.parse = ifam.parseInterfaceAddrMessage
 	ifmam := &wireFormat{extOff: sizeofIfmaMsghdrDragonFlyBSD4, bodyOff: sizeofIfmaMsghdrDragonFlyBSD4}
+	ifmam.parse = ifmam.parseInterfaceMulticastAddrMessage
 	ifanm := &wireFormat{extOff: sizeofIfAnnouncemsghdrDragonFlyBSD4, bodyOff: sizeofIfAnnouncemsghdrDragonFlyBSD4}
-	return int(unsafe.Sizeof(p)), map[int]parseFn{
-		sysRTM_ADD:        rtm.parseRouteMessage,
-		sysRTM_DELETE:     rtm.parseRouteMessage,
-		sysRTM_CHANGE:     rtm.parseRouteMessage,
-		sysRTM_GET:        rtm.parseRouteMessage,
-		sysRTM_LOSING:     rtm.parseRouteMessage,
-		sysRTM_REDIRECT:   rtm.parseRouteMessage,
-		sysRTM_MISS:       rtm.parseRouteMessage,
-		sysRTM_LOCK:       rtm.parseRouteMessage,
-		sysRTM_RESOLVE:    rtm.parseRouteMessage,
-		sysRTM_NEWADDR:    ifam.parseInterfaceAddrMessage,
-		sysRTM_DELADDR:    ifam.parseInterfaceAddrMessage,
-		sysRTM_IFINFO:     ifm.parseInterfaceMessage,
-		sysRTM_NEWMADDR:   ifmam.parseInterfaceMulticastAddrMessage,
-		sysRTM_DELMADDR:   ifmam.parseInterfaceMulticastAddrMessage,
-		sysRTM_IFANNOUNCE: ifanm.parseInterfaceAnnounceMessage,
+	ifanm.parse = ifanm.parseInterfaceAnnounceMessage
+
+	rel, _ := syscall.SysctlUint32("kern.osreldate")
+	if rel >= 500705 {
+		// https://github.com/DragonFlyBSD/DragonFlyBSD/commit/43a373152df2d405c9940983e584e6a25e76632d
+		// but only the size of struct ifa_msghdr actually changed
+		rtmVersion = 7
+		ifam.bodyOff = sizeofIfaMsghdrDragonFlyBSD58
+	}
+
+	return int(unsafe.Sizeof(p)), map[int]*wireFormat{
+		sysRTM_ADD:        rtm,
+		sysRTM_DELETE:     rtm,
+		sysRTM_CHANGE:     rtm,
+		sysRTM_GET:        rtm,
+		sysRTM_LOSING:     rtm,
+		sysRTM_REDIRECT:   rtm,
+		sysRTM_MISS:       rtm,
+		sysRTM_LOCK:       rtm,
+		sysRTM_RESOLVE:    rtm,
+		sysRTM_NEWADDR:    ifam,
+		sysRTM_DELADDR:    ifam,
+		sysRTM_IFINFO:     ifm,
+		sysRTM_NEWMADDR:   ifmam,
+		sysRTM_DELMADDR:   ifmam,
+		sysRTM_IFANNOUNCE: ifanm,
 	}
 }

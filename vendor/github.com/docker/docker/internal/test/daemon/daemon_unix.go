@@ -6,10 +6,14 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/docker/docker/internal/test"
 	"golang.org/x/sys/unix"
 )
 
-func cleanupExecRoot(t testingT, execRoot string) {
+func cleanupNetworkNamespace(t testingT, execRoot string) {
+	if ht, ok := t.(test.HelperT); ok {
+		ht.Helper()
+	}
 	// Cleanup network namespaces in the exec root of this
 	// daemon because this exec root is specific to this
 	// daemon instance and has no chance of getting
@@ -17,7 +21,7 @@ func cleanupExecRoot(t testingT, execRoot string) {
 	// new exec root.
 	netnsPath := filepath.Join(execRoot, "netns")
 	filepath.Walk(netnsPath, func(path string, info os.FileInfo, err error) error {
-		if err := unix.Unmount(path, unix.MNT_FORCE); err != nil {
+		if err := unix.Unmount(path, unix.MNT_DETACH); err != nil && err != unix.EINVAL && err != unix.ENOENT {
 			t.Logf("unmount of %s failed: %v", path, err)
 		}
 		os.Remove(path)

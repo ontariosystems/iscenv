@@ -19,21 +19,21 @@ package plugins
 import (
 	"fmt"
 	"io/ioutil"
-	golog "log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-plugin"
 	"github.com/kardianos/osext"
 	"github.com/ontariosystems/iscenv/iscenv"
+	log "github.com/sirupsen/logrus"
 )
 
 func init() {
 	// Throw away the logs from go-plugin
-	golog.SetOutput(ioutil.Discard)
+	hclog.DefaultOutput = ioutil.Discard
 }
 
 // NewPluginManager creates and returns a PluginManager for the requested Plugin
@@ -120,7 +120,7 @@ type ActivatedPlugin struct {
 }
 
 // RPCClient is needed because the embedded struct is Client and it has a function called Client so it's client.Client() is ambiguous
-func (pc *PluginClient) RPCClient() (*plugin.RPCClient, error) {
+func (pc *PluginClient) RPCClient() (plugin.ClientProtocol, error) {
 	return pc.Client.Client()
 }
 

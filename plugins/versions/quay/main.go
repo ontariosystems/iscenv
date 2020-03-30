@@ -23,9 +23,9 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/ontariosystems/iscenv/iscenv"
+	log "github.com/sirupsen/logrus"
 )
 
 var plog = log.WithField("plugin", pluginKey)

@@ -69,13 +69,67 @@ func TestTomlHasPath(t *testing.T) {
 	}
 }
 
+func TestTomlDelete(t *testing.T) {
+	tree, _ := Load(`
+        key = "value"
+    `)
+	err := tree.Delete("key")
+	if err != nil {
+		t.Errorf("Delete - unexpected error while deleting key: %s", err.Error())
+	}
+
+	if tree.Get("key") != nil {
+		t.Errorf("Delete should have removed key but did not.")
+	}
+
+}
+
+func TestTomlDeleteUnparsableKey(t *testing.T) {
+	tree, _ := Load(`
+        key = "value"
+    `)
+	err := tree.Delete(".")
+	if err == nil {
+		t.Errorf("Delete should error")
+	}
+}
+
+func TestTomlDeleteNestedKey(t *testing.T) {
+	tree, _ := Load(`
+		[foo]
+        [foo.bar]
+        key = "value"
+    `)
+	err := tree.Delete("foo.bar.key")
+	if err != nil {
+		t.Errorf("Error while deleting nested key: %s", err.Error())
+	}
+
+	if tree.Get("key") != nil {
+		t.Errorf("Delete should have removed nested key but did not.")
+	}
+
+}
+
+func TestTomlDeleteNonexistentNestedKey(t *testing.T) {
+	tree, _ := Load(`
+		[foo]
+        [foo.bar]
+        key = "value"
+    `)
+	err := tree.Delete("foo.not.there.key")
+	if err == nil {
+		t.Errorf("Delete should have thrown an error trying to delete key in nonexistent tree")
+	}
+}
+
 func TestTomlGetPath(t *testing.T) {
-	node := newTomlTree()
+	node := newTree()
 	//TODO: set other node data
 
 	for idx, item := range []struct {
 		Path     []string
-		Expected *TomlTree
+		Expected *Tree
 	}{
 		{ // empty path test
 			[]string{},
@@ -94,35 +148,33 @@ func TestTomlGetPath(t *testing.T) {
 	}
 }
 
-func TestTomlQuery(t *testing.T) {
-	tree, err := Load("[foo.bar]\na=1\nb=2\n[baz.foo]\na=3\nb=4\n[gorf.foo]\na=5\nb=6")
+func TestTomlFromMap(t *testing.T) {
+	simpleMap := map[string]interface{}{"hello": 42}
+	tree, err := TreeFromMap(simpleMap)
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal("unexpected error:", err)
 	}
-	result, err := tree.Query("$.foo.bar")
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	values := result.Values()
-	if len(values) != 1 {
-		t.Errorf("Expected resultset of 1, got %d instead: %v", len(values), values)
-	}
-
-	if tt, ok := values[0].(*TomlTree); !ok {
-		t.Errorf("Expected type of TomlTree: %T", values[0])
-	} else if tt.Get("a") != int64(1) {
-		t.Errorf("Expected 'a' with a value 1: %v", tt.Get("a"))
-	} else if tt.Get("b") != int64(2) {
-		t.Errorf("Expected 'b' with a value 2: %v", tt.Get("b"))
+	if tree.Get("hello") != int64(42) {
+		t.Fatal("hello should be 42, not", tree.Get("hello"))
 	}
 }
 
-func TestTomlFromMap(t *testing.T) {
-	simpleMap := map[string]interface{}{"hello": 42}
-	tree := TreeFromMap(simpleMap)
-	if tree.Get("hello") != 42 {
-		t.Fatal("hello should be 42, not", tree.Get("hello"))
+func TestLoadBytesBOM(t *testing.T) {
+	payloads := [][]byte{
+		[]byte("\xFE\xFFhello=1"),
+		[]byte("\xFF\xFEhello=1"),
+		[]byte("\xEF\xBB\xBFhello=1"),
+		[]byte("\x00\x00\xFE\xFFhello=1"),
+		[]byte("\xFF\xFE\x00\x00hello=1"),
+	}
+	for _, data := range payloads {
+		tree, err := LoadBytes(data)
+		if err != nil {
+			t.Fatal("unexpected error:", err, "for:", data)
+		}
+		v := tree.Get("hello")
+		if v != int64(1) {
+			t.Fatal("hello should be 1, not", v)
+		}
 	}
 }

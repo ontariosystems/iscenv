@@ -52,21 +52,19 @@ type initConfig struct {
 	AppArmorProfile  string           `json:"apparmor_profile"`
 	NoNewPrivileges  bool             `json:"no_new_privileges"`
 	User             string           `json:"user"`
-	AdditionalGroups []string         `json:"additional_groups"`
 	Config           *configs.Config  `json:"config"`
 	Console          string           `json:"console"`
 	Networks         []*network       `json:"network"`
 	PassedFilesCount int              `json:"passed_files_count"`
 	ContainerId      string           `json:"containerid"`
 	Rlimits          []configs.Rlimit `json:"rlimits"`
-	ExecFifoPath     string           `json:"start_pipe_path"`
 }
 
 type initer interface {
 	Init() error
 }
 
-func newContainerInit(t initType, pipe *os.File, stateDirFD int) (initer, error) {
+func newContainerInit(t initType, pipe *os.File) (initer, error) {
 	var config *initConfig
 	if err := json.NewDecoder(pipe).Decode(&config); err != nil {
 		return nil, err
@@ -81,10 +79,9 @@ func newContainerInit(t initType, pipe *os.File, stateDirFD int) (initer, error)
 		}, nil
 	case initStandard:
 		return &linuxStandardInit{
-			pipe:       pipe,
-			parentPid:  syscall.Getppid(),
-			config:     config,
-			stateDirFD: stateDirFD,
+			pipe:      pipe,
+			parentPid: syscall.Getppid(),
+			config:    config,
 		}, nil
 	}
 	return nil, fmt.Errorf("unknown init type %q", t)
@@ -144,7 +141,7 @@ func finalizeNamespace(config *initConfig) error {
 	}
 	if config.Cwd != "" {
 		if err := syscall.Chdir(config.Cwd); err != nil {
-			return fmt.Errorf("chdir to cwd (%q) set in config.json failed: %v", config.Cwd, err)
+			return err
 		}
 	}
 	return nil
@@ -214,8 +211,8 @@ func setupUser(config *initConfig) error {
 	}
 
 	var addGroups []int
-	if len(config.AdditionalGroups) > 0 {
-		addGroups, err = user.GetAdditionalGroupsPath(config.AdditionalGroups, groupPath)
+	if len(config.Config.AdditionalGroups) > 0 {
+		addGroups, err = user.GetAdditionalGroupsPath(config.Config.AdditionalGroups, groupPath)
 		if err != nil {
 			return err
 		}
@@ -334,10 +331,10 @@ func setOomScoreAdj(oomScoreAdj int, pid int) error {
 	return ioutil.WriteFile(path, []byte(strconv.Itoa(oomScoreAdj)), 0600)
 }
 
-// signalAllProcesses freezes then iterates over all the processes inside the
+// killCgroupProcesses freezes then iterates over all the processes inside the
 // manager's cgroups sending a SIGKILL to each process then waiting for them to
 // exit.
-func signalAllProcesses(m cgroups.Manager, s os.Signal) error {
+func killCgroupProcesses(m cgroups.Manager) error {
 	var procs []*os.Process
 	if err := m.Freeze(configs.Frozen); err != nil {
 		logrus.Warn(err)
@@ -354,7 +351,7 @@ func signalAllProcesses(m cgroups.Manager, s os.Signal) error {
 			continue
 		}
 		procs = append(procs, p)
-		if err := p.Signal(s); err != nil {
+		if err := p.Kill(); err != nil {
 			logrus.Warn(err)
 		}
 	}

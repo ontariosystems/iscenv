@@ -17,9 +17,9 @@ limitations under the License.
 package cmd
 
 import (
-	log "github.com/sirupsen/logrus"
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/plugins"
+	log "github.com/sirupsen/logrus"
 )
 
 // getActivatedVersioners will populate versioners with activated versioners plugins based on the provided list.
@@ -28,12 +28,12 @@ func getActivatedVersioners(pluginsToActivate []string, args plugins.PluginArgs,
 	var err error
 	vm, err := plugins.NewVersionerManager(getPluginArgs())
 	if err != nil {
-		logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to create lifecycle plugin manager")
+		logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to create version plugin manager")
 	}
 
 	*versioners, err = vm.ActivatePlugins(pluginsToActivate)
 	if err != nil {
-		logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to activate lifecycle plugins")
+		logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to activate version plugins")
 	}
 
 	return vm.Close

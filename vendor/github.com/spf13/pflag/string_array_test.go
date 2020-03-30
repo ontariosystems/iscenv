@@ -192,3 +192,65 @@ func TestSAWithSpecialChar(t *testing.T) {
 		}
 	}
 }
+
+func TestSAAsSliceValue(t *testing.T) {
+	var sa []string
+	f := setUpSAFlagSet(&sa)
+
+	in := []string{"1ns", "2ns"}
+	argfmt := "--sa=%s"
+	arg1 := fmt.Sprintf(argfmt, in[0])
+	arg2 := fmt.Sprintf(argfmt, in[1])
+	err := f.Parse([]string{arg1, arg2})
+	if err != nil {
+		t.Fatal("expected no error; got", err)
+	}
+
+	f.VisitAll(func(f *Flag) {
+		if val, ok := f.Value.(SliceValue); ok {
+			_ = val.Replace([]string{"3ns"})
+		}
+	})
+	if len(sa) != 1 || sa[0] != "3ns" {
+		t.Fatalf("Expected ss to be overwritten with '3ns', but got: %v", sa)
+	}
+}
+
+func TestSAWithSquareBrackets(t *testing.T) {
+	var sa []string
+	f := setUpSAFlagSet(&sa)
+
+	in := []string{"][]-[", "[a-z]", "[a-z]+"}
+	expected := []string{"][]-[", "[a-z]", "[a-z]+"}
+	argfmt := "--sa=%s"
+	arg1 := fmt.Sprintf(argfmt, in[0])
+	arg2 := fmt.Sprintf(argfmt, in[1])
+	arg3 := fmt.Sprintf(argfmt, in[2])
+	err := f.Parse([]string{arg1, arg2, arg3})
+	if err != nil {
+		t.Fatal("expected no error; got", err)
+	}
+
+	if len(expected) != len(sa) {
+		t.Fatalf("expected number of sa to be %d but got: %d", len(expected), len(sa))
+	}
+	for i, v := range sa {
+		if expected[i] != v {
+			t.Fatalf("expected sa[%d] to be %s but got: %s", i, expected[i], v)
+		}
+	}
+
+	values, err := f.GetStringArray("sa")
+	if err != nil {
+		t.Fatal("expected no error; got", err)
+	}
+
+	if len(expected) != len(values) {
+		t.Fatalf("expected number of values to be %d but got: %d", len(expected), len(values))
+	}
+	for i, v := range values {
+		if expected[i] != v {
+			t.Fatalf("expected got sa[%d] to be %s but got: %s", i, expected[i], v)
+		}
+	}
+}

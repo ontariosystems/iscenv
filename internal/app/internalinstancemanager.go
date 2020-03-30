@@ -22,8 +22,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/ontariosystems/isclib"
+	log "github.com/sirupsen/logrus"
 )
 
 // InstanceStateFn is a type that specifies a function signature for dealing with an instance's state
@@ -106,7 +106,7 @@ func (eim *ISCInstanceManager) execPrimaryProcess(l log.FieldLogger, c chan<- er
 
 	l.Info("Starting primary command")
 
-	cmd := eim.GetCSessionCommand(eim.PrimaryCommandNamespace, eim.PrimaryCommand)
+	cmd := eim.SessionCommand(eim.PrimaryCommandNamespace, eim.PrimaryCommand)
 	r, w := io.Pipe()
 	cmd.Stdout = w
 

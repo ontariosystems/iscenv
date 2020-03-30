@@ -13,6 +13,29 @@ package route
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <net/route.h>
+
+#include <netinet/in.h>
+
+struct ifa_msghdr_dfly4 {
+	u_short	ifam_msglen;
+	u_char	ifam_version;
+	u_char	ifam_type;
+	int	ifam_addrs;
+	int	ifam_flags;
+	u_short	ifam_index;
+	int	ifam_metric;
+};
+
+struct ifa_msghdr_dfly58 {
+	u_short	ifam_msglen;
+	u_char	ifam_version;
+	u_char	ifam_type;
+	u_short	ifam_index;
+	int	ifam_flags;
+	int	ifam_addrs;
+	int	ifam_addrflags;
+	int	ifam_metric;
+};
 */
 import "C"
 
@@ -22,6 +45,8 @@ const (
 	sysAF_ROUTE  = C.AF_ROUTE
 	sysAF_LINK   = C.AF_LINK
 	sysAF_INET6  = C.AF_INET6
+
+	sysSOCK_RAW = C.SOCK_RAW
 
 	sysNET_RT_DUMP   = C.NET_RT_DUMP
 	sysNET_RT_FLAGS  = C.NET_RT_FLAGS
@@ -57,8 +82,6 @@ const (
 	sysRTM_REDIRECT   = C.RTM_REDIRECT
 	sysRTM_MISS       = C.RTM_MISS
 	sysRTM_LOCK       = C.RTM_LOCK
-	sysRTM_OLDADD     = C.RTM_OLDADD
-	sysRTM_OLDDEL     = C.RTM_OLDDEL
 	sysRTM_RESOLVE    = C.RTM_RESOLVE
 	sysRTM_NEWADDR    = C.RTM_NEWADDR
 	sysRTM_DELADDR    = C.RTM_DELADDR
@@ -96,10 +119,16 @@ const (
 
 const (
 	sizeofIfMsghdrDragonFlyBSD4         = C.sizeof_struct_if_msghdr
-	sizeofIfaMsghdrDragonFlyBSD4        = C.sizeof_struct_ifa_msghdr
+	sizeofIfaMsghdrDragonFlyBSD4        = C.sizeof_struct_ifa_msghdr_dfly4
 	sizeofIfmaMsghdrDragonFlyBSD4       = C.sizeof_struct_ifma_msghdr
 	sizeofIfAnnouncemsghdrDragonFlyBSD4 = C.sizeof_struct_if_announcemsghdr
 
+	sizeofIfaMsghdrDragonFlyBSD58 = C.sizeof_struct_ifa_msghdr_dfly58
+
 	sizeofRtMsghdrDragonFlyBSD4  = C.sizeof_struct_rt_msghdr
 	sizeofRtMetricsDragonFlyBSD4 = C.sizeof_struct_rt_metrics
+
+	sizeofSockaddrStorage = C.sizeof_struct_sockaddr_storage
+	sizeofSockaddrInet    = C.sizeof_struct_sockaddr_in
+	sizeofSockaddrInet6   = C.sizeof_struct_sockaddr_in6
 )
