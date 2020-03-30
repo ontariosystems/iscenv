@@ -8,6 +8,7 @@ deploy:
     secure: N0KlRx/XVo1WX4LgovRH8W97JgZorwaK1kkM+u0JY74yTkAwe4H9oSYzBybCOPtfL/TIIOiPyEWS2A6iyg4kxQpGzgxNp2UW+HsTCg2EK7/SPw9rX5nKt0AQoUdeAxqtLa7ef+ADDb2FrmrPnevFvXWvKgC8Vu/Nhg6ILxBHG8FRvx9wCveCYov/ufDXIjToBKO910uVKv8yrpm1wgQYXDkQtscf6BJY7CRM6I4c3Hs9zBCyvZmrZeV9t7/cB9MDU/ZTA7vzIVH/eljumtOcD51NdqqUMhQvLr8SPJBl5Wqwz/92eGrRXIo4xXrMlhoy/k0efatd9n0QuL4aVkGuVI6+bGJsSPUmonGEtsaCUURjotYRCWX3Ud1NoIsJLhgibvdvn4Rw60pUG836GxSRm3uN0kbdOH903ORzJtbn/xFuztBiE2qrtbA/CtT9MqZ/+FbocCxLHGw16dTTRkoIOU7g92eJZjh7Khp9kCmeQ5rrNvD0enYnAcVNWqR/12spemZ4m/6LS2lzvfegjlZtZQBnThS7YN+GrQENya1yLLR5YRaxVLgERDPQVaKlbrgxk9jcUcA4TzMbGCKPLOAyKqIAfU2jdKQ8a0k68bkyWChdG4IWBHVxYYob7Z5U86xk7CsWC1Uq7xDVn8TSOh4yWGFHRQVM/lKEwUqFdoap67c=
   file: pkg/iscenv
   on:
+    condition: $TRAVIS_GO_VERSION =~ ^1\.14
     repo: ontariosystems/iscenv
     tags: true
   skip_cleanup: true
