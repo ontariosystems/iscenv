@@ -533,11 +533,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:a5d8f6e02c80d2185b9f5815d22c1427b3ec10bdd428b294510c5898be14004c"
+  digest = "1:fb1c36505c715c30c17ce6a9340ad42f8a61b616ae5b38c8166522cf7a41ab2b"
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = ""
-  revision = "f447254575fde2c994d6f2d03076c476bfe61854"
+  revision = "af700f360a68777d07b5b04375eadc03da752ab5"
 
 [[projects]]
   digest = "1:2930a74fda438df68907dcd7a2ec9d2a05ddff647b242fd2e43b07dc6ca03336"
@@ -613,6 +613,7 @@
     "github.com/creack/termios/raw",
     "github.com/creack/termios/win",
     "github.com/fsouza/go-dockerclient",
+    "github.com/hashicorp/go-hclog",
     "github.com/hashicorp/go-multierror",
     "github.com/hashicorp/go-plugin",
     "github.com/hashicorp/go-version",
