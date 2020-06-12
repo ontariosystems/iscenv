@@ -32,9 +32,9 @@ import (
 	"github.com/ontariosystems/iscenv/internal/plugins"
 	"github.com/ontariosystems/iscenv/iscenv"
 
-	log "github.com/sirupsen/logrus"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/kardianos/osext"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -66,13 +66,13 @@ func init() {
 	flags.AddFlagP(startCmd, "env", "e", []string(nil), "An environment variable and its value to be passed to the starting container in the form of VAR=value")
 
 	// Flags overriding the default settings *inside* of containers
-	flags.AddConfigFlag(startCmd, "internal-instance", "docker", "The name of the actual ISC product instance within the container")
+	flags.AddConfigFlag(startCmd, "internal-instance", "iris", "The name of the actual ISC product instance within the container")
 	flags.AddConfigFlag(startCmd, "superserver-port", int(iscenv.PortInternalSS), "The super server port inside the ISC product container")
 	flags.AddConfigFlag(startCmd, "isc-http-port", int(iscenv.PortInternalWeb), "The ISC Web Server port inside the ISC product container")
 	flags.AddConfigFlag(startCmd, "ccontrol-path", "ccontrol", "The path to the ccontrol executable within the container")
 	addPrimaryCommandFlags(startCmd)
 	flags.AddConfigFlag(startCmd, "disable-primary-command", false, "This argument will disable the primary command for a single run.  This allows you to start the container with no primary command for an initialization run (while you load the primary command's source, for example) or to debug a broken primary command.")
-	flags.AddConfigFlag(startCmd, "time-zone", "UTC", "The time zone to set inside the container. This should be provided as a path relative to /usr/share/zoneinfo (e.g. America/Indianapolis or US/Eastern).")
+	flags.AddConfigFlag(startCmd, "time-zone", "UTC", "The time zone to set inside the container. This should be provided as a path relative to /usr/share/zoneinfo (e.g. America/Indianapolis or US/Eastern).  This only works if the container is running as root")
 }
 
 func start(cmd *cobra.Command, args []string) {

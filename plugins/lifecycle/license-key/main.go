@@ -118,7 +118,7 @@ func (*Plugin) BeforeInstance(state *isclib.Instance) error {
 
 	keyFilename := "cache.key"
 	if state.Product == isclib.Iris {
-		keyFilename = "license.key"
+		keyFilename = "iris.key"
 	}
 	keyPath := filepath.Join(mgrDir, keyFilename)
 	plog.WithFields(log.Fields{
@@ -148,8 +148,10 @@ func (*Plugin) BeforeInstance(state *isclib.Instance) error {
 		return err
 	}
 
-	if err := os.Chown(keyPath, int(uid), int(gid)); err != nil {
-		return err
+	if os.Geteuid() == 0 {
+		if err := os.Chown(keyPath, int(uid), int(gid)); err != nil {
+			return err
+		}
 	}
 
 	if err := os.Chmod(keyPath, 0644); err != nil {
