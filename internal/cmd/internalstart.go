@@ -24,12 +24,12 @@ import (
 	"os"
 	"path"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/ontariosystems/iscenv/internal/app"
 	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 	"github.com/ontariosystems/iscenv/internal/plugins"
 	"github.com/ontariosystems/iscenv/iscenv"
 	"github.com/ontariosystems/isclib"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -66,7 +66,7 @@ func internalStart(cmd *cobra.Command, _ []string) {
 
 	go startHealthCheck()
 
-	if tz := os.Getenv("TZ"); tz != "" {
+	if tz := os.Getenv("TZ"); tz != "" && os.Getuid() == 0 {
 		log.WithField("time_zone", tz).Debug("Using provided time zone")
 		if _, err := os.Stat(localTimePath); err == nil {
 			if err := os.Remove(localTimePath); err != nil {
