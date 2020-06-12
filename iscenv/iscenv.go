@@ -46,5 +46,5 @@ const (
 var (
 	// WrappedCommands are commands that when iscenv is called but renamed (or linked) to one of these names it will attempt to mimic
 	// the command inside the container as closely as possible.
-	WrappedCommands = []string{"ccontrol", "csession"}
+	WrappedCommands = []string{"ccontrol", "csession", "iris"}
 )
