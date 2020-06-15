@@ -335,12 +335,12 @@
   version = "v1.1.0"
 
 [[projects]]
-  digest = "1:ee7c6c21ec437e5644020cd4e248be5f23dbe2a35405f165c3ef2998ac65014d"
+  digest = "1:1172665b3365c1b08dc838d9747170a3b37a967f384696c8b3845758b338deb6"
   name = "github.com/ontariosystems/isclib"
   packages = ["."]
   pruneopts = ""
-  revision = "4411411c8a92bc6706008a0cc19217eb2051665c"
-  version = "v2.2.1"
+  revision = "1dc65def773c41766da5e828d2fe6b4e572a755a"
+  version = "v2.2.2"
 
 [[projects]]
   digest = "1:5d9b668b0b4581a978f07e7d2e3314af18eb27b3fb5d19b70185b7c575723d11"
