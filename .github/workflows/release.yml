@@ -27,7 +27,7 @@ jobs:
         id: version
         run: 'git describe --always --dirty $GITHUB_REF_NAME | sed "s/^v//"'
       - uses: actions/create-release@v1
-        id: create-release
+        id: create_release
         with:
           draft: false
           prerelease: false
