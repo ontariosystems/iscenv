@@ -8,6 +8,7 @@ runs:
       with:
         go-version: 1.19
     - run: make clean build
+      shell: bash
     - uses: actions/upload-artifact@v3
       with:
         name: build-artifact
