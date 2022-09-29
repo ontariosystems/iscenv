@@ -20,7 +20,12 @@ jobs:
         with:
           ref: ${{ github.ref }}
       - name: check branch
-        run: "if [[ ! $(git branch --contains $GITHUB_REF master | sed 's/\\s*//') == 'master' ]]; then exit 1; fi"
+        run: |
+          br="$(git branch --contains $GITHUB_REF master | sed 's/[[:space:]]*//')"
+          if [[ "$br" != "master" ]]; then
+            echo "$br != master"
+            exit 1
+          fi
       - uses: actions/download-artifact@v3
         with:
           name: build-artifact
