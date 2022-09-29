@@ -21,9 +21,6 @@ jobs:
           fi
       - name: Build
         uses: ./.github/actions/build
-      - uses: actions/download-artifact@v3
-        with:
-          name: build-artifact
       - name: release-notes
         run: 'echo "$(git tag -l --format="%(contents:body)" $GITHUB_REF_NAME)" > RELEASE_NOTES'
       - name: version

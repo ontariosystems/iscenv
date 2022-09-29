@@ -1,5 +1,5 @@
 name: build
-description: builds iscenv binaries
+description: builds iscenv
 
 runs:
   using: composite
@@ -9,7 +9,3 @@ runs:
         go-version: 1.19
     - run: make clean build
       shell: bash
-    - uses: actions/upload-artifact@v3
-      with:
-        name: build-artifact
-        path: pkg/iscenv
