@@ -1,0 +1,46 @@
+name: release
+on:
+  push:
+    tags: ['v*.*.*']
+
+jobs:
+  build:
+    name: Build Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/workflows/build.yml
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.ref }}
+      - name: check branch
+        run: "[[ $(git branch --contains $GITHUB_REF master | sed 's/\\s*//') == 'master' ]]"
+      - uses: actions/download-artifact@v3
+        with:
+          name: build-artifact
+      - name: release-notes
+        run: 'echo "$(git tag -l --format="%(contents:body)" $GITHUB_REF_NAME)" > RELEASE_NOTES'
+      - name: version
+        id: version
+        run: 'git describe --always --dirty $GITHUB_REF_NAME | sed "s/^v//"'
+      - uses: actions/create-release@v1
+        id: create-release
+        with:
+          draft: false
+          prerelease: false
+          release_name: ${{ steps.version.outputs.version }}
+          tag_name: ${{ github.ref }}
+          body_path: RELEASE_NOTES
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./pkg/iscenv
+          asset_name: iscenv
+          asset_content_type: application/octet-stream
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
