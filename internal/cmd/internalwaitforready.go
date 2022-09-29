@@ -51,7 +51,7 @@ func internalWaitForReady(cmd *cobra.Command, _ []string) {
 	for ; phase < app.StartPhaseInstanceRunning; phase = getStartPhase() {
 		log.WithField("phase", phase).Debug("Not ready")
 		time.Sleep(1 * time.Second)
-		if int(time.Now().Sub(startTime).Seconds()) > flags.GetInt(cmd, "timeout") {
+		if int(time.Since(startTime).Seconds()) > flags.GetInt(cmd, "timeout") {
 			logAndExit(log.StandardLogger(), "Instance failed to be ready in the allotted time")
 		}
 	}

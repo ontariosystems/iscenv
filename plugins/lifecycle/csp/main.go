@@ -18,7 +18,6 @@ package cspplugin
 
 import (
 	"encoding/json"
-	"os"
 	"strconv"
 
 	"github.com/fsouza/go-dockerclient"
@@ -34,8 +33,7 @@ const (
 )
 
 var (
-	dockerClient *docker.Client
-	plog         = log.WithField("plugin", pluginKey)
+	plog = log.WithField("plugin", pluginKey)
 )
 
 // Plugin represents this plugin and serves as a place to attach functions to implement the Lifecycler interface
@@ -55,11 +53,6 @@ func (plugin *Plugin) Main() {
 
 // Key returns the unique identifier for the plugin
 func (*Plugin) Key() string {
-	var err error
-	if dockerClient, err = docker.NewClient(iscenv.DockerSocket); err != nil {
-		plog.WithError(err).Error("Failed to create docker client")
-		os.Exit(1)
-	}
 	return pluginKey
 }
 

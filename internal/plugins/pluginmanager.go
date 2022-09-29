@@ -18,7 +18,7 @@ package plugins
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -33,7 +33,7 @@ import (
 
 func init() {
 	// Throw away the logs from go-plugin
-	hclog.DefaultOutput = ioutil.Discard
+	hclog.DefaultOutput = io.Discard
 }
 
 // NewPluginManager creates and returns a PluginManager for the requested Plugin

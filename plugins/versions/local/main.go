@@ -60,11 +60,17 @@ func (*Plugin) Versions(image string) (iscenv.ISCVersions, error) {
 
 	vs := []string{}                        // for sorting
 	vm := make(map[string]docker.APIImages) // for lookup
+
+	re, err := regexp.Compile(`^\d+(\.\d+)?`)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, localImage := range localImages {
 		for _, repoTag := range localImage.RepoTags {
 			repo, tag := splitRepoTag(repoTag)
 			if repo == image {
-				if m, _ := regexp.MatchString("^\\d+(\\.\\d+)?", tag); m {
+				if m := re.MatchString(tag); m {
 					vm[tag] = localImage
 					vs = append(vs, tag)
 				}
@@ -74,7 +80,7 @@ func (*Plugin) Versions(image string) (iscenv.ISCVersions, error) {
 
 	version.Sort(vs)
 
-	versions := make(iscenv.ISCVersions, len(vs), len(vs))
+	versions := make(iscenv.ISCVersions, len(vs))
 	for i, v := range vs {
 		ai := vm[v]
 		versions[i] = &iscenv.ISCVersion{

@@ -181,7 +181,7 @@ func (opts *DockerStartOptions) ToDockerPortBindings() map[docker.Port][]docker.
 			}
 
 			if strings.HasPrefix(hostPort, "+") {
-				strings.TrimPrefix(hostPort, "+")
+				hostPort = strings.TrimPrefix(hostPort, "+")
 				i, err := strconv.ParseInt(hostPort, 10, 64)
 				if err != nil {
 					log.WithField("port", hostPort).Warn("Could not parse host port")

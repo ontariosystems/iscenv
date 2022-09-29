@@ -18,7 +18,7 @@ package app
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -26,7 +26,7 @@ import (
 
 // EnsureWithinContainer returns an error if it is executed from outside a container
 func EnsureWithinContainer(commandName string) error {
-	proc1CGroupContents, err := ioutil.ReadFile("/proc/1/cgroup")
+	proc1CGroupContents, err := os.ReadFile("/proc/1/cgroup")
 	if err != nil {
 		e := fmt.Errorf("Failed to determine environment")
 		log.WithField("path", "/proc/1/cgroup").WithError(err).Error(e)

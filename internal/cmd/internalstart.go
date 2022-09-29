@@ -19,7 +19,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -80,7 +79,7 @@ func internalStart(cmd *cobra.Command, _ []string) {
 		}
 		log.WithField("path", localTimePath).WithField("time_zone", tz).Debug("Set time zone")
 
-		if err := ioutil.WriteFile(timeZonePath, []byte(tz+"\n"), 0644); err != nil {
+		if err := os.WriteFile(timeZonePath, []byte(tz+"\n"), 0644); err != nil {
 			logAndExit(app.ErrorLogger(log.StandardLogger().WithField("path", timeZonePath), err), "Failed to set time zone")
 		}
 		log.WithField("path", timeZonePath).WithField("time_zone", tz).Debug("Set time zone")
@@ -171,7 +170,9 @@ func startHealthCheck() {
 		}
 	})
 
-	http.ListenAndServe(fmt.Sprintf(":%d", iscenv.PortInternalHC), nil)
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", iscenv.PortInternalHC), nil); err != nil && err != http.ErrServerClosed {
+		logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Health check listen failed")
+	}
 }
 
 func lifecyclerLogger(lc *plugins.ActivatedLifecycler, method string) *log.Entry {

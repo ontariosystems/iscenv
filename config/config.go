@@ -57,13 +57,13 @@ func (c Config) FromFlags(flags map[string]interface{}) error {
 					ce.Value = value
 					c[flag] = ce
 				} else {
-					multierror.Append(result, fmt.Errorf("Flag value is empty, name: %s", flag))
+					result = multierror.Append(result, fmt.Errorf("Flag value is empty, name: %s", flag))
 				}
 			} else {
-				multierror.Append(result, fmt.Errorf("Flag value was not a string, name: %s, valueType: %T", flag, iv))
+				result = multierror.Append(result, fmt.Errorf("Flag value was not a string, name: %s, valueType: %T", flag, iv))
 			}
 		} else {
-			multierror.Append(result, fmt.Errorf("Missing flag, name: %s", flag))
+			result = multierror.Append(result, fmt.Errorf("Missing flag, name: %s", flag))
 		}
 	}
 	return result
@@ -79,7 +79,7 @@ func (c Config) FromEnv() error {
 			ce.Value = value
 			c[flag] = ce
 		} else {
-			multierror.Append(result, fmt.Errorf("Environment value is empty, name: %s", flag))
+			result = multierror.Append(result, fmt.Errorf("Environment value is empty, name: %s", flag))
 		}
 	}
 

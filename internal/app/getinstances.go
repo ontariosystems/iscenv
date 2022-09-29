@@ -48,7 +48,7 @@ func GetInstances() iscenv.ISCInstances {
 		}
 
 		if name != "" {
-			container, err := DockerClient.InspectContainer(apiContainer.ID)
+			container, err := DockerClient.InspectContainerWithOptions(docker.InspectContainerOptions{ID: apiContainer.ID})
 			if err != nil {
 				ErrorLogger(nil, err).WithField("containerID", apiContainer.ID).Warn("Failed to inspect container")
 				continue
@@ -102,9 +102,15 @@ func GetInstances() iscenv.ISCInstances {
 
 func getPorts(container *docker.Container) (ssPort, httpPort, hcPort iscenv.ContainerPort, err error) {
 	for _, env := range container.Config.Env {
-		setPort(iscenv.EnvInternalSS, env, &ssPort)
-		setPort(iscenv.EnvInternalWeb, env, &httpPort)
-		setPort(iscenv.EnvInternalHC, env, &hcPort)
+		if err = setPort(iscenv.EnvInternalSS, env, &ssPort); err != nil {
+			return
+		}
+		if err = setPort(iscenv.EnvInternalWeb, env, &httpPort); err != nil {
+			return
+		}
+		if err = setPort(iscenv.EnvInternalHC, env, &hcPort); err != nil {
+			return
+		}
 	}
 
 	missing := []string{}

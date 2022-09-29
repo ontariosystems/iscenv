@@ -19,7 +19,7 @@ package quayversionsplugin
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -70,7 +70,7 @@ func (dtt *DockerTokenTransport) getToken(challenge *AuthorizationChallenge) (st
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		plog.WithField("status", resp.Status).WithField("body", string(body)).Error("Challenge request failed")
 		return "", nil, fmt.Errorf("Non-200 status code returned from token challenge request")
 	}

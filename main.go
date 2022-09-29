@@ -18,7 +18,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
 
@@ -26,7 +26,7 @@ import (
 	"github.com/ontariosystems/iscenv/v3/internal/cmd"
 	"github.com/ontariosystems/iscenv/v3/iscenv"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 func main() {
@@ -51,7 +51,7 @@ func execInContainer(args []string) {
 
 	// Since the whole point of faked executables is to trick wrappers, we need the
 	// output to be untainted by additional logs.
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 
 	var interactive bool
 	switch strings.ToLower(os.Getenv("ISCENV_INTERACTIVE")) {
@@ -60,7 +60,7 @@ func execInContainer(args []string) {
 	case "false":
 		interactive = false
 	default:
-		interactive = terminal.IsTerminal(int(os.Stdin.Fd()))
+		interactive = term.IsTerminal(int(os.Stdin.Fd()))
 	}
 
 	if err := app.DockerExec(instance, interactive, args...); err != nil {

@@ -17,7 +17,7 @@ limitations under the License.
 package app
 
 import (
-	"io/ioutil"
+	"io"
 	"strings"
 
 	"github.com/fsouza/go-dockerclient"
@@ -55,7 +55,7 @@ func DockerPull(image, tag string) error {
 		Registry:     registry,
 		Repository:   image,
 		Tag:          tag,
-		OutputStream: ioutil.Discard, // TODO: Handle status updates... somehow
+		OutputStream: io.Discard, // TODO: Handle status updates... somehow
 	}
 	return DockerClient.PullImage(imgopts, authcfg)
 }

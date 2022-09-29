@@ -20,7 +20,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"strings"
@@ -169,7 +168,7 @@ func getInterfaceIP(iface string) (string, error) {
 }
 
 func writeTmpHosts(ip string) (string, error) {
-	tmp, err := ioutil.TempFile("", "iscenv-hosts-")
+	tmp, err := os.CreateTemp("", "iscenv-hosts-")
 	if err != nil {
 		plog.WithError(err).Error("Failed to create temporary hosts file")
 		return "", err
@@ -205,7 +204,9 @@ func writeTmpHosts(ip string) (string, error) {
 		return "", err
 	}
 
-	tmp.WriteString(fmt.Sprintf("%s\t%s\n", ip, hostAlias))
+	if _, err := tmp.WriteString(fmt.Sprintf("%s\t%s\n", ip, hostAlias)); err != nil {
+		return "", err
+	}
 
 	return tmp.Name(), nil
 }

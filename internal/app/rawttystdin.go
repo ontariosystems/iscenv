@@ -23,7 +23,7 @@ import (
 
 	"github.com/creack/termios/raw"
 	"github.com/creack/termios/win"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 // TTYSizeChangeHandler is a type that specifies a function signature for dealing with tty size changes
@@ -53,7 +53,7 @@ func (rts *rawTTYStdin) Fd() uintptr {
 }
 
 func (rts *rawTTYStdin) IsTerminal() bool {
-	return terminal.IsTerminal(int(rts.Fd()))
+	return term.IsTerminal(int(rts.Fd()))
 }
 
 func (rts *rawTTYStdin) Close() error {
@@ -62,7 +62,9 @@ func (rts *rawTTYStdin) Close() error {
 	}
 
 	if rts.origState != nil {
-		raw.TcSetAttr(rts.Fd(), rts.origState)
+		if err := raw.TcSetAttr(rts.Fd(), rts.origState); err != nil {
+			return err
+		}
 	}
 
 	return rts.File.Close()

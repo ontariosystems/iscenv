@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -124,7 +123,7 @@ func start(cmd *cobra.Command, args []string) {
 	if flags.GetBool(cmd, "disable-primary-command") {
 		// While there is no technical reason to require a file on the file system, by creating an empty temp file we can (ab)use the
 		// existing file copying functionality instead of adding more code branches elsewhere.
-		f, err := ioutil.TempFile("", "iscenv-dpc-")
+		f, err := os.CreateTemp("", "iscenv-dpc-")
 		if err != nil {
 			logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to create temp file for disable-primary-command flag")
 		}

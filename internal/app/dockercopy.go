@@ -18,6 +18,7 @@ package app
 
 import (
 	"archive/tar"
+	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
 	"path/filepath"
@@ -32,10 +33,13 @@ func DockerCopy(instance *iscenv.ISCInstance, instancePath, localPath string) er
 
 	go func() {
 		defer w.Close()
-		DockerClient.DownloadFromContainer(instance.ID, docker.DownloadFromContainerOptions{
+		if err := DockerClient.DownloadFromContainer(instance.ID, docker.DownloadFromContainerOptions{
 			Path:         instancePath,
 			OutputStream: w,
-		})
+		}); err != nil {
+			log.WithError(err).WithFields(log.Fields{"instance-id": instance.ID, "path": instancePath}).Error("Could not download file from container")
+			w.CloseWithError(err)
+		}
 	}()
 
 	t := tar.NewReader(r)

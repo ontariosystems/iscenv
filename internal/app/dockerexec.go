@@ -18,6 +18,7 @@ package app
 
 import (
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"os"
 
 	"github.com/fsouza/go-dockerclient"
@@ -80,7 +81,9 @@ func DockerExec(instance *iscenv.ISCInstance, interactive bool, commandAndArgs .
 
 	if stdin != nil {
 		stdin.MonitorTTYSize(func(height, width int) {
-			DockerClient.ResizeExecTTY(exec.ID, height, width)
+			if err := DockerClient.ResizeExecTTY(exec.ID, height, width); err != nil {
+				log.WithError(err).WithFields(log.Fields{"instance-id": exec.ID, "height": height, "width": width}).Error("cloud not resize docker tty")
+			}
 		})
 	}
 
