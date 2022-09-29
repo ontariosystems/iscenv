@@ -22,9 +22,8 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/ontariosystems/iscenv/internal/app"
-	"github.com/ontariosystems/iscenv/internal/cmd/flags"
-
+	"github.com/ontariosystems/iscenv/v3/internal/app"
+	"github.com/ontariosystems/iscenv/v3/internal/cmd/flags"
 	"github.com/spf13/cobra"
 )
 

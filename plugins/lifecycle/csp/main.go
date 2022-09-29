@@ -21,11 +21,11 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/fsouza/go-dockerclient"
+	"github.com/ontariosystems/iscenv/v3/internal/app"
+	"github.com/ontariosystems/iscenv/v3/iscenv"
+	"github.com/ontariosystems/isclib/v2"
 	log "github.com/sirupsen/logrus"
-	docker "github.com/fsouza/go-dockerclient"
-	"github.com/ontariosystems/iscenv/internal/app"
-	"github.com/ontariosystems/iscenv/iscenv"
-	"github.com/ontariosystems/isclib"
 )
 
 const (

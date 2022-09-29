@@ -16,7 +16,7 @@ limitations under the License.
 
 package plugins
 
-import "github.com/ontariosystems/iscenv/iscenv"
+import "github.com/ontariosystems/iscenv/v3/iscenv"
 
 // NewVersionerManager creates and returns a PluginManager for a VersionerPlugin
 func NewVersionerManager(args PluginArgs) (*VersionerManager, error) {
@@ -33,7 +33,7 @@ type VersionerManager struct {
 	*PluginManager
 }
 
-//ActivatedVersioner holds information about a versioner plugin that has been activated
+// ActivatedVersioner holds information about a versioner plugin that has been activated
 type ActivatedVersioner struct {
 	*ActivatedPlugin
 	Versioner iscenv.Versioner

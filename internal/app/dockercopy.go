@@ -22,9 +22,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ontariosystems/iscenv/iscenv"
-
 	"github.com/fsouza/go-dockerclient"
+	"github.com/ontariosystems/iscenv/v3/iscenv"
 )
 
 // DockerCopy will copy a file from inside an instance to a local path

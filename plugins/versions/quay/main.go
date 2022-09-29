@@ -23,8 +23,8 @@ import (
 	"strings"
 	"time"
 
-	docker "github.com/fsouza/go-dockerclient"
-	"github.com/ontariosystems/iscenv/iscenv"
+	"github.com/fsouza/go-dockerclient"
+	"github.com/ontariosystems/iscenv/v3/iscenv"
 	log "github.com/sirupsen/logrus"
 )
 

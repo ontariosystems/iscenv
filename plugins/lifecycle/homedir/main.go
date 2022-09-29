@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"os/user"
 
-	"github.com/ontariosystems/iscenv/iscenv"
-	"github.com/ontariosystems/isclib"
+	"github.com/ontariosystems/iscenv/v3/iscenv"
+	"github.com/ontariosystems/isclib/v2"
 )
 
 const (

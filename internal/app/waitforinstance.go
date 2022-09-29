@@ -22,7 +22,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ontariosystems/iscenv/iscenv"
+	"github.com/ontariosystems/iscenv/v3/iscenv"
 )
 
 // WaitForInstance will wait for an instance until it is running or the timeout is reached

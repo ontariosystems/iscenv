@@ -16,7 +16,7 @@ limitations under the License.
 
 package plugins
 
-import "github.com/ontariosystems/iscenv/iscenv"
+import "github.com/ontariosystems/iscenv/v3/iscenv"
 
 // NewLifecyclerManager creates and returns a PluginManager for a LifecyclerPlugin
 func NewLifecyclerManager(args PluginArgs) (*LifecyclerManager, error) {

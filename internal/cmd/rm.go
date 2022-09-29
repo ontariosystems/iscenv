@@ -17,9 +17,8 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/ontariosystems/iscenv/internal/app"
-	"github.com/ontariosystems/iscenv/internal/plugins"
-
+	"github.com/ontariosystems/iscenv/v3/internal/app"
+	"github.com/ontariosystems/iscenv/v3/internal/plugins"
 	"github.com/spf13/cobra"
 )
 

@@ -19,9 +19,8 @@ package app
 import (
 	"io"
 
-	"github.com/ontariosystems/iscenv/iscenv"
-
 	"github.com/fsouza/go-dockerclient"
+	"github.com/ontariosystems/iscenv/v3/iscenv"
 )
 
 // Retrieve the logs from only this start run

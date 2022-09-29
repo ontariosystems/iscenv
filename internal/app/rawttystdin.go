@@ -21,10 +21,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"golang.org/x/crypto/ssh/terminal"
-
 	"github.com/creack/termios/raw"
 	"github.com/creack/termios/win"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 // TTYSizeChangeHandler is a type that specifies a function signature for dealing with tty size changes

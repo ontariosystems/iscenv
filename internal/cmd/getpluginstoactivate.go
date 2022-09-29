@@ -19,7 +19,7 @@ package cmd
 import (
 	"strings"
 
-	"github.com/ontariosystems/iscenv/internal/cmd/flags"
+	"github.com/ontariosystems/iscenv/v3/internal/cmd/flags"
 	"github.com/spf13/cobra"
 )
 

@@ -17,8 +17,8 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/ontariosystems/iscenv/internal/cmd/flags"
-	"github.com/ontariosystems/iscenv/internal/plugins"
+	"github.com/ontariosystems/iscenv/v3/internal/cmd/flags"
+	"github.com/ontariosystems/iscenv/v3/internal/plugins"
 )
 
 func getPluginArgs() plugins.PluginArgs {

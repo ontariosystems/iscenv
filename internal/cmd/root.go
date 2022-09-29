@@ -22,13 +22,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ontariosystems/iscenv/internal/cmd/flags"
-	"github.com/ontariosystems/iscenv/internal/plugins"
-
+	"github.com/ontariosystems/iscenv/v3/internal/cmd/flags"
+	"github.com/ontariosystems/iscenv/v3/internal/plugins"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	prefixed "github.com/x-cray/logrus-prefixed-formatter"
+	"github.com/x-cray/logrus-prefixed-formatter"
 )
 
 const (

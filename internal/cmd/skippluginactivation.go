@@ -19,7 +19,7 @@ package cmd
 import (
 	"os"
 
-	"github.com/ontariosystems/iscenv/iscenv"
+	"github.com/ontariosystems/iscenv/v3/iscenv"
 )
 
 func skipPluginActivation() bool {

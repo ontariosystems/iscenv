@@ -24,9 +24,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/fsouza/go-dockerclient"
+	"github.com/hashicorp/go-version"
 	log "github.com/sirupsen/logrus"
-	docker "github.com/fsouza/go-dockerclient"
-	version "github.com/hashicorp/go-version"
 )
 
 // DockerStart ensures that a container exists and is started.  Returns the ID of the started container or an error

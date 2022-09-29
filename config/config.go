@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"os"
 
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 )
 
 // Config is a map of Cfgentry keyed by the Flag value

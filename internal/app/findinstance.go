@@ -19,9 +19,8 @@ package app
 import (
 	"strings"
 
+	"github.com/ontariosystems/iscenv/v3/iscenv"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/ontariosystems/iscenv/iscenv"
 )
 
 // FindInstance finds and returns the instance with the provided name

@@ -17,7 +17,7 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/ontariosystems/iscenv/internal/cmd/flags"
+	"github.com/ontariosystems/iscenv/v3/internal/cmd/flags"
 	"github.com/spf13/cobra"
 )
 

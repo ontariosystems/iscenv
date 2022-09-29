@@ -17,8 +17,8 @@ limitations under the License.
 package app
 
 import (
-	docker "github.com/fsouza/go-dockerclient"
-	"github.com/ontariosystems/iscenv/iscenv"
+	"github.com/fsouza/go-dockerclient"
+	"github.com/ontariosystems/iscenv/v3/iscenv"
 )
 
 // DockerRemove removes the container that backs the provided instance

@@ -21,8 +21,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/ontariosystems/iscenv/internal/app"
-
+	"github.com/ontariosystems/iscenv/v3/internal/app"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

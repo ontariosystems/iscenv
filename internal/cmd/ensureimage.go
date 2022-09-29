@@ -17,8 +17,8 @@ limitations under the License.
 package cmd
 
 import (
+	"github.com/ontariosystems/iscenv/v3/internal/cmd/flags"
 	log "github.com/sirupsen/logrus"
-	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 )
 
 func ensureImage() {

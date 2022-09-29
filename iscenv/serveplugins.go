@@ -20,8 +20,8 @@ import (
 	"io"
 	"os"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/hashicorp/go-plugin"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"github.com/x-cray/logrus-prefixed-formatter"
 )
@@ -59,8 +59,8 @@ func ServeVersionsPlugin(impl Versioner) {
 // plugin.Serve switches stdout/stderr and the logger will not work unless configured after this.
 // plugin.Serve also blocks so we can't run the configuration afterwards.
 // The options which presented themselves were...
-//  - Configure the logging in every "event" handler
-//  - Configure the logging once by polling for a stdout change and then triggering the configuration.  I chose this one.  However, it's brittle and if the logging breaks you should look here
+//   - Configure the logging in every "event" handler
+//   - Configure the logging once by polling for a stdout change and then triggering the configuration.  I chose this one.  However, it's brittle and if the logging breaks you should look here
 func configureLogger(oldOut io.Writer) {
 	for {
 		if oldOut != os.Stdout {

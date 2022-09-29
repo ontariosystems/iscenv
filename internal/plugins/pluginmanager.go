@@ -27,7 +27,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-plugin"
 	"github.com/kardianos/osext"
-	"github.com/ontariosystems/iscenv/iscenv"
+	"github.com/ontariosystems/iscenv/v3/iscenv"
 	log "github.com/sirupsen/logrus"
 )
 

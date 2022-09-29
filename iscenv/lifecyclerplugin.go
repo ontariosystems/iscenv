@@ -19,9 +19,8 @@ package iscenv
 import (
 	"net/rpc"
 
-	"github.com/ontariosystems/isclib"
-
 	"github.com/hashicorp/go-plugin"
+	"github.com/ontariosystems/isclib/v2"
 )
 
 // Constants for lifecycler plugins

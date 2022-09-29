@@ -27,13 +27,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ontariosystems/iscenv/internal/app"
-	"github.com/ontariosystems/iscenv/internal/cmd/flags"
-	"github.com/ontariosystems/iscenv/internal/plugins"
-	"github.com/ontariosystems/iscenv/iscenv"
-
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 	"github.com/kardianos/osext"
+	"github.com/ontariosystems/iscenv/v3/internal/app"
+	"github.com/ontariosystems/iscenv/v3/internal/cmd/flags"
+	"github.com/ontariosystems/iscenv/v3/internal/plugins"
+	"github.com/ontariosystems/iscenv/v3/iscenv"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

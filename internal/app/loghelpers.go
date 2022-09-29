@@ -17,8 +17,8 @@ limitations under the License.
 package app
 
 import (
+	"github.com/ontariosystems/iscenv/v3/iscenv"
 	log "github.com/sirupsen/logrus"
-	"github.com/ontariosystems/iscenv/iscenv"
 )
 
 // InstanceLogger creates and returns a logger for the provided instance

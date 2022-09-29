@@ -17,9 +17,9 @@ limitations under the License.
 package main
 
 import (
+	"github.com/ontariosystems/iscenv/v3/iscenv"
+	"github.com/ontariosystems/isclib/v2"
 	log "github.com/sirupsen/logrus"
-	"github.com/ontariosystems/iscenv/iscenv"
-	"github.com/ontariosystems/isclib"
 )
 
 var plog = log.WithField("plugin", "external-test-plugin")

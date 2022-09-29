@@ -20,8 +20,8 @@ import (
 	"bytes"
 	"text/template"
 
+	"github.com/ontariosystems/isclib/v2"
 	log "github.com/sirupsen/logrus"
-	"github.com/ontariosystems/isclib"
 )
 
 const (

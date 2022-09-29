@@ -20,9 +20,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ontariosystems/iscenv/iscenv"
-
 	"github.com/fsouza/go-dockerclient"
+	"github.com/ontariosystems/iscenv/v3/iscenv"
 )
 
 // DockerExecError is used for representing a failed docker exec

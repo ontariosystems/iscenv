@@ -18,7 +18,7 @@ package app
 
 import (
 	"github.com/fsouza/go-dockerclient"
-	"github.com/ontariosystems/iscenv/iscenv"
+	"github.com/ontariosystems/iscenv/v3/iscenv"
 )
 
 // GetContainerForInstance finds and returns the container that is backing the provided instance

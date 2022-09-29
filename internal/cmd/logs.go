@@ -20,9 +20,9 @@ import (
 	"io"
 	"time"
 
+	"github.com/ontariosystems/iscenv/v3/internal/app"
+	"github.com/ontariosystems/iscenv/v3/internal/cmd/flags"
 	log "github.com/sirupsen/logrus"
-	"github.com/ontariosystems/iscenv/internal/app"
-	"github.com/ontariosystems/iscenv/internal/cmd/flags"
 	"github.com/spf13/cobra"
 )
 

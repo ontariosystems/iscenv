@@ -19,7 +19,7 @@ package app
 import (
 	"fmt"
 
-	"github.com/ontariosystems/isclib"
+	"github.com/ontariosystems/isclib/v2"
 )
 
 // The order here *must* match the actual order that things are started

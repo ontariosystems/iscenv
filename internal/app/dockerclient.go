@@ -17,9 +17,9 @@ limitations under the License.
 package app
 
 import (
-	log "github.com/sirupsen/logrus"
 	"github.com/fsouza/go-dockerclient"
-	"github.com/ontariosystems/iscenv/iscenv"
+	"github.com/ontariosystems/iscenv/v3/iscenv"
+	log "github.com/sirupsen/logrus"
 )
 
 // DockerClient holds a reference to a client for interacting with docker

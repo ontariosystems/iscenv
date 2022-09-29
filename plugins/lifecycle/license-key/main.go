@@ -24,10 +24,9 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"github.com/ontariosystems/iscenv/v3/iscenv"
+	"github.com/ontariosystems/isclib/v2"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/ontariosystems/iscenv/iscenv"
-	"github.com/ontariosystems/isclib"
 )
 
 var plog = log.WithField("plugin", pluginKey)

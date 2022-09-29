@@ -20,7 +20,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	docker "github.com/fsouza/go-dockerclient"
+	"github.com/fsouza/go-dockerclient"
 )
 
 const (

@@ -22,12 +22,11 @@ import (
 	"os"
 	"strings"
 
-	"golang.org/x/crypto/ssh/terminal"
-
+	"github.com/ontariosystems/iscenv/v3/internal/app"
+	"github.com/ontariosystems/iscenv/v3/internal/cmd"
+	"github.com/ontariosystems/iscenv/v3/iscenv"
 	log "github.com/sirupsen/logrus"
-	"github.com/ontariosystems/iscenv/internal/app"
-	"github.com/ontariosystems/iscenv/internal/cmd"
-	"github.com/ontariosystems/iscenv/iscenv"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 func main() {

@@ -20,7 +20,7 @@ import (
 	"strconv"
 
 	"github.com/fsouza/go-dockerclient"
-	"github.com/ontariosystems/iscenv/iscenv"
+	"github.com/ontariosystems/iscenv/v3/iscenv"
 )
 
 // DockerPort creates and returns a container docker port

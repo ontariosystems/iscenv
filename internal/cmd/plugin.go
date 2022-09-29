@@ -19,8 +19,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/ontariosystems/iscenv/internal/plugins"
-
+	"github.com/ontariosystems/iscenv/v3/internal/plugins"
 	"github.com/spf13/cobra"
 )
 

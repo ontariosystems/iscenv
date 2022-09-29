@@ -19,7 +19,7 @@ package app
 import (
 	"time"
 
-	"github.com/ontariosystems/iscenv/iscenv"
+	"github.com/ontariosystems/iscenv/v3/iscenv"
 )
 
 // GetInstanceStartTime gets and returns the start time of the provided instance

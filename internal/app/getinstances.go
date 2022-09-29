@@ -22,7 +22,7 @@ import (
 	"strings"
 
 	"github.com/fsouza/go-dockerclient"
-	"github.com/ontariosystems/iscenv/iscenv"
+	"github.com/ontariosystems/iscenv/v3/iscenv"
 )
 
 // GetInstances will return a list of available ISC product Instances.

@@ -2,8 +2,8 @@
 [![Latest Release](https://img.shields.io/github/release/ontariosystems/iscenv.svg)](https://github.com/ontariosystems/iscenv/releases)
 [![CLA assistant](https://cla-assistant.io/readme/badge/ontariosystems/iscenv)](https://cla-assistant.io/ontariosystems/iscenv)
 [![Build Status](https://travis-ci.org/ontariosystems/iscenv.svg?branch=master)](https://travis-ci.org/ontariosystems/iscenv)
-[![Go Report Card](https://goreportcard.com/badge/github.com/ontariosystems/iscenv)](https://goreportcard.com/report/github.com/ontariosystems/iscenv)
-[![GoDoc](https://godoc.org/github.com/ontariosystems/iscenv?status.svg)](https://godoc.org/github.com/ontariosystems/iscenv)
+[![Go Report Card](https://goreportcard.com/badge/github.com/ontariosystems/iscenv/v3)](https://goreportcard.com/report/github.com/ontariosystems/iscenv/v3)
+[![GoDoc](https://godoc.org/github.com/ontariosystems/iscenv/v3?status.svg)](https://godoc.org/github.com/ontariosystems/iscenv/v3)
 
 This utility allows the user to manage docker-based ISC product instances.  These instances are meant to be used as
 development environments on a Linux host.

@@ -17,9 +17,8 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/ontariosystems/iscenv/internal/app"
-
-	docker "github.com/fsouza/go-dockerclient"
+	"github.com/fsouza/go-dockerclient"
+	"github.com/ontariosystems/iscenv/v3/internal/app"
 	"github.com/spf13/cobra"
 )
 

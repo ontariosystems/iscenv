@@ -17,16 +17,16 @@ limitations under the License.
 package iscoverlayplugin
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
-	"time"
-
-	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/ontariosystems/iscenv/iscenv"
-	"github.com/ontariosystems/isclib"
 	"strings"
 	"syscall"
+	"time"
+
+	"github.com/ontariosystems/iscenv/v3/iscenv"
+	"github.com/ontariosystems/isclib/v2"
+	log "github.com/sirupsen/logrus"
 )
 
 var (

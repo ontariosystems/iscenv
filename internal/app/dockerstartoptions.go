@@ -20,9 +20,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/fsouza/go-dockerclient"
+	"github.com/ontariosystems/iscenv/v3/iscenv"
 	log "github.com/sirupsen/logrus"
-	docker "github.com/fsouza/go-dockerclient"
-	"github.com/ontariosystems/iscenv/iscenv"
 )
 
 // DockerStartOptions holds information used in starting a container
@@ -107,6 +107,7 @@ func (opts *DockerStartOptions) ToHostConfig() *docker.HostConfig {
 		Privileged: true,
 		Binds:      opts.VolumeBinds(),
 		Links:      opts.ContainerLinks,
+
 		// Plugin
 		PortBindings: opts.ToDockerPortBindings(),
 		VolumesFrom:  opts.VolumesFrom,

@@ -22,7 +22,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/ontariosystems/isclib"
+	"github.com/ontariosystems/isclib/v2"
 	log "github.com/sirupsen/logrus"
 )
 
