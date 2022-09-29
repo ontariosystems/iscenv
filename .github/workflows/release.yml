@@ -8,7 +8,10 @@ jobs:
     name: Build Release
     runs-on: ubuntu-latest
     steps:
-      - uses: ./.github/workflows/build.yml
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.ref }}
+      - uses: ./.github/actions/build
   release:
     name: Release
     runs-on: ubuntu-latest
@@ -17,7 +20,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
       - name: check branch
-        run: "[[ $(git branch --contains $GITHUB_REF master | sed 's/\\s*//') == 'master' ]]"
+        run: "if [[ ! $(git branch --contains $GITHUB_REF master | sed 's/\\s*//') == 'master' ]]; then exit 1; fi"
       - uses: actions/download-artifact@v3
         with:
           name: build-artifact
