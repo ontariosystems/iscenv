@@ -104,9 +104,10 @@ func (opts *DockerStartOptions) ToHostConfig() *docker.HostConfig {
 
 	return &docker.HostConfig{
 		// TODO: Try turning this off or better still allow it to be activated with a plugin or better even again allow the appropriate capabilities to be set with a plugin
-		Privileged: true,
-		Binds:      opts.VolumeBinds(),
-		Links:      opts.ContainerLinks,
+		Privileged:   true,
+		Binds:        opts.VolumeBinds(),
+		Links:        opts.ContainerLinks,
+		CgroupnsMode: "host",
 
 		// Plugin
 		PortBindings: opts.ToDockerPortBindings(),
