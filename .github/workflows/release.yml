@@ -11,7 +11,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           ref: master
-      - run: 'git fetch origin $GITHUB_REF'
+      - run: git fetch --tags
       - name: check branch
         run: |
           br="$(git branch --contains $GITHUB_REF master | sed 's/[[:space:]]*//')"
