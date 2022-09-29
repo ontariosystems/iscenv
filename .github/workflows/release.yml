@@ -4,21 +4,14 @@ on:
     tags: ['v*.*.*']
 
 jobs:
-  build:
-    name: Build Release
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          ref: ${{ github.ref }}
-      - uses: ./.github/actions/build
   release:
     name: Release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
         with:
-          ref: ${{ github.ref }}
+          ref: master
+      - run: git checkout ${{ github.ref }}
       - name: check branch
         run: |
           set -x
@@ -29,6 +22,8 @@ jobs:
             echo "$br != master"
             exit 1
           fi
+      - name: Build
+        uses: ./.github/actions/build
       - uses: actions/download-artifact@v3
         with:
           name: build-artifact
