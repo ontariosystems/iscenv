@@ -21,6 +21,9 @@ jobs:
           ref: ${{ github.ref }}
       - name: check branch
         run: |
+          set -x
+          echo $GITHUB_REF
+          git branch --contains $GITHUB_REF master | sed 's/[[:space:]]*//'
           br="$(git branch --contains $GITHUB_REF master | sed 's/[[:space:]]*//')"
           if [[ "$br" != "master" ]]; then
             echo "$br != master"
