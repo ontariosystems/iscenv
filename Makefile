@@ -1,4 +1,4 @@
-compile=GOOS=$(1) GOARCH=$(2) CGO_ENABLED=0 go build -tags netgo -ldflags "-X github.com/ontariosystems/iscenv/iscenv.Version=$(version)" -o=pkg/iscenv
+compile=GOOS=$(1) GOARCH=$(2) CGO_ENABLED=0 go build -tags netgo -ldflags "-X github.com/ontariosystems/iscenv/v3/iscenv.Version=$(version)" -o=pkg/iscenv
 compile_plugin=GOOS=$(1) GOARCH=$(2) CGO_ENABLED=0 go build -tags netgo -o=pkg/iscenv-$(3)-$(4) plugins/$(3)/$(4)/*.go
 
 .PHONY: all
