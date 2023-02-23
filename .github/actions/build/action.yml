@@ -6,6 +6,6 @@ runs:
   steps:
     - uses: actions/setup-go@v3
       with:
-        go-version: 1.19
+        go-version: 1.20
     - run: make clean build
       shell: bash
