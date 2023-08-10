@@ -35,7 +35,10 @@ func EnsureWithinContainer(commandName string) error {
 
 	// if we have some control groups owned by docker, then we are within a container
 	contents := string(proc1CGroupContents)
-	if !strings.Contains(contents, ":/docker/") && !strings.Contains(contents, ":/kubepods/") && !strings.Contains(contents, ":/system.slice/docker-") {
+	if !strings.Contains(contents, ":/docker/") &&
+		!strings.Contains(contents, ":/kubepods/") &&
+		!strings.Contains(contents, ":/system.slice/docker-") &&
+		!strings.Contains(contents, ":/system.slice/system.slice:docker:") {
 		return ErrNotInContainer
 	}
 
