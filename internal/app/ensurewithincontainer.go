@@ -37,6 +37,7 @@ func EnsureWithinContainer(commandName string) error {
 	contents := string(proc1CGroupContents)
 	if !strings.Contains(contents, ":/docker/") &&
 		!strings.Contains(contents, ":/kubepods/") &&
+		!strings.Contains(contents, ":/kubepods.slice/") &&
 		!strings.Contains(contents, ":/system.slice/docker-") &&
 		!strings.Contains(contents, ":/system.slice/system.slice:docker:") {
 		return ErrNotInContainer
