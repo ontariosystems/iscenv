@@ -119,6 +119,9 @@ func start(cmd *cobra.Command, args []string) {
 	environment = append(environment, fmt.Sprintf("%s=%d", iscenv.EnvInternalWeb, flags.GetInt(cmd, "isc-http-port")))
 	environment = append(environment, fmt.Sprintf("%s=%d", iscenv.EnvInternalHC, iscenv.PortInternalHC))
 
+	// Add environment variable to let iscenv know we're in a container
+	environment = append(environment, fmt.Sprintf("%s=%d", iscenv.EnvInternalContainer, 1))
+
 	// Add the file which will temporarily disable the primary command
 	if flags.GetBool(cmd, "disable-primary-command") {
 		// While there is no technical reason to require a file on the file system, by creating an empty temp file we can (ab)use the

@@ -41,6 +41,10 @@ const (
 
 	InternalISCEnvBinaryDir = "/bin"
 	InternalISCEnvPath      = InternalISCEnvBinaryDir + "/iscenv"
+
+	// EnvInternalContainer is the environment variable we set for every container we start.
+	// Later we can check if it has a value to know if we started with iscenv.
+	EnvInternalContainer = "ISCENV_CONTAINER"
 )
 
 var (

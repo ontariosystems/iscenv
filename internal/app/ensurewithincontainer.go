@@ -21,11 +21,17 @@ import (
 	"os"
 	"strings"
 
+	"github.com/ontariosystems/iscenv/v3/iscenv"
 	log "github.com/sirupsen/logrus"
 )
 
 // EnsureWithinContainer returns an error if it is executed from outside a container
 func EnsureWithinContainer(commandName string) error {
+	// if iscenv started the container, this will be set
+	if _, ok := os.LookupEnv(iscenv.EnvInternalContainer); ok {
+		return nil
+	}
+
 	proc1CGroupContents, err := os.ReadFile("/proc/1/cgroup")
 	if err != nil {
 		e := fmt.Errorf("Failed to determine environment")
@@ -35,13 +41,26 @@ func EnsureWithinContainer(commandName string) error {
 
 	// if we have some control groups owned by docker, then we are within a container
 	contents := string(proc1CGroupContents)
-	if !strings.Contains(contents, ":/docker/") &&
-		!strings.Contains(contents, ":/kubepods/") &&
-		!strings.Contains(contents, ":/kubepods.slice/") &&
-		!strings.Contains(contents, ":/system.slice/docker-") &&
-		!strings.Contains(contents, ":/system.slice/system.slice:docker:") {
-		return ErrNotInContainer
+	cgroup_substrs := []string{
+		":/docker/",
+		":/kubepods/",
+		":/kubepods.slice/",
+		":/system.slice/docker-",
+		":/system.slice/system.slice:docker:",
+	}
+	for _, substr := range cgroup_substrs {
+		if strings.Contains(contents, substr) {
+			return nil
+		}
 	}
 
-	return nil
+	// if one of these files exists, probably inside a container
+	for _, p := range []string{"/.dockerenv", "/run/.containerenv"} {
+		if _, err = os.Stat(p); err == nil {
+			return nil
+		}
+	}
+
+	// Couldn't find anything else, not in a container
+	return ErrNotInContainer
 }
