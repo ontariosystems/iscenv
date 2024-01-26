@@ -17,7 +17,7 @@ limitations under the License.
 package app
 
 import (
-	"io"
+	log "github.com/sirupsen/logrus"
 	"strings"
 
 	"github.com/fsouza/go-dockerclient"
@@ -48,6 +48,8 @@ func DockerPull(image, tag string) error {
 			authcfg = cfg
 		} else if cfg, ok := authcfgs.Configs["https://"+registry]; ok {
 			authcfg = cfg
+		} else if cfg, err := docker.NewAuthConfigurationsFromCredsHelpers(registry); err == nil {
+			authcfg = *cfg
 		}
 	}
 
@@ -55,7 +57,7 @@ func DockerPull(image, tag string) error {
 		Registry:     registry,
 		Repository:   image,
 		Tag:          tag,
-		OutputStream: io.Discard, // TODO: Handle status updates... somehow
+		OutputStream: log.StandardLogger().WriterLevel(log.DebugLevel),
 	}
 	return DockerClient.PullImage(imgopts, authcfg)
 }
