@@ -74,12 +74,12 @@ func (c Config) FromEnv() error {
 	var result error
 
 	for flag, ce := range c {
-		value := os.Getenv(ce.Env)
-		if value != "" {
+		if value, ok := os.LookupEnv(ce.Env); ok {
 			ce.Value = value
-			c[flag] = ce
-		} else {
-			result = multierror.Append(result, fmt.Errorf("Environment value is empty, name: %s", flag))
+		}
+
+		if ce.Value == "" {
+			result = multierror.Append(result, fmt.Errorf("environment value is empty, name: %s", flag))
 		}
 	}
 
