@@ -19,6 +19,7 @@ package iscenv
 import (
 	"io"
 	"os"
+	"time"
 
 	"github.com/hashicorp/go-plugin"
 	log "github.com/sirupsen/logrus"
@@ -28,27 +29,20 @@ import (
 
 // ServeLifecyclePlugin serves a life cycle plugin
 func ServeLifecyclePlugin(impl Lifecycler) {
-	pluginMap := map[string]plugin.Plugin{
+	serve(map[string]plugin.Plugin{
 		LifecyclerKey: LifecyclerPlugin{Plugin: impl},
-	}
-
-	// See configureLogger comments
-	go configureLogger(os.Stdout)
-
-	plugin.Serve(&plugin.ServeConfig{
-		HandshakeConfig: PluginHandshake,
-		Plugins:         pluginMap,
 	})
 }
 
 // ServeVersionsPlugin serves a versioner plugin
 func ServeVersionsPlugin(impl Versioner) {
-	pluginMap := map[string]plugin.Plugin{
+	serve(map[string]plugin.Plugin{
 		VersionerKey: VersionerPlugin{Plugin: impl},
-	}
+	})
+}
 
-	// See configureLogger comments
-	go configureLogger(os.Stdout)
+func serve(pluginMap map[string]plugin.Plugin) {
+	configureLogger()
 
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: PluginHandshake,
@@ -61,21 +55,28 @@ func ServeVersionsPlugin(impl Versioner) {
 // The options which presented themselves were...
 //   - Configure the logging in every "event" handler
 //   - Configure the logging once by polling for a stdout change and then triggering the configuration.  I chose this one.  However, it's brittle and if the logging breaks you should look here
-func configureLogger(oldOut io.Writer) {
-	for {
-		if oldOut != os.Stdout {
-			break
+func configureLogger() {
+	// discard logs until the correct device exists
+	log.SetOutput(io.Discard)
+
+	// go func to watch for os.Stdout to change
+	oldOut := os.Stdout
+	go func() {
+		for {
+			if oldOut != os.Stdout {
+				break
+			}
 		}
-	}
 
-	log.SetOutput(os.Stdout)
+		log.SetOutput(os.Stdout)
+	}()
 
-	var l *string = pflag.String("log-level", "info", "")
-	var j *bool = pflag.Bool("log-json", false, "")
+	l := pflag.String("log-level", "info", "")
+	j := pflag.Bool("log-json", false, "")
 	pflag.Parse()
 
 	if *j {
-		log.SetFormatter(&log.JSONFormatter{})
+		log.SetFormatter(&log.JSONFormatter{TimestampFormat: time.RFC3339})
 	} else {
 		log.SetFormatter(&prefixed.TextFormatter{ForceColors: true})
 	}

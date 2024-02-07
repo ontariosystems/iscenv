@@ -103,9 +103,11 @@ func configFileNotFound(err error) bool {
 }
 
 func initLogs() {
-	// Unfortunately, we cannot log in this function or it breaks plugins by sending non-plugin api messages across the pipe
-	// The default formatter is JSON
-	if !flags.GetBool(rootCmd, "log-json") {
+	// Unfortunately, we cannot log in this function, or it breaks plugins by sending non-plugin api messages across the pipe
+
+	if flags.GetBool(rootCmd, "log-json") {
+		log.SetFormatter(&log.JSONFormatter{TimestampFormat: time.RFC3339})
+	} else {
 		log.SetFormatter(&prefixed.TextFormatter{
 			FullTimestamp:   true,
 			TimestampFormat: time.Stamp,
