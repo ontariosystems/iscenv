@@ -28,6 +28,7 @@ import (
 	"github.com/ontariosystems/iscenv/v3/plugins/lifecycle/license-key"
 	"github.com/ontariosystems/iscenv/v3/plugins/lifecycle/service-bindings"
 	"github.com/ontariosystems/iscenv/v3/plugins/lifecycle/shm"
+	"github.com/ontariosystems/iscenv/v3/plugins/lifecycle/user-mapping"
 	"github.com/ontariosystems/iscenv/v3/plugins/versions/local"
 	"github.com/ontariosystems/iscenv/v3/plugins/versions/quay"
 )
@@ -63,6 +64,7 @@ func init() {
 	addPlugin(iscenv.LifecyclerKey, new(cspplugin.Plugin))
 	addPlugin(iscenv.LifecyclerKey, new(servicebindingsplugin.Plugin))
 	addPlugin(iscenv.LifecyclerKey, new(shmplugin.Plugin))
+	addPlugin(iscenv.LifecyclerKey, new(usermappingplugin.Plugin))
 }
 
 func addPlugin(pluginType string, plugin InternalPlugin) {
