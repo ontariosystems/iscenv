@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"github.com/ontariosystems/iscenv/v3/internal/app"
+	"github.com/ontariosystems/iscenv/v3/internal/cmd/flags"
 	"github.com/ontariosystems/iscenv/v3/iscenv"
 	"github.com/spf13/cobra"
 )
@@ -32,6 +33,7 @@ var purgeJournalCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(purgeJournalCmd)
 
+	addDockerUserFlags(purgeJournalCmd)
 	addMultiInstanceFlags(purgeJournalCmd, "purgejournal")
 }
 
@@ -44,7 +46,8 @@ func purgeJournal(cmd *cobra.Command, args []string) {
 			continue
 		}
 
-		if err := app.DockerExec(instance, false, iscenv.InternalISCEnvPath, "_purgejournal"); err != nil {
+		username := flags.GetString(cmd, userFlag)
+		if err := app.DockerExec(instance, false, username, iscenv.InternalISCEnvPath, "_purgejournal"); err != nil {
 			logAndExit(app.ErrorLogger(ilog, err), "Failed to purge journals")
 		}
 	}

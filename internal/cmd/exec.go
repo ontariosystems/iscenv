@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"github.com/ontariosystems/iscenv/v3/internal/app"
+	"github.com/ontariosystems/iscenv/v3/internal/cmd/flags"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -35,9 +36,10 @@ var execCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(execCmd)
+	addDockerUserFlags(execCmd)
 }
 
-func dockerExec(_ *cobra.Command, args []string) {
+func dockerExec(cmd *cobra.Command, args []string) {
 	if len(args) < 1 {
 		logAndExit(log.WithError(app.ErrSingleInstanceArg), "Invalid arguments")
 	}
@@ -54,7 +56,8 @@ func dockerExec(_ *cobra.Command, args []string) {
 		logAndExit(ilog.WithError(app.ErrNoSuchInstance), "Invalid arguments")
 	}
 
-	if err := app.DockerExec(instance, true, cmdArgs...); err != nil {
+	username := flags.GetString(cmd, userFlag)
+	if err := app.DockerExec(instance, true, username, cmdArgs...); err != nil {
 		logAndExit(app.ErrorLogger(ilog, err), "Failed to run docker exec")
 	}
 }

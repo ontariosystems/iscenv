@@ -36,7 +36,7 @@ func (dee DockerExecError) Error() string {
 }
 
 // DockerExec performs a docker exec against the provided instance
-func DockerExec(instance *iscenv.ISCInstance, interactive bool, commandAndArgs ...string) error {
+func DockerExec(instance *iscenv.ISCInstance, interactive bool, username string, commandAndArgs ...string) error {
 	createOpts := docker.CreateExecOptions{
 		Container:    instance.ID,
 		AttachStdin:  true,
@@ -44,6 +44,7 @@ func DockerExec(instance *iscenv.ISCInstance, interactive bool, commandAndArgs .
 		AttachStderr: true,
 		Tty:          interactive,
 		Cmd:          commandAndArgs,
+		User:         username,
 	}
 
 	exec, err := DockerClient.CreateExec(createOpts)

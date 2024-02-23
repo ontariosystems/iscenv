@@ -64,6 +64,7 @@ func init() {
 	flags.AddFlagP(startCmd, "env", "e", []string(nil), "An environment variable and its value to be passed to the starting container in the form of VAR=value")
 
 	// Flags overriding the default settings *inside* of containers
+	addDockerUserFlags(startCmd)
 	flags.AddConfigFlag(startCmd, "internal-instance", "iris", "The name of the actual ISC product instance within the container")
 	flags.AddConfigFlag(startCmd, "superserver-port", int(iscenv.PortInternalSS), "The super server port inside the ISC product container")
 	flags.AddConfigFlag(startCmd, "isc-http-port", int(iscenv.PortInternalWeb), "The ISC Web Server port inside the ISC product container")
@@ -175,6 +176,7 @@ func start(cmd *cobra.Command, args []string) {
 			VolumesFrom:    flags.GetStringSlice(cmd, "volumes-from"),
 			ContainerLinks: flags.GetStringSlice(cmd, "link"),
 			Recreate:       flags.GetBool(cmd, "rm"),
+			Username:       flags.GetString(cmd, userFlag),
 		})
 
 		if err != nil {

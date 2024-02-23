@@ -24,16 +24,34 @@ import (
 )
 
 var csessionCmd = &cobra.Command{
-	Use:   "csession INSTANCE",
-	Short: "Start csession for instance",
-	Long:  "Connect to an instance container and initiate a csession.",
+	Use:    "csession INSTANCE",
+	Short:  "Start csession for instance",
+	Long:   "[DEPRECATED] Connect to an instance container and initiate a csession. Use `iscenv session` instead",
+	Hidden: true,
+	Run:    csession,
+}
+
+var sessionCmd = &cobra.Command{
+	Use:   "session INSTANCE",
+	Short: "Start terminal session for instance",
+	Long:  "Connect to an instance container and initiate a ISC terminal session.",
 	Run:   csession,
 }
 
 func init() {
 	rootCmd.AddCommand(csessionCmd)
-	flags.AddConfigFlagP(csessionCmd, "namespace", "n", "%SYS", "Use a specific starting namespace")
+	addDockerUserFlags(csessionCmd)
 	flags.AddFlag(csessionCmd, "exec", "", "Execute the following command with csession")
+	flags.AddConfigFlagP(csessionCmd, "namespace", "n", "%SYS", "Use a specific starting namespace")
+	flags.AddConfigFlagP(csessionCmd, "internal-instance", "i", "docker", "The name of the actual ISC product instance within the container")
+	flags.AddConfigFlag(csessionCmd, "control-command", "ccontrol", "The command used to control the ISC product instance")
+
+	rootCmd.AddCommand(sessionCmd)
+	addDockerUserFlags(sessionCmd)
+	flags.AddFlag(sessionCmd, "exec", "", "Execute the following command with ISC terminal session")
+	flags.AddConfigFlagP(sessionCmd, "namespace", "n", "%SYS", "Use a specific starting namespace")
+	flags.AddConfigFlagP(sessionCmd, "internal-instance", "i", "iris", "The name of the actual ISC product instance within the container")
+	flags.AddConfigFlag(sessionCmd, "control-command", "iris", "The command used to control the ISC product instance")
 }
 
 func csession(cmd *cobra.Command, args []string) {
@@ -41,7 +59,10 @@ func csession(cmd *cobra.Command, args []string) {
 		logAndExit(log.WithError(app.ErrSingleInstanceArg), "Invalid arguments")
 	}
 
-	cmdArgs := []string{"csession", "docker"}
+	instanceName := flags.GetString(cmd, "internal-instance")
+	control := flags.GetString(cmd, "control-command")
+
+	cmdArgs := []string{control, "session", instanceName}
 	ns := flags.GetString(cmd, "namespace")
 	if ns != "" {
 		cmdArgs = append(cmdArgs, "-U")
@@ -58,7 +79,8 @@ func csession(cmd *cobra.Command, args []string) {
 		logAndExit(ilog.WithError(app.ErrNoSuchInstance), "Invalid arguments")
 	}
 
-	if err := app.DockerExec(instance, true, cmdArgs...); err != nil {
+	username := flags.GetString(cmd, userFlag)
+	if err := app.DockerExec(instance, true, username, cmdArgs...); err != nil {
 		logAndExit(app.ErrorLogger(ilog, err), "Failed to run docker exec")
 	}
 }

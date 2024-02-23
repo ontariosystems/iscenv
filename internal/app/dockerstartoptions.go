@@ -79,11 +79,14 @@ type DockerStartOptions struct {
 
 	// Should the container be deleted if it already exists?
 	Recreate bool
+
+	// User to run the container as
+	Username string
 }
 
 // ToCreateContainerOptions transforms a DockerStartOptions into CreateContainerOptions
 func (opts *DockerStartOptions) ToCreateContainerOptions() *docker.CreateContainerOptions {
-	return &docker.CreateContainerOptions{
+	createOpts := &docker.CreateContainerOptions{
 		Name: opts.ContainerName(),
 		Config: &docker.Config{
 			Image:        opts.Repository + ":" + opts.Version,
@@ -94,9 +97,12 @@ func (opts *DockerStartOptions) ToCreateContainerOptions() *docker.CreateContain
 			Entrypoint:   opts.Entrypoint,
 			Cmd:          opts.Command,
 			Labels:       opts.Labels,
+			User:         opts.Username,
 		},
 		HostConfig: opts.ToHostConfig(),
 	}
+
+	return createOpts
 }
 
 // ToHostConfig transforms a DockerStartOptions into a HostConfig

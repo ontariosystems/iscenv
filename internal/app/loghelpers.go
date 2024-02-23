@@ -36,11 +36,14 @@ func InstanceLoggerArgs(instanceName, instanceID string) *log.Entry {
 
 // PluginLogger creates and returns a logger with references to the provided plugin information
 func PluginLogger(id, method, path string) *log.Entry {
-	return log.WithFields(log.Fields{
-		"pluginID":   id,
-		"method":     method,
-		"pluginPath": path,
-	})
+	f := log.Fields{
+		"pluginID": id,
+		"method":   method,
+	}
+	if path != "" {
+		f["pluginPath"] = path
+	}
+	return log.WithFields(f)
 }
 
 // DockerRepoLogger creates and returns a logger with a reference to the provided docker repository

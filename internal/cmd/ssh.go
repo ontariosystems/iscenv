@@ -28,15 +28,17 @@ import (
 )
 
 var sshCmd = &cobra.Command{
-	Use:   "ssh INSTANCE",
-	Short: "Connect to an instance",
-	Long:  "This command is deprecated in favor of exec.  Connect to an instance with docker exec.  This command remains ssh for backwards compatibility but no longer actually uses ssh.",
-	Run:   ssh,
+	Use:    "ssh INSTANCE",
+	Short:  "Connect to an instance",
+	Long:   "[DEPRECATED] Use `iscenv exec`.  Connect to an instance with docker exec.  This command remains ssh for backwards compatibility but no longer actually uses ssh.",
+	Hidden: true,
+	Run:    ssh,
 }
 
 func init() {
 	rootCmd.AddCommand(sshCmd)
 
+	addDockerUserFlags(sshCmd)
 	flags.AddFlagP(sshCmd, "command", "c", "", "Execute a command over SSH and exit")
 }
 
@@ -57,7 +59,8 @@ func ssh(cmd *cobra.Command, args []string) {
 		cmdArgs = defaultExecCommand
 	}
 
-	if err := app.DockerExec(instance, true, cmdArgs...); err != nil {
+	username := flags.GetString(cmd, userFlag)
+	if err := app.DockerExec(instance, true, username, cmdArgs...); err != nil {
 		if deerr, ok := err.(app.DockerExecError); ok {
 			logAndExit(app.ErrorLogger(ilog, err), "Failed to run docker exec")
 			os.Exit(deerr.ExitCode)

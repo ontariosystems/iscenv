@@ -32,14 +32,15 @@ var tailCmd = &cobra.Command{
 
 var tailFilenames = map[string]string{
 	"cconsole": "/ensemble/instances/docker/mgr/cconsole.log",
+	"messages": "/usr/irissys/mgr/messages.log",
 }
 
 func init() {
 	rootCmd.AddCommand(tailCmd)
-
+	addDockerUserFlags(tailCmd)
 	flags.AddFlagP(tailCmd, "follow", "f", false, "Follow log output")
 	flags.AddFlagP(tailCmd, "lines", "n", "all", "Output all lines; or use -n K to output the last K lines; or use +K to output the Kth and following lines")
-	flags.AddFlagP(tailCmd, "file", "l", "cconsole", "Filename to tail. `cconsole` is a magic filename, and the default")
+	flags.AddConfigFlagP(tailCmd, "file", "l", "cconsole", "Filename to tail. `cconsole` is a magic filename, and the default")
 }
 
 func tail(cmd *cobra.Command, args []string) {
@@ -52,7 +53,8 @@ func tail(cmd *cobra.Command, args []string) {
 		logAndExit(ilog.WithError(app.ErrNoSuchInstance), "Invalid arguments")
 	}
 
-	if err := app.DockerExec(instance, false, buildTailArgs(cmd, args)...); err != nil {
+	username := flags.GetString(cmd, userFlag)
+	if err := app.DockerExec(instance, false, username, buildTailArgs(cmd, args)...); err != nil {
 		logAndExit(app.ErrorLogger(ilog.WithField("tailFile", flags.GetString(cmd, "file")), err), "Failed to tail file")
 	}
 }

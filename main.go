@@ -63,7 +63,8 @@ func execInContainer(args []string) {
 		interactive = term.IsTerminal(int(os.Stdin.Fd()))
 	}
 
-	if err := app.DockerExec(instance, interactive, args...); err != nil {
+	username := os.Getenv("ISCENV_USER")
+	if err := app.DockerExec(instance, interactive, username, args...); err != nil {
 		if deerr, ok := err.(app.DockerExecError); ok {
 			os.Exit(deerr.ExitCode)
 		} else {

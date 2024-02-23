@@ -24,6 +24,7 @@ import (
 
 	"github.com/ontariosystems/iscenv/v3/internal/cmd/flags"
 	"github.com/ontariosystems/iscenv/v3/internal/plugins"
+	"github.com/ontariosystems/iscenv/v3/iscenv"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -38,9 +39,10 @@ const (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "iscenv",
-	Short: "Manage Docker-based ISC product environments",
-	Long:  "This tool allows the creation and management of Docker-based ISC product Environments.",
+	Use:     "iscenv",
+	Short:   "Manage Docker-based ISC product environments",
+	Long:    "This tool allows the creation and management of Docker-based ISC product Environments.",
+	Version: iscenv.Version,
 }
 
 // Execute runs the root functionality of the iscenv command
@@ -79,15 +81,17 @@ func init() {
 }
 
 func initConfig() {
-	if configPath := flags.GetString(rootCmd, "config"); configPath != "" {
-		viper.SetConfigFile(configPath)
-	}
-
 	viper.SetConfigName(defaultConfigFile)
 	viper.AddConfigPath(defaultConfigDir)
 	viper.AddConfigPath("./")
 
 	viper.AutomaticEnv()
+	_ = viper.BindPFlag("config", rootCmd.Flag("config"))
+
+	// if the config was set with CONFIG environment variable or --config flag
+	if c := viper.GetString("config"); c != "" {
+		viper.SetConfigFile(c)
+	}
 
 	if err := viper.ReadInConfig(); err != nil {
 		if !os.IsNotExist(err) && !configFileNotFound(err) {
