@@ -31,10 +31,10 @@ var unsafeClient = &http.Client{
 	// The transport is a duplicate of the DefaultTransport with the exception that certificate verification is disabled
 	Transport: &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
-		Dial: (&net.Dialer{
+		DialContext: (&net.Dialer{
 			Timeout:   30 * time.Second,
 			KeepAlive: 30 * time.Second,
-		}).Dial,
+		}).DialContext,
 		TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
 		TLSHandshakeTimeout: 10 * time.Second,
 	},
