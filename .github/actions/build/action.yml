@@ -1,11 +1,14 @@
 name: build
 description: builds iscenv
-
+inputs:
+  go-version:
+    description: "the version of golang"
+    default: '1.22'
 runs:
   using: composite
   steps:
     - uses: actions/setup-go@v5
       with:
-        go-version: '1.22'
+        go-version: ${{ inputs.go-version }}
     - run: make clean build
       shell: bash
