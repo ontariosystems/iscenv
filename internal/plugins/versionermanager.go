@@ -16,7 +16,10 @@ limitations under the License.
 
 package plugins
 
-import "github.com/ontariosystems/iscenv/v3/iscenv"
+import (
+	"context"
+	"github.com/ontariosystems/iscenv/v3/iscenv"
+)
 
 // NewVersionerManager creates and returns a PluginManager for a VersionerPlugin
 func NewVersionerManager(args PluginArgs) (*VersionerManager, error) {
@@ -40,8 +43,8 @@ type ActivatedVersioner struct {
 }
 
 // ActivatePlugins will activate the provided list of versioner plugins.
-func (lm *VersionerManager) ActivatePlugins(pluginsToActivate []string) ([]*ActivatedVersioner, error) {
-	plugins, err := lm.PluginManager.ActivatePlugins(pluginsToActivate)
+func (lm *VersionerManager) ActivatePlugins(ctx context.Context, pluginsToActivate []string) ([]*ActivatedVersioner, error) {
+	plugins, err := lm.PluginManager.ActivatePlugins(ctx, pluginsToActivate)
 	if err != nil {
 		return nil, err
 	}

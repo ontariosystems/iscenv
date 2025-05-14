@@ -91,7 +91,7 @@ func internalStart(cmd *cobra.Command, _ []string) {
 	startStatus.Update(app.StartPhaseInitPlugins, nil, "")
 
 	var lcs []*plugins.ActivatedLifecycler
-	defer getActivatedLifecyclers(pluginsToActivate, getPluginArgs(), &lcs)()
+	defer getActivatedLifecyclers(pluginsToActivate, getPluginArgs(), &lcs)(rootCtx)
 	for _, lc := range lcs {
 		startStatus.Update(app.StartPhaseInitPlugins, nil, lc.Id)
 	}

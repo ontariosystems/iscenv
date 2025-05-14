@@ -16,7 +16,10 @@ limitations under the License.
 
 package plugins
 
-import "github.com/ontariosystems/iscenv/v3/iscenv"
+import (
+	"context"
+	"github.com/ontariosystems/iscenv/v3/iscenv"
+)
 
 // NewLifecyclerManager creates and returns a PluginManager for a LifecyclerPlugin
 func NewLifecyclerManager(args PluginArgs) (*LifecyclerManager, error) {
@@ -40,8 +43,8 @@ type ActivatedLifecycler struct {
 }
 
 // ActivatePlugins will activate the provided list of lifecycler plugins.
-func (lm *LifecyclerManager) ActivatePlugins(pluginsToActivate []string) ([]*ActivatedLifecycler, error) {
-	plugins, err := lm.PluginManager.ActivatePlugins(pluginsToActivate)
+func (lm *LifecyclerManager) ActivatePlugins(ctx context.Context, pluginsToActivate []string) ([]*ActivatedLifecycler, error) {
+	plugins, err := lm.PluginManager.ActivatePlugins(ctx, pluginsToActivate)
 	if err != nil {
 		return nil, err
 	}

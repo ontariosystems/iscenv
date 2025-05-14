@@ -49,6 +49,7 @@ var (
 
 func init() {
 	rootCmd.AddCommand(startCmd)
+
 	if err := addLifecyclerFlagsIfNeeded(startCmd); err != nil {
 		logAndExit(app.ErrorLogger(log.StandardLogger(), err), app.ErrFailedToAddPluginFlags.Error())
 	}
@@ -82,7 +83,7 @@ func start(cmd *cobra.Command, args []string) {
 	version := getVersion(image, flags.GetString(cmd, "version"))
 
 	var lcs []*plugins.ActivatedLifecycler
-	defer getActivatedLifecyclers(getPluginsToActivate(rootCmd), getPluginArgs(), &lcs)()
+	defer getActivatedLifecyclers(getPluginsToActivate(rootCmd), getPluginArgs(), &lcs)(rootCtx)
 
 	environment, copies, volumes, ports, labels, err := getPluginConfig(lcs, cmd, version)
 	if err != nil {

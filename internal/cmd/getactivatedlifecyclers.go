@@ -17,6 +17,8 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
+
 	"github.com/ontariosystems/iscenv/v3/internal/app"
 	"github.com/ontariosystems/iscenv/v3/internal/plugins"
 	log "github.com/sirupsen/logrus"
@@ -24,14 +26,14 @@ import (
 
 // getActivatedLifecyclers will populate lifecyclers with activated lifecyclers plugins based on the provided list.
 // It returns the close function from the manager so you can easily defer the return.  It will log fatally on any errors
-func getActivatedLifecyclers(pluginsToActivate []string, args plugins.PluginArgs, lifecyclers *[]*plugins.ActivatedLifecycler) func() {
+func getActivatedLifecyclers(pluginsToActivate []string, args plugins.PluginArgs, lifecyclers *[]*plugins.ActivatedLifecycler) func(ctx context.Context) {
 	var err error
 	lcm, err := plugins.NewLifecyclerManager(args)
 	if err != nil {
 		logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to create lifecycle plugin manager")
 	}
 
-	*lifecyclers, err = lcm.ActivatePlugins(pluginsToActivate)
+	*lifecyclers, err = lcm.ActivatePlugins(rootCtx, pluginsToActivate)
 	if err != nil {
 		logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to activate lifecycle plugins")
 	}

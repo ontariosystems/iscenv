@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -45,9 +46,11 @@ var rootCmd = &cobra.Command{
 	Version: iscenv.Version,
 }
 
+var rootCtx = context.Background()
+
 // Execute runs the root functionality of the iscenv command
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
+	if err := rootCmd.ExecuteContext(rootCtx); err != nil {
 		logAndExit(log.WithError(err), "Failed to execute iscenv command")
 	}
 }
@@ -67,11 +70,11 @@ func init() {
 	// This flag is the image which will be used by default when creating new containers or listing versions.
 	flags.AddFlagComplex(rootCmd, true, true, "image", "", "", "the image to use when creating ISC product containers.  You will want to set a default for this in your configuration file (eg. mycompany/ensemble)")
 
-	// This allows us to set lifecycle plugins across the multiple commands to which they belong will still allowing versioners to use their own set of plugins
+	// This allows us to set lifecycle plugins across the multiple commands to which they belong, while still allowing versioners to use their own set of plugins
 	if !skipPluginActivation() {
 		// Logging can't have been configured yet, so we're using an empty PluginArgs
 		var lcs []*plugins.ActivatedLifecycler
-		defer getActivatedLifecyclers(nil, plugins.PluginArgs{}, &lcs)()
+		defer getActivatedLifecyclers(nil, plugins.PluginArgs{}, &lcs)(rootCtx)
 		available := make([]string, len(lcs))
 		for i, lc := range lcs {
 			available[i] = lc.Id

@@ -36,7 +36,7 @@ func init() {
 
 func rm(cmd *cobra.Command, args []string) {
 	var lcs []*plugins.ActivatedLifecycler
-	defer getActivatedLifecyclers(getPluginsToActivate(rootCmd), getPluginArgs(), &lcs)()
+	defer getActivatedLifecyclers(getPluginsToActivate(rootCmd), getPluginArgs(), &lcs)(rootCtx)
 
 	instances := getMultipleInstances(cmd, args)
 	for _, instanceName := range instances {

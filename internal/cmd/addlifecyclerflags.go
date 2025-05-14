@@ -35,7 +35,7 @@ func addLifecyclerFlagsIfNeeded(cmd *cobra.Command) error {
 func addLifecyclerFlags(cmd *cobra.Command) error {
 	// Logging can't have been configured yet, so we're using an empty PluginArgs
 	var lcs []*plugins.ActivatedLifecycler
-	defer getActivatedLifecyclers(nil, plugins.PluginArgs{}, &lcs)()
+	defer getActivatedLifecyclers(nil, plugins.PluginArgs{}, &lcs)(rootCtx)
 
 	available := make([]string, len(lcs))
 	for i, lc := range lcs {
