@@ -73,6 +73,7 @@ func init() {
 	addPrimaryCommandFlags(startCmd)
 	flags.AddConfigFlag(startCmd, "disable-primary-command", false, "This argument will disable the primary command for a single run.  This allows you to start the container with no primary command for an initialization run (while you load the primary command's source, for example) or to debug a broken primary command.")
 	flags.AddConfigFlag(startCmd, "time-zone", "UTC", "The time zone to set inside the container. This should be provided as a path relative to /usr/share/zoneinfo (e.g. America/Indianapolis or US/Eastern).  This only works if the container is running as root")
+	flags.AddConfigFlag(startCmd, "pull", false, "Always pull docker images")
 }
 
 func start(cmd *cobra.Command, args []string) {
@@ -80,7 +81,7 @@ func start(cmd *cobra.Command, args []string) {
 	ensureImage()
 
 	image := flags.GetString(rootCmd, "image")
-	version := getVersion(image, flags.GetString(cmd, "version"))
+	version := getVersion(image, flags.GetString(cmd, "version"), flags.GetBool(cmd, "pull"))
 
 	var lcs []*plugins.ActivatedLifecycler
 	defer getActivatedLifecyclers(getPluginsToActivate(rootCmd), getPluginArgs(), &lcs)(rootCtx)
@@ -280,7 +281,7 @@ func addPortMapping(portMap map[string]string, ports []string, prefix, host, con
 // If the requestedVersion is not empty, it will use that version.
 // If the requested version is empty, it will search for the latest local version for this supplied image.
 // It returns the actual version to be used.
-func getVersion(image, requestedVersion string) string {
+func getVersion(image, requestedVersion string, pullImage bool) string {
 	// Get the local versions (passing an empty plugins list means *only* local)
 	versions, err := getVersions(image, []string{})
 	if err != nil {
@@ -296,9 +297,13 @@ func getVersion(image, requestedVersion string) string {
 		version = versions.Latest().Version
 	}
 
-	if !versions.Exists(version) {
+	if verExists := versions.Exists(version); !verExists || pullImage {
 		vlog := app.DockerRepoLogger(image).WithField("version", version)
-		vlog.Info("Unable to find version locally, attempting to download.  This may take some time.")
+		m := "Pulling version."
+		if !verExists {
+			m = "Unable to find version locally, attempting to download."
+		}
+		vlog.Infof("%s This may take some time.", m)
 		if err := app.DockerPull(image, version); err != nil {
 			logAndExit(vlog.WithError(err), "Failed to pull image")
 		}
