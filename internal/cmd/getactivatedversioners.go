@@ -17,6 +17,8 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
+
 	"github.com/ontariosystems/iscenv/v3/internal/app"
 	"github.com/ontariosystems/iscenv/v3/internal/plugins"
 	log "github.com/sirupsen/logrus"
@@ -24,14 +26,14 @@ import (
 
 // getActivatedVersioners will populate versioners with activated versioners plugins based on the provided list.
 // It returns the close function from the manager so you can easily defer the return.  It will log fatally on any errors
-func getActivatedVersioners(pluginsToActivate []string, args plugins.PluginArgs, versioners *[]*plugins.ActivatedVersioner) func() {
+func getActivatedVersioners(pluginsToActivate []string, args plugins.PluginArgs, versioners *[]*plugins.ActivatedVersioner) func(ctx context.Context) {
 	var err error
 	vm, err := plugins.NewVersionerManager(getPluginArgs())
 	if err != nil {
 		logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to create version plugin manager")
 	}
 
-	*versioners, err = vm.ActivatePlugins(pluginsToActivate)
+	*versioners, err = vm.ActivatePlugins(rootCtx, pluginsToActivate)
 	if err != nil {
 		logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to activate version plugins")
 	}

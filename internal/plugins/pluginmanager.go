@@ -17,6 +17,7 @@ limitations under the License.
 package plugins
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -119,12 +120,12 @@ type ActivatedPlugin struct {
 	Plugin interface{}
 }
 
-// RPCClient is needed because the embedded struct is Client and it has a function called Client so it's client.Client() is ambiguous
-func (pc *PluginClient) RPCClient() (plugin.ClientProtocol, error) {
-	return pc.Client.Client()
+// RPCClient is needed because the embedded struct is Client, and it has a function called Client so it's client.Client() is ambiguous
+func (pc *PluginClient) RPCClient(ctx context.Context) (plugin.ClientProtocol, error) {
+	return pc.Client.Client(ctx)
 }
 
-// AvailablePlugins returns a slice of the keys of all of the discovered plugins
+// AvailablePlugins returns a slice of the keys of all the discovered plugins
 func (pm *PluginManager) AvailablePlugins() []string {
 	plugins := make([]string, len(pm.clients))
 	i := 0
@@ -139,7 +140,7 @@ func (pm *PluginManager) AvailablePlugins() []string {
 // ActivatePlugins will activate the provided list of plugins.  If the list is nil, it will activate all of the plugins.
 // It does this by traversing all of the plugins dispensing them to the rpc client and then returning an object containing the Id of the plugin, the path to the executable (if not internal) and the raw plugin interface{} which the caller will likely want to typecast into something more useful.
 // It will return the ActivatedPlugins in the same order as the pluginsToActivate and any error encountered
-func (pm *PluginManager) ActivatePlugins(pluginsToActivate []string) ([]*ActivatedPlugin, error) {
+func (pm *PluginManager) ActivatePlugins(ctx context.Context, pluginsToActivate []string) ([]*ActivatedPlugin, error) {
 	if pluginsToActivate == nil {
 		pluginsToActivate = pm.AvailablePlugins()
 	}
@@ -153,7 +154,7 @@ func (pm *PluginManager) ActivatePlugins(pluginsToActivate []string) ([]*Activat
 			return nil, fmt.Errorf("No such plugin, name: %s", key)
 		}
 
-		rpcClient, err := client.RPCClient()
+		rpcClient, err := client.RPCClient(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -174,8 +175,8 @@ func (pm *PluginManager) ActivatePlugins(pluginsToActivate []string) ([]*Activat
 }
 
 // Close will shut down all the PluginClients
-func (pm *PluginManager) Close() {
+func (pm *PluginManager) Close(ctx context.Context) {
 	for _, client := range pm.clients {
-		client.Kill()
+		client.Kill(ctx)
 	}
 }

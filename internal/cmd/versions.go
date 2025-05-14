@@ -48,7 +48,7 @@ func init() {
 	if err != nil {
 		logAndExit(log.WithError(err), "Failed to load version plugin manager during init")
 	}
-	defer vm.Close()
+	defer vm.Close(rootCtx)
 
 	rootCmd.AddCommand(versionsCmd)
 
@@ -93,7 +93,7 @@ func versions(cmd *cobra.Command, _ []string) {
 	w.Flush()
 }
 
-// Acquire all of the versions for the provided image using the appropriate plugin stack
+// Acquire all the versions for the provided image using the appropriate plugin stack
 func getVersions(image string, verPlugins []string) (iscenv.ISCVersions, error) {
 	// Get the baseline set of versions that are considered "local"
 	var versions iscenv.ISCVersions
@@ -101,7 +101,7 @@ func getVersions(image string, verPlugins []string) (iscenv.ISCVersions, error) 
 	var err error
 
 	log.WithField("plugin", baseVersionPlugin).Debug("Executing default version plugin")
-	defer getActivatedVersioners([]string{baseVersionPlugin}, getPluginArgs(), &versioners)()
+	defer getActivatedVersioners([]string{baseVersionPlugin}, getPluginArgs(), &versioners)(rootCtx)
 	if len(versioners) != 1 {
 		logAndExit(log.WithField("plugin", baseVersionPlugin), "Got more than 1 plugin entry for base version plugin, this should be impossible")
 	}
@@ -116,7 +116,7 @@ func getVersions(image string, verPlugins []string) (iscenv.ISCVersions, error) 
 	plog.WithField("count", len(versions)).Debug("Retrieved versions")
 
 	log.WithField("count", len(verPlugins)).Debug("Executing additional version plugin(s)")
-	defer getActivatedVersioners(verPlugins, getPluginArgs(), &versioners)()
+	defer getActivatedVersioners(verPlugins, getPluginArgs(), &versioners)(rootCtx)
 
 	for _, v := range versioners {
 		// Local was added to the plugins list which makes no sense but isn't worthy of an error (and we don't want to log because it will corrupt the table output of versions)
