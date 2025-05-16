@@ -41,14 +41,16 @@ func (evs ISCVersions) Less(i, j int) bool {
 	return cmp < 0
 }
 
-// AddIfMissing adds a version to the list if it isn't already included
-func (evs *ISCVersions) AddIfMissing(ev *ISCVersion) bool {
-	if !evs.Exists(ev.Version) {
-		*evs = append(*evs, ev)
-		return true
+// AddIfMissing adds versions to the list if it isn't already included
+func (evs *ISCVersions) AddIfMissing(versions ...*ISCVersion) (added bool) {
+	for _, ev := range versions {
+		if !evs.Exists(ev.Version) {
+			*evs = append(*evs, ev)
+			added = true
+		}
 	}
 
-	return false
+	return
 }
 
 // Latest finds and returns the last version in the list
