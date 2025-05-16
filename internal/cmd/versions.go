@@ -135,10 +135,16 @@ func getVersions(image string, verPlugins []string) (iscenv.ISCVersions, error) 
 
 		plog.WithField("count", len(plugVers)).Debug("Retrieved versions")
 		// TODO: Once some more plugins are implemented this will need to be changed to show what is local, what is remote, what is both but stale, etc.
-		for _, version := range plugVers {
-			versions.AddIfMissing(version)
-		}
+		versions.AddIfMissing(plugVers...)
 	}
+
+	// add any versions from current instances
+	instVers, err := app.GetInstancesVersions(image)
+	if err != nil {
+		return nil, err
+	}
+	versions.AddIfMissing(instVers...)
+
 	versions.Sort()
 	return versions, nil
 }

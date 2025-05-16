@@ -26,7 +26,10 @@ import (
 )
 
 // GetInstances will return a list of available ISC product Instances.
-// This function will panic in the case that it cannot list the containers from Docker.  Normally, these kinds of abrupt exits should be avoided outside of the actual executable command portions of the code.  However, in this case the extreme nature of the failure, the rarity of occurrence, and the large amount of error handling that would need to be added throughout the code without the exit seems to justify its existence.
+// This function will panic in the case that it cannot list the containers from Docker. Normally, these kinds of abrupt
+// exits should be avoided outside the actual executable command portions of the code. However, in this case the extreme
+// nature of the failure, the rarity of occurrence, and the large amount of error handling that would need to be added
+// throughout the code without the exit seems to justify its existence.
 func GetInstances() iscenv.ISCInstances {
 	containers, err := DockerClient.ListContainers(docker.ListContainersOptions{All: true})
 	if err != nil {
@@ -54,17 +57,19 @@ func GetInstances() iscenv.ISCInstances {
 				continue
 			}
 
-			var version string
+			var repo, tag string
 			if strings.Contains(apiContainer.Image, ":") {
-				version = strings.Split(apiContainer.Image, ":")[1]
+				parts := strings.Split(apiContainer.Image, ":")
+				repo, tag = parts[0], parts[1]
 			} else {
-				version = "Unknown"
+				repo, tag = "Unknown", "Unknown"
 			}
 
 			instance := &iscenv.ISCInstance{
 				ID:      container.ID,
 				Name:    strings.TrimPrefix(name, "/"+iscenv.ContainerPrefix),
-				Version: version,
+				Version: tag,
+				Image:   repo,
 				Status:  apiContainer.Status,
 				Created: apiContainer.Created,
 			}
@@ -77,7 +82,7 @@ func GetInstances() iscenv.ISCInstances {
 
 			for intPort, bindings := range container.HostConfig.PortBindings {
 				bp, err := GetDockerBindingPort(bindings)
-				// This should *never* happen but we should still handle it
+				// This should *never* happen, but we should still handle it
 				if err != nil {
 					ErrorLogger(ilog, err).WithField("internalPort", intPort).Error("Failed to parse port binding")
 					continue

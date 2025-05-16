@@ -137,8 +137,8 @@ func (pm *PluginManager) AvailablePlugins() []string {
 	return plugins
 }
 
-// ActivatePlugins will activate the provided list of plugins.  If the list is nil, it will activate all of the plugins.
-// It does this by traversing all of the plugins dispensing them to the rpc client and then returning an object containing the Id of the plugin, the path to the executable (if not internal) and the raw plugin interface{} which the caller will likely want to typecast into something more useful.
+// ActivatePlugins will activate the provided list of plugins.  If the list is nil, it will activate all the plugins.
+// It does this by traversing all the plugins dispensing them to the rpc client and then returning an object containing the id of the plugin, the path to the executable (if not internal) and the raw plugin interface{} which the caller will likely want to typecast into something more useful.
 // It will return the ActivatedPlugins in the same order as the pluginsToActivate and any error encountered
 func (pm *PluginManager) ActivatePlugins(ctx context.Context, pluginsToActivate []string) ([]*ActivatedPlugin, error) {
 	if pluginsToActivate == nil {
@@ -151,7 +151,7 @@ func (pm *PluginManager) ActivatePlugins(ctx context.Context, pluginsToActivate 
 
 		client, ok := pm.clients[key]
 		if !ok {
-			return nil, fmt.Errorf("No such plugin, name: %s", key)
+			return nil, fmt.Errorf("no such plugin, name: %s", key)
 		}
 
 		rpcClient, err := client.RPCClient(ctx)

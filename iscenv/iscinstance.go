@@ -25,6 +25,7 @@ type ISCInstance struct {
 	ID      string
 	Name    string
 	Version string
+	Image   string
 	Created int64
 	Status  string
 	Ports   ContainerPorts
