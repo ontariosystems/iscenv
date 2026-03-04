@@ -3,7 +3,7 @@ description: builds iscenv
 inputs:
   go-version:
     description: "the version of golang"
-    default: '1.25'
+    default: '1.26'
 runs:
   using: composite
   steps:
