@@ -104,6 +104,6 @@ func parseTime(ti interface{}) (time.Time, error) {
 	case string:
 		return time.Parse(time.RFC3339, t)
 	default:
-		return time.Time{}, fmt.Errorf("Remote time field was not a string")
+		return time.Time{}, fmt.Errorf("remote time field was not a string")
 	}
 }

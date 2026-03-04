@@ -96,7 +96,7 @@ func start(cmd *cobra.Command, args []string) {
 		if envRegex.MatchString(envvar) {
 			environment = append(environment, envvar)
 		} else {
-			result = multierror.Append(result, fmt.Errorf("Malformed environment variable: %s", envvar))
+			result = multierror.Append(result, fmt.Errorf("malformed environment variable: %s", envvar))
 		}
 	}
 
@@ -133,7 +133,7 @@ func start(cmd *cobra.Command, args []string) {
 		if err != nil {
 			logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to create temp file for disable-primary-command flag")
 		}
-		defer os.Remove(f.Name())
+		defer func() { _ = os.Remove(f.Name()) }()
 		if err := f.Close(); err != nil {
 			logAndExit(app.ErrorLogger(log.StandardLogger(), err), "Failed to close temp file for disable-primary-command flag")
 		}
@@ -206,7 +206,7 @@ func start(cmd *cobra.Command, args []string) {
 			if err := app.WaitForInstance(instance, time.Duration(flags.GetInt64(cmd, "timeout"))*time.Second); err != nil {
 				logAndExit(app.ErrorLogger(ilog, err), "Failed to start instance")
 			}
-			w.Close()
+			_ = w.Close()
 		}()
 
 		app.RelogStream(ilog, false, r)

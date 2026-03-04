@@ -62,10 +62,8 @@ func configureLogger() {
 	// go func to watch for os.Stdout to change
 	oldOut := os.Stdout
 	go func() {
-		for {
-			if oldOut != os.Stdout {
-				break
-			}
+		for oldOut == os.Stdout {
+			time.Sleep(100 * time.Millisecond)
 		}
 
 		log.SetOutput(os.Stdout)

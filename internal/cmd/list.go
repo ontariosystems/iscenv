@@ -45,7 +45,7 @@ func list(cmd *cobra.Command, _ []string) {
 	instances := app.GetInstances()
 	w := tabwriter.NewWriter(os.Stdout, 20, 1, 3, ' ', 0)
 	if !flags.GetBool(cmd, "quiet") {
-		fmt.Fprintln(w, "CONTAINER ID\tVERSION\tCREATED\tSTATUS\tSUPERSERVER\tWEB\tNAME")
+		_, _ = fmt.Fprintln(w, "CONTAINER ID\tVERSION\tCREATED\tSTATUS\tSUPERSERVER\tWEB\tNAME")
 	}
 
 	for _, instance := range instances {
@@ -54,7 +54,7 @@ func list(cmd *cobra.Command, _ []string) {
 			id = id[:12]
 		}
 		if !flags.GetBool(cmd, "quiet") {
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\t%d\t%s\n",
+			_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\t%d\t%s\n",
 				id,
 				instance.Version,
 				time.Unix(instance.Created, 0).Format(time.RFC3339),
@@ -67,5 +67,5 @@ func list(cmd *cobra.Command, _ []string) {
 		}
 
 	}
-	w.Flush()
+	_ = w.Flush()
 }

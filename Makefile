@@ -24,3 +24,7 @@ build: version | pkg
 .PHONY: build-external-test-plugin
 build-external-test-plugin: | pkg
 	$(call compile_plugin,linux,amd64,lifecycle,external-test-plugin)
+
+.PHONY: lint
+lint:
+	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest run

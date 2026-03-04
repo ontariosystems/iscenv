@@ -66,7 +66,7 @@ func getStartPhase() app.StartPhase {
 		log.WithError(err).Warn("Failed to query health check service")
 		return app.StartPhaseStartup
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	status := app.NewStartStatus()
 	dec := json.NewDecoder(resp.Body)

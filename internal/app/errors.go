@@ -22,13 +22,13 @@ import (
 
 var (
 	// ErrNoSuchInstance is an error used when the requested instance does not exist
-	ErrNoSuchInstance = errors.New("No such instance")
+	ErrNoSuchInstance = errors.New("no such instance")
 	// ErrSingleInstanceArg is an error used when the wrong number of instances is provided
-	ErrSingleInstanceArg = errors.New("Must provide a single instance as the first argument")
+	ErrSingleInstanceArg = errors.New("must provide a single instance as the first argument")
 	// ErrFailedToAddPluginFlags is an error used when adding flags for a plugin fails
-	ErrFailedToAddPluginFlags = errors.New("Failed to add flags from plugin")
+	ErrFailedToAddPluginFlags = errors.New("failed to add flags from plugin")
 	// ErrNotInContainer is an error used when the process is not executed in a container when it should be
-	ErrNotInContainer = errors.New("Not in Docker container")
+	ErrNotInContainer = errors.New("not in Docker container")
 	// ErrFailedEventPlugin is an error used when a plugin fails to execute properly
-	ErrFailedEventPlugin = errors.New("Failed to execute event plugin")
+	ErrFailedEventPlugin = errors.New("failed to execute event plugin")
 )

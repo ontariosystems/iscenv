@@ -64,9 +64,9 @@ type ISCInstanceManager struct {
 
 // Manage starts and manages the lifecycle of the instance associated with the ISCInstanceManager
 func (eim *ISCInstanceManager) Manage() error {
-	ilog := log.WithField("name", eim.Instance.Name)
+	ilog := log.WithField("name", eim.Name)
 	ilog.Debug("Starting instance")
-	if err := eim.Instance.Start(); err != nil {
+	if err := eim.Start(); err != nil {
 		return err
 	}
 
@@ -118,7 +118,7 @@ func (eim *ISCInstanceManager) execPrimaryProcess(l log.FieldLogger, c chan<- er
 	}
 
 	go func() {
-		defer w.Close()
+		defer func() { _ = w.Close() }()
 		err = cmd.Wait()
 	}()
 

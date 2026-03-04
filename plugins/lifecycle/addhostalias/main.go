@@ -161,7 +161,7 @@ func getInterfaceIP(iface string) (string, error) {
 	}
 
 	if ip == "" {
-		return "", fmt.Errorf("No addresses associated with docker0 device")
+		return "", fmt.Errorf("no addresses associated with docker0 device")
 	}
 
 	return ip, nil
@@ -173,7 +173,7 @@ func writeTmpHosts(ip string) (string, error) {
 		plog.WithError(err).Error("Failed to create temporary hosts file")
 		return "", err
 	}
-	defer tmp.Close()
+	defer func() { _ = tmp.Close() }()
 
 	l := plog.WithField("tempPath", tmp.Name()).WithField("hostsPath", hostsFile)
 	l.Debug("Writing temporary hosts file")
@@ -183,7 +183,7 @@ func writeTmpHosts(ip string) (string, error) {
 		l.WithError(err).Error("Failed to open hosts file")
 		return "", err
 	}
-	defer hosts.Close()
+	defer func() { _ = hosts.Close() }()
 
 	scanner := bufio.NewScanner(hosts)
 	for scanner.Scan() {
@@ -204,7 +204,7 @@ func writeTmpHosts(ip string) (string, error) {
 		return "", err
 	}
 
-	if _, err := tmp.WriteString(fmt.Sprintf("%s\t%s\n", ip, hostAlias)); err != nil {
+	if _, err := fmt.Fprintf(tmp, "%s\t%s\n", ip, hostAlias); err != nil {
 		return "", err
 	}
 
@@ -218,7 +218,7 @@ func replaceHosts(path string) error {
 		l.WithError(err).Error("Failed to open temporary hosts file")
 		return err
 	}
-	defer tmp.Close()
+	defer func() { _ = tmp.Close() }()
 
 	l.Debug("Replacing hosts file with updated version")
 
@@ -227,7 +227,7 @@ func replaceHosts(path string) error {
 		l.WithError(err).Error("Failed to recreate hosts file")
 		return err
 	}
-	defer hosts.Close()
+	defer func() { _ = hosts.Close() }()
 
 	if _, err := io.Copy(hosts, tmp); err != nil {
 		l.WithError(err).Error("Failed to copy new contents to hosts file; it is likely corrupt")

@@ -67,12 +67,12 @@ func (dtt *DockerTokenTransport) getToken(challenge *AuthorizationChallenge) (st
 	if err != nil {
 		return "", nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != 200 {
 		body, _ := io.ReadAll(resp.Body)
 		plog.WithField("status", resp.Status).WithField("body", string(body)).Error("Challenge request failed")
-		return "", nil, fmt.Errorf("Non-200 status code returned from token challenge request")
+		return "", nil, fmt.Errorf("non-200 status code returned from token challenge request")
 	}
 
 	token := struct {
@@ -81,11 +81,11 @@ func (dtt *DockerTokenTransport) getToken(challenge *AuthorizationChallenge) (st
 
 	decoder := json.NewDecoder(resp.Body)
 	if err = decoder.Decode(&token); err != nil {
-		return "", nil, fmt.Errorf("Could not decode token, error: %s", err)
+		return "", nil, fmt.Errorf("could not decode token, error: %s", err)
 	}
 
 	if token.Token == "" {
-		return "", nil, fmt.Errorf("Response did not contain a token")
+		return "", nil, fmt.Errorf("response did not contain a token")
 	}
 
 	return token.Token, resp, nil
@@ -94,12 +94,12 @@ func (dtt *DockerTokenTransport) getToken(challenge *AuthorizationChallenge) (st
 func (dtt *DockerTokenTransport) getChallengeRequest(challenge *AuthorizationChallenge) (*http.Request, error) {
 	realm, ok := challenge.Parameters["realm"]
 	if !ok {
-		return nil, fmt.Errorf("No realm specified for token auth challenge")
+		return nil, fmt.Errorf("no realm specified for token auth challenge")
 	}
 
 	realmURL, err := url.Parse(realm)
 	if err != nil {
-		return nil, fmt.Errorf("Could not parse realm URL, realm: %s", realm)
+		return nil, fmt.Errorf("could not parse realm URL, realm: %s", realm)
 	}
 
 	req, err := http.NewRequest("GET", realmURL.String(), nil)

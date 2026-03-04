@@ -70,7 +70,7 @@ func versions(cmd *cobra.Command, _ []string) {
 	// No more logging at this point
 	w := tabwriter.NewWriter(os.Stdout, 20, 1, 3, ' ', 0)
 	if !flags.GetBool(cmd, "quiet") {
-		fmt.Fprintln(w, "IMAGE ID\tVERSION\tCREATED\tSOURCE")
+		_, _ = fmt.Fprintln(w, "IMAGE ID\tVERSION\tCREATED\tSOURCE")
 	}
 
 	for _, version := range versions {
@@ -79,7 +79,7 @@ func versions(cmd *cobra.Command, _ []string) {
 			id = id[:12]
 		}
 		if !flags.GetBool(cmd, "quiet") {
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\n",
+			_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\n",
 				id,
 				version.Version,
 				time.Unix(version.Created, 0).Format(time.RFC3339),
@@ -90,7 +90,7 @@ func versions(cmd *cobra.Command, _ []string) {
 		}
 
 	}
-	w.Flush()
+	_ = w.Flush()
 }
 
 // Acquire all the versions for the provided image using the appropriate plugin stack

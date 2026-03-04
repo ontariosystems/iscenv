@@ -117,7 +117,7 @@ func getUserHome() (string, error) {
 	}
 
 	if current.HomeDir == "" {
-		return "", fmt.Errorf("Could not determine home directory, user: %s", current.Username)
+		return "", fmt.Errorf("could not determine home directory, user: %s", current.Username)
 	}
 
 	return current.HomeDir, nil

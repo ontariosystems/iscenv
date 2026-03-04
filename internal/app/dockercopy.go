@@ -18,10 +18,11 @@ package app
 
 import (
 	"archive/tar"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
 	"path/filepath"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/ontariosystems/iscenv/v3/iscenv"
@@ -32,13 +33,13 @@ func DockerCopy(instance *iscenv.ISCInstance, instancePath, localPath string) er
 	r, w := io.Pipe()
 
 	go func() {
-		defer w.Close()
+		defer func() { _ = w.Close() }()
 		if err := DockerClient.DownloadFromContainer(instance.ID, docker.DownloadFromContainerOptions{
 			Path:         instancePath,
 			OutputStream: w,
 		}); err != nil {
 			log.WithError(err).WithFields(log.Fields{"instance-id": instance.ID, "path": instancePath}).Error("Could not download file from container")
-			w.CloseWithError(err)
+			_ = w.CloseWithError(err)
 		}
 	}()
 
@@ -64,7 +65,7 @@ func DockerCopy(instance *iscenv.ISCInstance, instancePath, localPath string) er
 		if err != nil {
 			return err
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 
 		if _, err = io.Copy(file, t); err != nil {
 			return err

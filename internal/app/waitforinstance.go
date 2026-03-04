@@ -33,47 +33,49 @@ func WaitForInstance(instance *iscenv.ISCInstance, timeout time.Duration) error 
 	case err := <-c:
 		return err
 	case <-time.After(timeout):
-		return fmt.Errorf("Timed out waiting for instance initialization, %s", instance.Name)
+		return fmt.Errorf("timed out waiting for instance initialization, %s", instance.Name)
 	}
 }
 
 // WaitForInstanceForever ill wait for an instance until it is running
 func WaitForInstanceForever(instance *iscenv.ISCInstance, c chan error) {
 	for {
-		container, err := GetContainerForInstance(instance)
-		if err != nil {
-			c <- err
-		}
-
-		if !container.State.Running {
-			c <- fmt.Errorf("Container stopped while waiting for successful health check")
-		}
-
-		resp, err := http.Get(fmt.Sprintf("http://localhost:%d", instance.Ports.HealthCheck))
-		if err == nil {
-			defer resp.Body.Close()
-
-			if resp.StatusCode != 200 {
-				c <- fmt.Errorf("Failing status returned from health check, status: %s", resp.Status)
-				return
-			}
-
-			status := new(StartStatus)
-			if err := json.NewDecoder(resp.Body).Decode(status); err != nil {
+		func() {
+			container, err := GetContainerForInstance(instance)
+			if err != nil {
 				c <- err
-				return
 			}
 
-			if status.Phase > StartPhaseInstanceRunning {
-				c <- fmt.Errorf("Post-running status returned from health check, status: %d", status.Phase)
-				return
+			if !container.State.Running {
+				c <- fmt.Errorf("container stopped while waiting for successful health check")
 			}
 
-			if status.Phase == StartPhaseInstanceRunning {
-				c <- nil
-				return
+			resp, err := http.Get(fmt.Sprintf("http://localhost:%d", instance.Ports.HealthCheck))
+			if err == nil {
+				defer func() { _ = resp.Body.Close() }()
+
+				if resp.StatusCode != 200 {
+					c <- fmt.Errorf("failing status returned from health check, status: %s", resp.Status)
+					return
+				}
+
+				status := new(StartStatus)
+				if err := json.NewDecoder(resp.Body).Decode(status); err != nil {
+					c <- err
+					return
+				}
+
+				if status.Phase > StartPhaseInstanceRunning {
+					c <- fmt.Errorf("post-running status returned from health check, status: %d", status.Phase)
+					return
+				}
+
+				if status.Phase == StartPhaseInstanceRunning {
+					c <- nil
+					return
+				}
 			}
-		}
+		}()
 
 		time.Sleep(500 * time.Millisecond)
 	}

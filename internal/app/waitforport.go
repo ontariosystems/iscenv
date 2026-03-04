@@ -32,7 +32,7 @@ func WaitForPort(ip string, port string, timeout time.Duration) error {
 	case err := <-c:
 		return err
 	case <-time.After(timeout):
-		return fmt.Errorf("Timed out waiting for port, ip: %s, port: %s", ip, port)
+		return fmt.Errorf("timed out waiting for port, ip: %s, port: %s", ip, port)
 	}
 }
 
@@ -40,7 +40,7 @@ func WaitForPort(ip string, port string, timeout time.Duration) error {
 func WaitForPortForever(ip string, port string, c chan error) {
 	for {
 		if conn, err := net.Dial("tcp", ip+":"+port); err == nil {
-			conn.Close()
+			_ = conn.Close()
 			c <- nil
 			return
 		} else if !strings.HasSuffix(err.Error(), "connection refused") {

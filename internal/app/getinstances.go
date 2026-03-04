@@ -124,7 +124,7 @@ func getPorts(container *docker.Container) (ssPort, httpPort, hcPort iscenv.Cont
 	addMissing(iscenv.EnvInternalHC, hcPort, &missing)
 
 	if len(missing) > 0 {
-		err = fmt.Errorf("Missing port environment variables: %s", strings.Join(missing, ","))
+		err = fmt.Errorf("missing port environment variables: %s", strings.Join(missing, ","))
 	}
 
 	return

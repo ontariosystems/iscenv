@@ -131,17 +131,17 @@ func (*Plugin) BeforeInstance(state *isclib.Instance) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Unexpected HTTP Response, status: %s", resp.Status)
+		return fmt.Errorf("unexpected HTTP Response, status: %s", resp.Status)
 	}
 
 	keyFile, err := os.Create(keyPath)
 	if err != nil {
 		return err
 	}
-	defer keyFile.Close()
+	defer func() { _ = keyFile.Close() }()
 
 	if _, err = io.Copy(keyFile, resp.Body); err != nil {
 		return err

@@ -47,7 +47,7 @@ func (i ISCInstance) PortOffset() (offset int64, err error) {
 	}
 
 	if web != ss || web != hc {
-		return -1, fmt.Errorf("Port offsets do not match, instance: %s, SuperServer: %d, Web: %d, HealthCheck: %d", i.Name, ss, web, hc)
+		return -1, fmt.Errorf("port offsets do not match, instance: %s, SuperServer: %d, Web: %d, HealthCheck: %d", i.Name, ss, web, hc)
 	}
 
 	return ss, nil
@@ -55,7 +55,7 @@ func (i ISCInstance) PortOffset() (offset int64, err error) {
 
 func getOffset(instanceName, portType string, port, basePort ContainerPort) (int64, error) {
 	if port < basePort {
-		return 0, fmt.Errorf("%s port is outside of range, instance: %s, port: %d, basePort: %d\n", portType, instanceName, port, basePort)
+		return 0, fmt.Errorf("%s port is outside of range, instance: %s, port: %d, basePort: %d", portType, instanceName, port, basePort)
 	}
 
 	return int64(port - basePort), nil

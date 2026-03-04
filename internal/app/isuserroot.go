@@ -29,7 +29,7 @@ func IsUserRoot() error {
 	}
 
 	if user.Uid != "0" {
-		return fmt.Errorf("This command must be run as root (or with sudo)")
+		return fmt.Errorf("this command must be run as root (or with sudo)")
 	}
 
 	return nil

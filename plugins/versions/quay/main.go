@@ -77,7 +77,7 @@ func (*Plugin) Versions(image string) (iscenv.ISCVersions, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	dec := json.NewDecoder(resp.Body)
 	// The json is just a map of version to image id

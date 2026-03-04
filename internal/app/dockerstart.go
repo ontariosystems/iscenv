@@ -72,7 +72,7 @@ func DockerStart(opts DockerStartOptions) (id string, err error) {
 			if upo, err := instances.UsedPortOffset(opts.PortOffset); err != nil {
 				return "", err
 			} else if upo && !opts.DisablePortOffsetConflictCheck {
-				return "", fmt.Errorf("Port offset conflict, offset: %d", opts.PortOffset)
+				return "", fmt.Errorf("port offset conflict, offset: %d", opts.PortOffset)
 			}
 		}
 
@@ -137,7 +137,7 @@ func performCopies(id string, copies []string) error {
 
 	tarErrChan := make(chan error, 1)
 	go func() {
-		defer w.Close()
+		defer func() { _ = w.Close() }()
 		tarErrChan <- writeTar(copies, w)
 	}()
 
@@ -196,7 +196,7 @@ func writeTar(copies []string, writer io.Writer) error {
 			return err
 		}
 
-		sourceFile.Close()
+		_ = sourceFile.Close()
 	}
 
 	log.Debug("Closing tar writer")

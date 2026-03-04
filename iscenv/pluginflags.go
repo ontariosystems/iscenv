@@ -37,7 +37,7 @@ type PluginFlags struct {
 func (pf *PluginFlags) AddFlag(flag string, hasConfig bool, defaultValue interface{}, usage string) error {
 	flag = strings.ToLower(flag)
 	if _, ok := pf.Flags[flag]; ok {
-		return fmt.Errorf("Flag already exists, flag: %s", flag)
+		return fmt.Errorf("flag already exists, flag: %s", flag)
 	}
 
 	pf.Flags[flag] = NewPluginFlag(flag, hasConfig, defaultValue, usage)

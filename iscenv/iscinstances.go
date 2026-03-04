@@ -51,7 +51,7 @@ func (is ISCInstances) CalculatePortOffset(start int64) (int64, error) {
 		}
 	}
 
-	return -1, fmt.Errorf("Could not determine next port offset")
+	return -1, fmt.Errorf("could not determine next port offset")
 }
 
 // UsedPortOffset returns whether a port offset is currently in use

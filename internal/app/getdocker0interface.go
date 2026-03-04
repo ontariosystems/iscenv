@@ -43,7 +43,7 @@ func GetDocker0InterfaceIP() (string, error) {
 	}
 
 	if ip == "" {
-		return "", fmt.Errorf("No addresses associated with docker0 device")
+		return "", fmt.Errorf("no addresses associated with docker0 device")
 	}
 
 	return ip, nil

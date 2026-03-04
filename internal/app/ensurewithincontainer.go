@@ -34,7 +34,7 @@ func EnsureWithinContainer(commandName string) error {
 
 	proc1CGroupContents, err := os.ReadFile("/proc/1/cgroup")
 	if err != nil {
-		e := fmt.Errorf("Failed to determine environment")
+		e := fmt.Errorf("failed to determine environment")
 		log.WithField("path", "/proc/1/cgroup").WithError(err).Error(e)
 		return e
 	}
