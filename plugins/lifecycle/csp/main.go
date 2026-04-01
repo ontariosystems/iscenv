@@ -18,9 +18,10 @@ package cspplugin
 
 import (
 	"encoding/json"
-	"strconv"
+	"errors"
+	"fmt"
 
-	"github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 	"github.com/ontariosystems/iscenv/v3/internal/app"
 	"github.com/ontariosystems/iscenv/v3/iscenv"
 	"github.com/ontariosystems/isclib/v2"
@@ -30,6 +31,7 @@ import (
 const (
 	pluginKey       = "csp"
 	defaultBasePort = 8443
+	localName       = "iscenv"
 )
 
 var (
@@ -111,6 +113,7 @@ func (plugin *Plugin) AfterStart(instance *iscenv.ISCInstance) error {
 	name := getCSPContainerName(instance)
 	l = l.WithField("name", name)
 	l.Debug("Creating CSP container")
+
 	id, err := app.DockerStart(app.DockerStartOptions{
 		Name:                           name,
 		FullName:                       name,
@@ -121,14 +124,17 @@ func (plugin *Plugin) AfterStart(instance *iscenv.ISCInstance) error {
 		DisablePortOffsetConflictCheck: true,
 		Entrypoint:                     nil,
 		Command:                        nil,
-		Environment:                    nil,
-		Volumes:                        nil,
-		Copies:                         nil,
-		VolumesFrom:                    nil,
-		ContainerLinks:                 []string{"iscenv-" + instance.Name + ":" + "iscenv"},
-		Ports:                          []string{strconv.FormatInt(flags.Port+po, 10) + ":443"},
-		Labels:                         nil,
-		Recreate:                       false,
+		Environment: []string{
+			fmt.Sprintf("ISCENV_SERVER_ADDRESS=%s", localName),
+			fmt.Sprintf("ISCENV_SERVER_PORT=%d", instance.Ports.SuperServer),
+		},
+		Volumes:        nil,
+		Copies:         nil,
+		VolumesFrom:    nil,
+		ContainerLinks: []string{fmt.Sprintf("%s:%s", getContainerName(instance), localName)},
+		Ports:          []string{fmt.Sprintf("%d:443", flags.Port+po)},
+		Labels:         nil,
+		Recreate:       false,
 	})
 
 	if err != nil {
@@ -144,12 +150,11 @@ func (*Plugin) AfterStop(instance *iscenv.ISCInstance) error {
 	name := getCSPContainerName(instance)
 	l := plog.WithField("name", name)
 	if err := app.DockerClient.StopContainer(name, 30); err != nil {
-		switch err := err.(type) {
-		case *docker.NoSuchContainer:
-			l.WithError(err).Debug("No CSP container to stop")
-		default:
+		if _, ok := errors.AsType[*docker.NoSuchContainer](err); !ok {
 			return err
 		}
+
+		l.WithError(err).Debug("No CSP container to stop")
 	} else {
 		l.Info("Stopped CSP container")
 	}
@@ -161,12 +166,11 @@ func (*Plugin) BeforeRemove(instance *iscenv.ISCInstance) error {
 	name := getCSPContainerName(instance)
 	l := plog.WithField("name", name)
 	if err := app.DockerClient.RemoveContainer(docker.RemoveContainerOptions{ID: name, RemoveVolumes: true, Force: true}); err != nil {
-		switch err := err.(type) {
-		case *docker.NoSuchContainer:
-			l.WithError(err).Debug("No CSP container to remove")
-		default:
+		if _, ok := errors.AsType[*docker.NoSuchContainer](err); !ok {
 			return err
 		}
+
+		l.WithError(err).Debug("No CSP container to remove")
 	} else {
 		l.Info("Removed CSP container")
 	}
@@ -189,7 +193,11 @@ func (*Plugin) AfterInstance(state *isclib.Instance) error {
 }
 
 func getCSPContainerName(instance *iscenv.ISCInstance) string {
-	return "csp-iscenv-" + instance.Name
+	return fmt.Sprintf("csp-%s", getContainerName(instance))
+}
+
+func getContainerName(instance *iscenv.ISCInstance) string {
+	return fmt.Sprintf("%s%s", iscenv.ContainerPrefix, instance.Name)
 }
 
 func getFlagsForInstance(instance *iscenv.ISCInstance) (*Flags, error) {
