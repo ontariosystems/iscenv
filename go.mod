@@ -1,6 +1,6 @@
 module github.com/ontariosystems/iscenv/v3
 
-go 1.25.5
+go 1.26
 
 require (
 	github.com/creack/termios v0.0.0-20160714173321-88d0029e36a1
