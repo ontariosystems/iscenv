@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/ontariosystems/iscenv/v3/internal/app"
@@ -114,6 +115,11 @@ func (plugin *Plugin) AfterStart(instance *iscenv.ISCInstance) error {
 	l = l.WithField("name", name)
 	l.Debug("Creating CSP container")
 
+	superServerPort, err := getSuperServerPort(instance)
+	if err != nil {
+		return err
+	}
+
 	id, err := app.DockerStart(app.DockerStartOptions{
 		Name:                           name,
 		FullName:                       name,
@@ -126,7 +132,7 @@ func (plugin *Plugin) AfterStart(instance *iscenv.ISCInstance) error {
 		Command:                        nil,
 		Environment: []string{
 			fmt.Sprintf("ISCENV_SERVER_ADDRESS=%s", localName),
-			fmt.Sprintf("ISCENV_SERVER_PORT=%d", instance.Ports.SuperServer),
+			fmt.Sprintf("ISCENV_SERVER_PORT=%s", superServerPort),
 		},
 		Volumes:        nil,
 		Copies:         nil,
@@ -198,6 +204,20 @@ func getCSPContainerName(instance *iscenv.ISCInstance) string {
 
 func getContainerName(instance *iscenv.ISCInstance) string {
 	return fmt.Sprintf("%s%s", iscenv.ContainerPrefix, instance.Name)
+}
+
+func getSuperServerPort(instance *iscenv.ISCInstance) (string, error) {
+	container, err := app.GetContainerForInstance(instance)
+	if err != nil {
+		return "", err
+	}
+
+	for _, env := range container.Config.Env {
+		if strings.HasPrefix(env, iscenv.EnvInternalSS) {
+			return env[len(iscenv.EnvInternalSS)+1:], nil
+		}
+	}
+	return "", fmt.Errorf("could not find super server port environment variable for container %s", container.Name)
 }
 
 func getFlagsForInstance(instance *iscenv.ISCInstance) (*Flags, error) {
