@@ -93,7 +93,7 @@ func GetValueWithKey(key string) interface{} {
 	}
 
 	rv := reflect.ValueOf(flag.value)
-	if rv.Kind() != reflect.Ptr {
+	if rv.Kind() != reflect.Pointer {
 		panic("They value stored at this key is not a pointer (should not be possible), key: " + key)
 	}
 
