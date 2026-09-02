@@ -8,39 +8,26 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
-          ref: master
-      - run: git fetch --tags
-      - name: check branch
+          fetch-depth: 0
+      - name: Validate Branch and Tag
         run: |
-          br="$(git branch --contains $GITHUB_REF --format '%(refname:short)' master)"
-          if [[ "$br" != "master" ]]; then
-            echo "$br != master"
+          git fetch origin main
+
+          TAG_COMMIT=$(git rev-list -n 1 "$GITHUB_REF_NAME")
+
+          if ! git merge-base --is-ancestor "$TAG_COMMIT" origin/main; then
+            echo "Tag $GITHUB_REF_NAME is not contained in main"
             exit 1
           fi
       - name: Build
         uses: ./.github/actions/build
-      - name: release-notes
-        run: 'echo "$(git tag -l --format="%(contents:body)" $GITHUB_REF_NAME)" > RELEASE_NOTES'
-      - name: version
-        id: version
-        run: 'git describe --always --dirty $GITHUB_REF_NAME | sed "s/^v//"'
-      - uses: actions/create-release@v1
-        id: create_release
-        with:
-          draft: false
-          prerelease: false
-          release_name: ${{ steps.version.outputs.version }}
-          tag_name: ${{ github.ref }}
-          body_path: RELEASE_NOTES
+      - name: Create Release
         env:
           GITHUB_TOKEN: ${{ github.token }}
-      - uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./pkg/iscenv
-          asset_name: iscenv
-          asset_content_type: application/octet-stream
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          version=$(git describe --always --dirty $GITHUB_REF_NAME | sed "s/^v//")
+          echo "$(git tag -l --format="%(contents:body)" "${GITHUB_REF_NAME}")" > RELEASE_NOTES
+          gh release create "${version}" --notes-file RELEASE_NOTES
+          gh release upload "${version}" ./pkg/iscenv

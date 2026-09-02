@@ -3,11 +3,11 @@ description: builds iscenv
 inputs:
   go-version:
     description: "the version of golang"
-    default: '1.26'
+    default: '1.27'
 runs:
   using: composite
   steps:
-    - uses: actions/setup-go@v6
+    - uses: actions/setup-go@v7
       with:
         go-version: ${{ inputs.go-version }}
     - run: make clean build
