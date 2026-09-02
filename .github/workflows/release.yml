@@ -27,7 +27,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          version=$(git describe --always --dirty $GITHUB_REF_NAME | sed "s/^v//")
+          version=$(git describe --always $GITHUB_REF_NAME | sed "s/^v//")
           echo "$(git tag -l --format="%(contents:body)" "${GITHUB_REF_NAME}")" > RELEASE_NOTES
           gh release create "${version}" --notes-file RELEASE_NOTES
           gh release upload "${version}" ./pkg/iscenv
